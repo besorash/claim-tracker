@@ -1,6 +1,8 @@
 /// Schema & migration smoke tests (spec §17, Phase 1 verification).
 library;
 
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
@@ -115,6 +117,76 @@ void main() {
               as int;
       expect(after, 0, reason: 'history must cascade with the claim');
       await db.close();
+    });
+
+    test(
+      'v1 → v2 rebuild keeps claims and history, swaps the column',
+      () async {
+        final ffi.Database db = await openInMemory();
+        // Production runs migrations with foreign keys OFF (they are switched
+        // on in onOpen), so mirror that here.
+        await AppDatabase.migrate(db, from: 0, to: 1);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        await db.insert('claims', <String, Object?>{
+          'customer_name': 'عميل قديم',
+          'customer_mobile': '0501234567',
+          'accident_date_utc_ms': now,
+          'claim_number': 'CLM-OLD',
+          'customer_insurance_company': 'شركة أ',
+          'submitted_to_insurance_company': 'شركة ب',
+          'submission_date_utc_ms': now,
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+        await db.insert('status_history', <String, Object?>{
+          'claim_id': 1,
+          'previous_status_key': '',
+          'new_status_key': 'new',
+          'changed_at_utc_ms': now,
+        });
+
+        await AppDatabase.migrate(db, from: 1, to: 2);
+        await db.execute('PRAGMA foreign_keys = ON');
+
+        final List<String> columns = (await db.rawQuery(
+          'PRAGMA table_info(claims)',
+        )).map((r) => r['name']! as String).toList();
+        expect(columns, contains('liability_percent'));
+        expect(columns, isNot(contains('submitted_to_insurance_company')));
+
+        final claims = await db.query('claims');
+        expect(claims.single['claim_number'], 'CLM-OLD');
+        expect(claims.single['liability_percent'], isNull);
+        expect(
+          (await db.rawQuery('SELECT COUNT(*) c FROM status_history'))
+              .first['c'],
+          1,
+          reason: 'the rebuild must not cascade-delete history',
+        );
+
+        // Foreign keys still point at the rebuilt table: delete cascades.
+        await db.delete('claims', where: 'id = ?', whereArgs: [1]);
+        expect(
+          (await db.rawQuery('SELECT COUNT(*) c FROM status_history'))
+              .first['c'],
+          0,
+        );
+        await db.close();
+      },
+    );
+
+    test('v2 migration does not use ALTER TABLE DROP COLUMN', () async {
+      // Android 13 and older ship SQLite < 3.35, where DROP COLUMN is a
+      // syntax error and crashed the app on start. The host test SQLite is
+      // newer, so check the migration source itself.
+      final String source = File('lib/core/database/app_database.dart')
+          .readAsStringSync();
+      expect(
+        RegExp(r"execute\([^)]*DROP COLUMN", dotAll: true).hasMatch(source),
+        isFalse,
+      );
     });
 
     test('migration is idempotent when from == to', () async {

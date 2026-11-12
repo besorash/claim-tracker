@@ -27,11 +27,15 @@ class AppDatabase {
     final sqf.Database db = await sqf.openDatabase(
       path ?? '${await sqf.getDatabasesPath()}/claim_tracker.sqlite',
       version: kDatabaseVersion,
-      onConfigure: (sqf.Database db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      // Foreign keys are switched on only AFTER create/upgrade. Migrations
+      // that rebuild a table (v2) must run with them off, otherwise dropping
+      // the old `claims` table would cascade-delete history, reminders and
+      // attachments (SQLite's documented table-rebuild procedure).
+      onOpen: (sqf.Database db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
     return AppDatabase(db);
   }
@@ -84,12 +88,72 @@ class AppDatabase {
   }
 
   /// v2: the "submitted to insurer" column is replaced by the liability
-  /// percentage (0 / 50 / 100, nullable). The app has no user data yet, so the
-  /// old values are dropped rather than carried over.
+  /// percentage (0 / 50 / 100, nullable). The old values are dropped.
+  ///
+  /// `ALTER TABLE ... DROP COLUMN` needs SQLite 3.35+, which Android 13 and
+  /// older do not ship, so the table is rebuilt instead: create the new
+  /// shape, copy the rows, drop the old table, rename, recreate indexes.
+  /// Must run with foreign keys OFF (see [open]) so the drop does not cascade.
   static Future<void> _migrateToV2(sqf.Transaction txn) async {
-    await txn.execute('ALTER TABLE claims ADD COLUMN liability_percent REAL');
+    const String kept =
+        'id, customer_name, customer_mobile, customer_national_id, '
+        'customer_email, accident_number, accident_date_utc_ms, accident_city, '
+        'accident_type, vehicle_plate, claim_number, '
+        'customer_insurance_company, submission_date_utc_ms, '
+        'insurer_reference_number, claim_amount_sar, notes, status_key, '
+        'last_status_update_utc_ms, next_follow_up_utc_ms, reminder_enabled, '
+        'created_at_utc_ms, updated_at_utc_ms';
+
+    await txn.execute('''
+      CREATE TABLE claims_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT NOT NULL,
+        customer_mobile TEXT NOT NULL,
+        customer_national_id TEXT,
+        customer_email TEXT,
+        accident_number TEXT,
+        accident_date_utc_ms INTEGER NOT NULL,
+        accident_city TEXT,
+        accident_type TEXT,
+        vehicle_plate TEXT,
+        claim_number TEXT NOT NULL,
+        customer_insurance_company TEXT NOT NULL,
+        submission_date_utc_ms INTEGER NOT NULL,
+        insurer_reference_number TEXT,
+        claim_amount_sar REAL,
+        liability_percent REAL,
+        notes TEXT,
+        status_key TEXT NOT NULL DEFAULT 'new',
+        last_status_update_utc_ms INTEGER NOT NULL,
+        next_follow_up_utc_ms INTEGER,
+        reminder_enabled INTEGER NOT NULL DEFAULT 0,
+        created_at_utc_ms INTEGER NOT NULL,
+        updated_at_utc_ms INTEGER NOT NULL
+      )
+    ''');
+    await txn.execute('INSERT INTO claims_v2 ($kept) SELECT $kept FROM claims');
+    await txn.execute('DROP TABLE claims');
+    await txn.execute('ALTER TABLE claims_v2 RENAME TO claims');
+
+    // Dropping the old table dropped its indexes — recreate them.
     await txn.execute(
-      'ALTER TABLE claims DROP COLUMN submitted_to_insurance_company',
+      'CREATE INDEX idx_claims_claim_number ON claims(claim_number)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_customer_name ON claims(customer_name)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_customer_mobile ON claims(customer_mobile)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_accident_number ON claims(accident_number)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_insurer_ref ON claims(insurer_reference_number)',
+    );
+    await txn.execute('CREATE INDEX idx_claims_status ON claims(status_key)');
+    await txn.execute(
+      'CREATE INDEX idx_claims_next_follow_up ON claims(next_follow_up_utc_ms)',
     );
   }
 
