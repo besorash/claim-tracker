@@ -1,0 +1,205 @@
+{
+  "@@locale": "en",
+  "appName": "Claim Tracker",
+  "navDashboard": "Dashboard",
+  "navClaims": "Claims",
+  "navReminders": "Follow-ups",
+  "navSettings": "Settings",
+
+  "addClaim": "Add Claim",
+  "edit": "Edit",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "close": "Close",
+  "confirm": "Confirm",
+  "search": "Search",
+  "retry": "Retry",
+
+  "dashTotalClaims": "Total Claims",
+  "dashOpenClaims": "Open Claims",
+  "dashClosedClaims": "Closed Claims",
+  "dashDueToday": "Follow-up Due Today",
+  "dashOverdue": "Overdue Follow-ups",
+  "dashNeedsAttention": "Needs Your Attention",
+  "dashRecentlyUpdated": "Recently Updated Claims",
+  "dashEmpty": "No claims yet. Start by adding your first claim.",
+
+  "filterAll": "All",
+  "filterOpen": "Open",
+  "filterFollowUp": "Needs Follow-up",
+  "filterOverdue": "Overdue",
+  "filterClosed": "Closed",
+  "searchHint": "Claim number, customer name, mobile, accident number…",
+  "claimsEmpty": "No matching claims.",
+  "loadFailed": "Couldn't load the data right now. Please try again.",
+
+  "claimNumberLabel": "Claim Number",
+  "customerNameLabel": "Customer Name",
+  "mobileLabel": "Mobile Number",
+  "nationalIdLabel": "National ID",
+  "emailLabel": "Email Address",
+  "accidentNumberLabel": "Accident Number",
+  "accidentDateLabel": "Accident Date",
+  "cityLabel": "City",
+  "accidentTypeLabel": "Accident Type",
+  "vehiclePlateLabel": "Vehicle Plate",
+  "customerInsurerLabel": "Customer's Insurance Company",
+  "submittedToInsurerLabel": "Claim Submitted To",
+  "submissionDateLabel": "Submission Date",
+  "insurerRefLabel": "Insurer Reference Number",
+  "claimAmountLabel": "Claim Amount (SAR)",
+  "notesLabel": "Notes",
+  "statusLabel": "Current Status",
+  "lastStatusUpdateLabel": "Last Status Update",
+  "nextFollowUpLabel": "Next Follow-up",
+  "reminderEnabled": "Reminder Enabled",
+  "reminderDisabled": "Reminder Disabled",
+  "attachmentsLabel": "Attachments",
+  "attachmentsEmpty": "No attachments yet.",
+  "attachmentAdd": "Add Attachment",
+  "attachmentOpenFailed": "Could not open the file. Your device may have no app that opens this type.",
+  "attachmentMissing": "The file is missing on this device.",
+  "deleteAttachmentTitle": "Delete attachment?",
+  "deleteAttachmentBody": "The file will be permanently removed from the app's storage.",
+  "attachmentPickFailed": "Could not open the file picker.",
+  "attachmentStoreError": "Could not access the attachments storage.",
+  "claimNotFound": "Claim not found. It may have been deleted elsewhere.",
+  "statusHistoryLabel": "Status Change History",
+  "historyEmpty": "No changes recorded yet.",
+
+  "changeStatus": "Change Status",
+  "changeStatusTitle": "Change Claim Status",
+  "statusNoteHint": "Optional note about the change",
+  "setNextFollowUp": "Set next follow-up date",
+  "keepExistingFollowUp": "Keep current date",
+  "clearFollowUp": "Clear date",
+
+  "reminderTitle": "Claim Reminder",
+  "reminderWhenLabel": "Reminder Time",
+  "reminderSet": "Set reminder time",
+  "reminderDisable": "Disable reminder",
+  "reminderRepeatLabel": "Repeat",
+  "repeatNone": "Once",
+  "repeatEveryHours": "Every {n} hours",
+  "@repeatEveryHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "repeatEveryDays": "Every {n} days",
+  "@repeatEveryDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsPermissionTitle": "Allow Notifications",
+  "notificationsPermissionBody": "We need notification permission to remind you of claim follow-up times on schedule.",
+  "notificationsDeniedTitle": "Notifications Off",
+  "notificationsDeniedBody": "Enable app notifications in your device settings so follow-up reminders arrive on time.",
+
+  "requiredField": "This field is required",
+  "invalidNumber": "Enter a valid number",
+  "invalidDate": "Enter a valid date",
+  "futureFollowUpRequired": "The follow-up date must be in the future",
+
+  "deleteClaimTitle": "Delete claim?",
+  "deleteClaimBody": "The claim, its status history, reminders and attachments will be permanently deleted.",
+  "closeClaimTitle": "Close claim?",
+  "closeClaimBody": "Status will change to “Closed” and upcoming scheduled reminders will be cancelled.",
+
+  "settingsTheme": "Appearance",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "Follow System",
+  "settingsLanguage": "Language",
+  "languageEnglish": "English",
+  "languageArabic": "العربية (Arabic)",
+  "settingsNotifications": "Notifications & Reminders",
+  "notificationsStatusEnabled": "Notifications enabled",
+  "notificationsStatusDisabled": "Notifications disabled on this device",
+  "exactAlarmHint": "Reminders may not arrive at the exact time if Exact Alarms are restricted on your device.",
+  "notificationsRequestAction": "Request notification permission",
+  "notificationsOpenSettingsAction": "Open notification settings",
+
+  "exactAlarmsStatusGranted": "Exact alarms allowed — reminders arrive on time.",
+  "exactAlarmsStatusDenied": "Exact alarms not allowed — reminders may be delayed.",
+  "exactAlarmsRequestAction": "Allow exact alarms",
+  "exactAlarmExplainTitle": "Exact Alarms",
+  "exactAlarmExplainBody": "We need the exact-alarm permission so follow-up reminders arrive at their scheduled time, especially while the app is closed.",
+
+  "batteryStatusExempt": "App exempt from battery optimization — reminders work even when the app is closed.",
+  "batteryStatusNotExempt": "App not exempt from battery optimization — the battery policy may block reminders when the app is closed.",
+  "batteryRequestAction": "Request exemption",
+  "batteryExplainBody": "Some Android devices stop background apps to save battery, which blocks on-time reminders. Granting the exemption guarantees your reminder arrives even while the app is closed.",
+
+  "reminderScheduleFailed": "The time was saved, but scheduling the system reminder failed. Try again or check notification permissions.",
+  "reminderInexactWarning": "Exact alarms are not allowed — this reminder may arrive late. Enable the permission in settings so it arrives on time.",
+  "settingsBackupRestore": "Backup & Restore",
+  "settingsAbout": "About the App",
+  "appVersion": "Version {version} (build {build})",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+
+  "backupExportTitle": "Backup",
+  "backupRestoreTitle": "Restore Backup",
+  "backupPassphraseHint": "Encryption passphrase for the backup",
+  "backupExportAction": "Export encrypted backup",
+  "backupRestoreAction": "Restore from backup",
+  "backupPassphraseTitle": "Encryption Passphrase",
+  "backupPassphraseConfirmTitle": "Confirm Passphrase",
+  "backupPassphraseMismatch": "The passphrases do not match",
+  "backupExportedOk": "Backup created successfully.",
+  "backupWorking": "Working…",
+  "restoreWarningTitle": "Replace current data?",
+  "restoreWarningBody": "This replaces all current claims and attachments with the backup's contents. This cannot be undone after confirming.",
+  "restoredOk": "Restored: {claims} claim(s) and {attachments} attachment(s).",
+  "@restoredOk": {
+    "placeholders": {
+      "claims": {
+        "type": "int"
+      },
+      "attachments": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFailedWrongPassphrase": "The passphrase is wrong or the backup is corrupt. Your current data was not modified.",
+  "backupFailedCorrupt": "The backup is corrupt or incompatible with this version. Your current data was not modified.",
+  "backupExportFailed": "Could not create the backup.",
+  "backupRestoreFailed": "Restore failed. Your current data was not modified.",
+  "securityInfoTitle": "Privacy & Security",
+  "securityInfoBody": "All data is stored locally on your device only — nothing is sent over a network or used for analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure local storage complies with your employer's policies and Saudi PDPL privacy requirements where applicable.",
+
+  "statusNew": "New",
+  "statusSubmitted": "Claim Submitted",
+  "statusAwaitingReview": "Awaiting Review",
+  "statusAwaitingDocuments": "Awaiting Documents",
+  "statusProcessing": "In Processing",
+  "statusAwaitingApproval": "Awaiting Approval",
+  "statusApproved": "Approved",
+  "statusCompensated": "Compensated",
+  "statusRejected": "Rejected",
+  "statusClosed": "Closed",
+
+  "followUpOverdue": "Overdue",
+  "followUpToday": "Today",
+  "currencySar": "SAR",
+
+  "reminderChannelName": "Claim Reminders",
+  "reminderChannelDescription": "Follow-up alerts for motor-accident insurance claims",
+  "genericReminderTitle": "Claim Follow-up Reminder",
+  "genericReminderBody": "You have a claim that is due for follow-up now."
+}

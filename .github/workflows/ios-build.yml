@@ -1,0 +1,81 @@
+# Builds an UNSIGNED iOS .ipa on a GitHub-hosted macOS runner.
+#
+# The IPA is not signed: install it with your own signing/sideloading tool
+# (AltStore, Sideloadly, a signing service, ...), which re-signs it with your
+# Apple ID or certificate.
+#
+# Download: GitHub → Actions → "iOS build" → the latest run → Artifacts →
+# "ClaimTracker-unsigned-ipa".
+
+name: iOS build
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.9"
+
+jobs:
+  test:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # The widget/database tests use sqflite_common_ffi → needs libsqlite3.
+      - name: Install SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build-ios:
+    name: Build unsigned IPA
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build iOS app (no code signing)
+        run: >
+          flutter build ios --release --no-codesign
+          --build-number=${{ github.run_number }}
+
+      - name: Package Runner.app into an .ipa
+        run: |
+          set -euo pipefail
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry ClaimTracker-unsigned.ipa Payload
+          ls -lh ClaimTracker-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClaimTracker-unsigned-ipa
+          path: ClaimTracker-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

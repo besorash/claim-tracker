@@ -1,0 +1,14 @@
+# Flutter gen-l10n configuration.
+#
+# `app_en.arb` is the TEMPLATE (English = default language, spec §3.4 update:
+# bilingual EN/AR with English as the main language). Arabic translations live
+# in `app_ar.arb`. Generated output goes to `lib/generated/app_localizations.dart`
+# (explicit directory — no synthetic package), exposing `AppLocalizations` +
+# `AppLocalizations.delegate`.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+nullable-getter: false
+preferred-supported-locales:
+  - en
+  - ar
