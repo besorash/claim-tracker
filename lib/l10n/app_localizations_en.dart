@@ -129,6 +129,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accidentTypeLabel => 'Accident Type';
 
   @override
+  String get noPlate => 'No plate';
+
+  @override
   String get vehiclePlateLabel => 'Vehicle Plate';
 
   @override
@@ -203,10 +206,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvErrorDate =>
-      'Dates must look like 2026-03-31, or 2026-03-31 14:30 for follow-ups.';
+      'Unrecognized date. Use e.g. 2026-03-31 or 31/03/2026 (add 14:30 for a follow-up time).';
 
   @override
-  String get csvErrorStatus => 'Unknown status key.';
+  String get csvErrorStatus =>
+      'Unknown status. Use the status name shown in the app or its key.';
+
+  @override
+  String csvImportUnchanged(int count) {
+    return '$count unchanged.';
+  }
+
+  @override
+  String get csvNothingChanged =>
+      'Nothing changed: the file matches what is already in the app. If you edited it in WPS or Excel, make sure you saved the file before importing it.';
+
+  @override
+  String csvUnknownIdsAdded(int count) {
+    return '$count row(s) had an id not found in the app and were added as new claims.';
+  }
+
+  @override
+  String get csvNoRows => 'The file has no claims in it.';
+
+  @override
+  String get csvDatesMonthFirst =>
+      'Dates were read as month/day/year (11/4/2026 = 4 November 2026).';
+
+  @override
+  String csvExtraColumnsSaved(String columns) {
+    return 'Extra columns saved with the claims: $columns';
+  }
+
+  @override
+  String get extraFieldsLabel => 'Additional Fields';
 
   @override
   String get submissionDateLabel => 'Submission Date';

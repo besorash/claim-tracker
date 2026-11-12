@@ -11,6 +11,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../constants/app_constants.dart';
 import '../l10n/app_strings.dart';
+import '../models/claim.dart';
 import '../models/reminder.dart';
 import 'reconcile_plan.dart';
 import 'reminder_scheduler.dart';
@@ -106,6 +107,11 @@ class NotificationService implements ReminderScheduler {
 
   /// Set by the app shell to route notification taps to a claim (spec §10).
   static void Function(int claimId)? onClaimTapped;
+
+  /// Set by `main.dart` (and again after a restore) so a reminder can show
+  /// the claim's plate, customer name and claim number. When null, or when
+  /// the claim cannot be read, the generic reminder text is used.
+  static Future<Claim?> Function(int claimId)? claimLookup;
 
   // ---------------------------------------------------------------------------
   // Permissions (spec §10)
@@ -250,14 +256,44 @@ class NotificationService implements ReminderScheduler {
   /// Notification details for reminder posts. Monochrome small icon (Phase 1
   /// fix #5) — status-bar icons must be single-color on Android. Built per
   /// call so the channel name/description follow the active UI language.
-  static AndroidNotificationDetails get _details => AndroidNotificationDetails(
-    AppConstants.reminderChannelId,
-    S.reminderChannelName,
-    channelDescription: S.reminderChannelDescription,
-    importance: Importance.high,
-    priority: Priority.high,
-    icon: 'drawable/ic_stat_reminder',
-  );
+  ///
+  /// The notification stays until the follow-up is handled: it cannot be
+  /// swiped away ([ongoing]), tapping it opens the claim without removing it
+  /// ([autoCancel] off), and its full text shows on the lock screen
+  /// ([NotificationVisibility.public]). It is removed when the reminder is
+  /// cleared, rescheduled, or the claim is closed or deleted.
+  static AndroidNotificationDetails _details(String? bigText) =>
+      AndroidNotificationDetails(
+        AppConstants.reminderChannelId,
+        S.reminderChannelName,
+        channelDescription: S.reminderChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: 'drawable/ic_stat_reminder',
+        ongoing: true,
+        autoCancel: false,
+        visibility: NotificationVisibility.public,
+        category: AndroidNotificationCategory.reminder,
+        styleInformation: bigText == null
+            ? null
+            : BigTextStyleInformation(bigText),
+      );
+
+  /// Title and text for a claim's reminder: plate and customer name in the
+  /// title, claim number below; the expanded view lists all three.
+  static ({String title, String body, String bigText}) _contentFor(
+    Claim claim,
+  ) {
+    final String plate = claim.vehiclePlate ?? S.noPlate;
+    return (
+      title: '$plate • ${claim.customerName}',
+      body: '${S.claimNumberLabel}: ${claim.claimNumber}',
+      bigText:
+          '${S.vehiclePlateLabel}: $plate\n'
+          '${S.customerNameLabel}: ${claim.customerName}\n'
+          '${S.claimNumberLabel}: ${claim.claimNumber}',
+    );
+  }
 
   /// iOS presentation: show the banner/sound even when the app is in the
   /// foreground (iOS hides foreground notifications by default).
@@ -269,11 +305,12 @@ class NotificationService implements ReminderScheduler {
         presentSound: true,
       );
 
-  /// Schedules a one-time reminder at [reminder.fireAtUtcMs] in Asia/Riyadh.
-  /// Uses the generic notification text by default (spec §14: no customer
-  /// data on the lock screen). Returns the precision actually used so the UI
-  /// can warn when only an inexact alarm was possible (Phase 1 fix #1):
-  /// [AlarmPrecision.inexact] means the OS may defer delivery.
+  /// Schedules a one-time reminder at [reminder.fireAtUtcMs] in Asia/Riyadh,
+  /// showing the claim's plate, customer name and claim number (the user
+  /// asked for these on the lock screen too). Falls back to the generic text
+  /// when the claim cannot be read. Returns the precision actually used so
+  /// the UI can warn when only an inexact alarm was possible (Phase 1 fix
+  /// #1): [AlarmPrecision.inexact] means the OS may defer delivery.
   @override
   Future<AlarmPrecision> scheduleReminder(Reminder reminder) async {
     await init();
@@ -286,20 +323,30 @@ class NotificationService implements ReminderScheduler {
 
     final bool exactOk = await canScheduleExactAlarms();
 
+    Claim? claim;
+    try {
+      claim = await claimLookup?.call(reminder.claimId);
+    } on Object catch (_) {
+      claim = null;
+    }
+    final content = claim == null ? null : _contentFor(claim);
+
+    // A reminder that already fired stays on screen (ongoing); rescheduling
+    // replaces it, so remove the shown one first.
+    await _plugin.cancel(id: reminder.notificationId);
+
     await _plugin.zonedSchedule(
       id: reminder.notificationId,
       scheduledDate: fireLocal,
       notificationDetails: NotificationDetails(
-        android: _details,
+        android: _details(content?.bigText),
         iOS: _iosDetails,
       ),
       androidScheduleMode: exactOk
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle,
-      // Generic text avoids exposing customer data on the lock screen (spec §14);
-      // it follows the active UI language.
-      title: S.genericReminderTitle,
-      body: S.genericReminderBody,
+      title: content?.title ?? S.genericReminderTitle,
+      body: content?.body ?? S.genericReminderBody,
       payload: '${AppConstants.payloadClaimPrefix}${reminder.claimId}',
     );
     return exactOk ? AlarmPrecision.exact : AlarmPrecision.inexact;

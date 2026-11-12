@@ -91,18 +91,23 @@ class ClaimsRepository {
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
 
-  /// Claims whose status is not `مغلقة` (spec §5: only explicit closure counts
-  /// as closed; `تم التعويض` stays open until the user closes it).
+  /// Claims whose status is not a closed one (Closed, Approved, Rejected —
+  /// see [ClaimStatus.closedKeys]); Compensated stays open.
   Future<List<Claim>> open() => _byStatus(closedOnly: false);
 
   Future<List<Claim>> closed() => _byStatus(closedOnly: true);
 
+  /// `(?, ?, ...)` placeholder list for [ClaimStatus.closedKeys].
+  static String get _closedIn =>
+      '(${List<String>.filled(ClaimStatus.closedKeys.length, '?').join(', ')})';
+
   Future<List<Claim>> _byStatus({required bool closedOnly}) async {
-    final String key = ClaimStatus.closed.key;
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where: closedOnly ? 'status_key = ?' : 'status_key != ?',
-      whereArgs: [key],
+      where: closedOnly
+          ? 'status_key IN $_closedIn'
+          : 'status_key NOT IN $_closedIn',
+      whereArgs: ClaimStatus.closedKeys,
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
@@ -111,8 +116,9 @@ class ClaimsRepository {
   Future<List<Claim>> needsFollowUp() async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where: 'next_follow_up_utc_ms IS NOT NULL AND status_key != ?',
-      whereArgs: [ClaimStatus.closed.key],
+      where:
+          'next_follow_up_utc_ms IS NOT NULL AND status_key NOT IN $_closedIn',
+      whereArgs: ClaimStatus.closedKeys,
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
@@ -121,8 +127,9 @@ class ClaimsRepository {
   Future<List<Claim>> overdue(DateTime nowUtc) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where: 'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ? AND status_key != ?',
-      whereArgs: [nowUtc.millisecondsSinceEpoch, ClaimStatus.closed.key],
+      where:
+          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ? AND status_key NOT IN $_closedIn',
+      whereArgs: [nowUtc.millisecondsSinceEpoch, ...ClaimStatus.closedKeys],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
@@ -132,11 +139,12 @@ class ClaimsRepository {
   Future<List<Claim>> dueBetween(DateTime startUtc, DateTime endUtc) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where: 'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ? AND status_key != ?',
+      where:
+          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ? AND status_key NOT IN $_closedIn',
       whereArgs: [
         startUtc.millisecondsSinceEpoch,
         endUtc.millisecondsSinceEpoch,
-        ClaimStatus.closed.key,
+        ...ClaimStatus.closedKeys,
       ],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());

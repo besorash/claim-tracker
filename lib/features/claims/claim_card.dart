@@ -1,6 +1,9 @@
-/// Claim card for the claims list (spec §6) — a balanced subset: claim number,
-/// customer name, submitted-to insurer and status chip. Notes are never shown
-/// here; they belong to the details screen (spec §11).
+/// Claim card for the claims list (spec §6): vehicle plate first and large,
+/// then the customer name, then the claim number, plus the status chip and
+/// the follow-up badge. Notes are never shown here; they belong to the
+/// details screen (spec §11). When action callbacks are given, the card shows
+/// change-status / edit / delete buttons so the claim can be handled without
+/// opening it.
 library;
 
 import 'package:flutter/material.dart';
@@ -13,17 +16,31 @@ import '../../core/utils/time_utils.dart';
 import '../../shared/widgets/status_chip.dart';
 
 class ClaimCard extends StatelessWidget {
-  const ClaimCard({super.key, required this.claim});
+  const ClaimCard({
+    super.key,
+    required this.claim,
+    this.onChangeStatus,
+    this.onEdit,
+    this.onDelete,
+  });
 
   final Claim claim;
+  final VoidCallback? onChangeStatus;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  bool get _hasActions =>
+      onChangeStatus != null || onEdit != null || onDelete != null;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final bool closed = ClaimStatus.isClosedKey(claim.statusKey);
     final DateTime? followUp = claim.nextFollowUpUtcMs;
     final DateTime nowUtc = DateTime.now().toUtc();
     final bool showFollowUp = followUp != null && !closed;
     final bool overdue = showFollowUp && followUp.isBefore(nowUtc);
+    final String? plate = claim.vehiclePlate;
 
     return Card(
       child: Padding(
@@ -40,18 +57,37 @@ class ClaimCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        S.claimNumberLabel,
-                        style: Theme.of(context).textTheme.labelSmall
-                            ?.copyWith(color: AppTheme.muted(context)),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        claim.claimNumber,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        plate ?? S.noPlate,
+                        key: const Key('card-plate'),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: plate == null ? AppTheme.muted(context) : null,
+                        ),
                       ),
                       const SizedBox(height: 4),
-                      Text(claim.customerName),
+                      Text(
+                        claim.customerName,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            '${S.claimNumberLabel}: ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.muted(context),
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              claim.claimNumber,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -59,29 +95,6 @@ class ClaimCard extends StatelessWidget {
                 StatusChip(statusKey: claim.statusKey, compact: true),
               ],
             ),
-            if (claim.liabilityPercent != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    Icons.percent,
-                    size: 16,
-                    color: AppTheme.muted(context),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${S.liabilityPercentLabel}: '
-                      '${claim.liabilityPercent!.toStringAsFixed(0)}%',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppTheme.muted(context)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
             if (showFollowUp) ...[
               const SizedBox(height: 10),
               Container(
@@ -127,6 +140,40 @@ class ClaimCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+            if (_hasActions) ...[
+              const SizedBox(height: 6),
+              const Divider(height: 12),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 4,
+                children: [
+                  if (onChangeStatus != null)
+                    TextButton.icon(
+                      key: Key('card-status-${claim.id}'),
+                      onPressed: onChangeStatus,
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: Text(S.changeStatus),
+                    ),
+                  if (onEdit != null)
+                    TextButton.icon(
+                      key: Key('card-edit-${claim.id}'),
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: Text(S.edit),
+                    ),
+                  if (onDelete != null)
+                    TextButton.icon(
+                      key: Key('card-delete-${claim.id}'),
+                      onPressed: onDelete,
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                      ),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: Text(S.delete),
+                    ),
+                ],
               ),
             ],
           ],

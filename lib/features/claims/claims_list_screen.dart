@@ -21,6 +21,9 @@ class ClaimsListScreen extends StatefulWidget {
     required this.repo,
     this.initialFilter = ClaimsFilter.all,
     this.onClaimTapped,
+    this.onChangeStatus,
+    this.onEdit,
+    this.onDelete,
   });
 
   final ClaimsRepository repo;
@@ -30,6 +33,12 @@ class ClaimsListScreen extends StatefulWidget {
 
   /// Optional tap handler — the shell owns navigation to details (spec §4).
   final void Function(Claim claim)? onClaimTapped;
+
+  /// Card actions, run by the shell (it owns persistence and refreshes every
+  /// destination afterwards). Null hides that button on the cards.
+  final Future<void> Function(Claim claim)? onChangeStatus;
+  final Future<void> Function(Claim claim)? onEdit;
+  final Future<void> Function(Claim claim)? onDelete;
 
   @override
   State<ClaimsListScreen> createState() => _ClaimsListScreenState();
@@ -164,6 +173,15 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     );
   }
 
+  /// Wraps a card action so the list reloads once it finished.
+  VoidCallback? _action(Future<void> Function(Claim)? run, Claim claim) {
+    if (run == null) return null;
+    return () async {
+      await run(claim);
+      if (mounted) await _load();
+    };
+  }
+
   Widget _buildList(ThemeData theme) {
     if (_loadFailed) {
       return LoadErrorView(onRetry: _load);
@@ -204,7 +222,12 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
               onTap: widget.onClaimTapped == null
                   ? null
                   : () => widget.onClaimTapped!(c),
-              child: ClaimCard(claim: c),
+              child: ClaimCard(
+                claim: c,
+                onChangeStatus: _action(widget.onChangeStatus, c),
+                onEdit: _action(widget.onEdit, c),
+                onDelete: _action(widget.onDelete, c),
+              ),
             ),
           ],
         ],

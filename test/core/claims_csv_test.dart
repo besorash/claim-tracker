@@ -94,12 +94,20 @@ void main() {
       expect(ClaimsCsv.parse(csv).records, hasLength(1));
     });
 
-    test('a missing column is a header error that names it', () {
+    test('a missing required column is a header error that names it', () {
+      final String csv = ClaimsCsv.encode(<Claim>[_claim()])
+          .replaceFirst(',claim_number', '');
+      final CsvDocument doc = ClaimsCsv.parse(csv);
+      expect(doc.headerError, contains('claim_number'));
+      expect(doc.records, isEmpty);
+    });
+
+    test('a missing optional column is allowed', () {
       final String csv = ClaimsCsv.encode(<Claim>[_claim()])
           .replaceFirst(',liability_percent', '');
       final CsvDocument doc = ClaimsCsv.parse(csv);
-      expect(doc.headerError, contains('liability_percent'));
-      expect(doc.records, isEmpty);
+      expect(doc.headerError, isNull);
+      expect(doc.presentColumns, isNot(contains('liability_percent')));
     });
 
     test('an unterminated quote is reported as a readable header error', () {
@@ -184,6 +192,121 @@ void main() {
       );
       expect(row.errors, isEmpty);
       expect(row.id, isNull);
+    });
+  });
+
+  group('files edited in Excel / WPS', () {
+    const String required =
+        'customer_name,customer_mobile,accident_date,claim_number,'
+        'customer_insurance_company,submission_date';
+
+    CsvDocument parseOk(String csv) {
+      final CsvDocument doc = ClaimsCsv.parse(csv);
+      expect(doc.headerError, isNull);
+      return doc;
+    }
+
+    test('semicolon-separated files are read', () {
+      final CsvDocument doc = parseOk(
+        '${required.replaceAll(',', ';')}\r\n'
+        'سعد;0567897654;2026-11-05;CLM-1;GIG;2026-11-13\r\n',
+      );
+      final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
+      expect(row.errors, isEmpty);
+      expect(row.model!.claimNumber, 'CLM-1');
+    });
+
+    test('headers may be the Arabic field names, in any order', () {
+      final CsvDocument doc = parseOk(
+        'رقم المطالبة,اسم العميل,رقم الجوال,شركة تأمين العميل,'
+        'تاريخ الحادث,تاريخ تقديم المطالبة,الحالة\r\n'
+        'CLM-2,سعد,0567897654,GIG,2026-11-05,2026-11-13,approved\r\n',
+      );
+      final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
+      expect(row.errors, isEmpty);
+      expect(row.model!.customerName, 'سعد');
+      expect(row.model!.statusKey, 'approved');
+    });
+
+    test('status may be written as its English or Arabic name', () {
+      for (final String name in <String>['Approved', 'APPROVED']) {
+        final CsvDocument doc = parseOk(
+          '$required,status_key\r\n'
+          'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$name\r\n',
+        );
+        expect(
+          ClaimsCsv.toForm(doc.records.single).model!.statusKey,
+          'approved',
+        );
+      }
+    });
+
+    test('month-first slash dates (WPS) are read, and flagged as assumed', () {
+      final CsvDocument doc = parseOk(
+        '$required\r\n'
+        'سعد,567897654,11/5/2026,CLM-1,GIG,11/12/2026\r\n',
+      );
+      expect(doc.dateOrder, CsvDateOrder.monthFirst);
+      expect(doc.dateOrderAssumed, isTrue);
+      final CsvRowResult row = ClaimsCsv.toForm(
+        doc.records.single,
+        dateOrder: doc.dateOrder,
+      );
+      expect(row.errors, isEmpty);
+      expect(row.model!.accidentDateUtcMs, DateTime(2026, 11, 5).toUtc());
+      // The spreadsheet dropped the leading zero; it is put back.
+      expect(row.model!.customerMobile, '0567897654');
+    });
+
+    test('a day above 12 anywhere in the file switches to day-first', () {
+      final CsvDocument doc = parseOk(
+        '$required\r\n'
+        'سعد,0567897654,4/11/2026,CLM-1,GIG,31/10/2026\r\n',
+      );
+      expect(doc.dateOrder, CsvDateOrder.dayFirst);
+      expect(doc.dateOrderAssumed, isFalse);
+      final CsvRowResult row = ClaimsCsv.toForm(
+        doc.records.single,
+        dateOrder: doc.dateOrder,
+      );
+      expect(row.model!.accidentDateUtcMs, DateTime(2026, 11, 4).toUtc());
+    });
+
+    test('Arabic digits, thousands commas and 12-hour times are read', () {
+      final CsvDocument doc = parseOk(
+        '$required,claim_amount_sar,next_follow_up\r\n'
+        'سعد,٠٥٦٧٨٩٧٦٥٤,2026/11/05,CLM-1,GIG,2026-11-13,"1,500",'
+        '2026-11-20 2:30 PM\r\n',
+      );
+      final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
+      expect(row.errors, isEmpty);
+      expect(row.model!.customerMobile, '0567897654');
+      expect(row.model!.claimAmount, '1500');
+      expect(
+        row.model!.nextFollowUpUtcMs,
+        DateTime(2026, 11, 20, 14, 30).toUtc(),
+      );
+    });
+
+    test('unknown columns become extra fields; blank headers are ignored', () {
+      final CsvDocument doc = parseOk(
+        '$required,اسم المندوب,,Car Model\r\n'
+        'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,فهد,,Camry\r\n',
+      );
+      expect(doc.extraColumns, <String>['اسم المندوب', 'Car Model']);
+      expect(doc.records.single.extras, <String, String>{
+        'اسم المندوب': 'فهد',
+        'Car Model': 'Camry',
+      });
+    });
+
+    test('extra fields are exported as extra columns', () {
+      final Claim c = _claim().copyWith(
+        extraFields: <String, String>{'اسم المندوب': 'فهد'},
+      );
+      final List<String> lines = ClaimsCsv.encode(<Claim>[c]).split('\r\n');
+      expect(lines.first, endsWith(',اسم المندوب'));
+      expect(lines[1], endsWith(',فهد'));
     });
   });
 }

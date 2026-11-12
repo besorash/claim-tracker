@@ -50,6 +50,8 @@ Future<void> main() async {
   // (spec §10: reconcile/reschedule after app restart). Reconciliation must
   // never block startup, so failures are swallowed.
   await NotificationService.instance.init();
+  // Reminders show the claim's plate, customer name and claim number.
+  NotificationService.claimLookup = db.claimById;
   try {
     final List<Reminder> enabled = await reminders.allEnabled();
     await NotificationService.instance.reconcile(enabled);
@@ -147,6 +149,7 @@ class _ClaimTrackerAppState extends State<ClaimTrackerApp> {
 
   Future<void> reconnectAfterRestore() async {
     final AppDatabase fresh = await AppDatabase.open();
+    NotificationService.claimLookup = fresh.claimById;
     if (!mounted) return;
     setState(() {
       _db = fresh;

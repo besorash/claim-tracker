@@ -13,6 +13,10 @@ import '../core/security/backup_service.dart';
 import '../core/database/settings_repository.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/models/claim.dart';
+import '../core/notifications/notification_service.dart';
+import '../features/attachments/attachment_file_service.dart';
+import '../features/claims/claim_actions.dart';
+import '../features/claims/claim_dialogs.dart';
 import '../features/claims/claim_details_screen.dart';
 import '../features/claims/claim_form_screen.dart';
 import '../features/claims/claims_filter.dart';
@@ -153,6 +157,54 @@ class _HomeShellState extends State<HomeShell> {
     _bump();
   }
 
+  /// Claims-list card actions: the same flows as the details screen, without
+  /// opening the claim. Each one refreshes every destination afterwards.
+  Future<void> _cardChangeStatus(Claim claim) => showChangeStatusDialog(
+    context,
+    claim: claim,
+    onSave: (StatusChangeRequest request) async {
+      await ClaimActions(widget.db, NotificationService.instance).changeStatus(
+        claim.id,
+        request.statusKey,
+        note: request.note,
+        followUp: request.followUp,
+      );
+      if (mounted) _bump();
+    },
+  );
+
+  Future<void> _cardEdit(Claim claim) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ClaimFormScreen(
+          claim: claim,
+          onSaved: (Claim saved) => _claims.update(saved),
+        ),
+      ),
+    );
+    if (mounted) _bump();
+  }
+
+  Future<void> _cardDelete(Claim claim) async {
+    if (!await confirmDeleteClaim(context)) return;
+    // Resolve the attachment store so the claim's files are removed too; if
+    // it cannot be resolved the claim is still deleted (spec §12).
+    AttachmentFileService? files;
+    try {
+      files = AttachmentFileService(
+        baseDir: await const AttachmentFileService().storeDir(),
+      );
+    } on Object catch (_) {
+      files = null;
+    }
+    await ClaimActions(
+      widget.db,
+      NotificationService.instance,
+      files: files,
+    ).deleteClaim(claim.id);
+    if (mounted) _bump();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool showFab = _index == 0 || _index == 1;
@@ -175,6 +227,9 @@ class _HomeShellState extends State<HomeShell> {
               repo: _claims,
               initialFilter: _listFilter,
               onClaimTapped: (Claim c) => _openClaim(c.id),
+              onChangeStatus: _cardChangeStatus,
+              onEdit: _cardEdit,
+              onDelete: _cardDelete,
             ),
             // Reminders destination = the follow-up-filtered claims list — a
             // real, honest view of scheduled follow-ups (spec §3.3: no stubs).
@@ -183,6 +238,9 @@ class _HomeShellState extends State<HomeShell> {
               repo: _claims,
               initialFilter: ClaimsFilter.followUp,
               onClaimTapped: (Claim c) => _openClaim(c.id),
+              onChangeStatus: _cardChangeStatus,
+              onEdit: _cardEdit,
+              onDelete: _cardDelete,
             ),
             SettingsScreen(
               settingsRepo: widget.settingsRepo,

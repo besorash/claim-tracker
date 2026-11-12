@@ -2,6 +2,8 @@
 /// (spec §7). Timestamps are stored as UTC milliseconds since epoch.
 library;
 
+import 'dart:convert';
+
 class Claim {
   const Claim({
     required this.id,
@@ -21,6 +23,7 @@ class Claim {
     this.insurerReferenceNumber,
     this.claimAmountSar,
     this.notes,
+    this.extraFields = const <String, String>{},
     required this.statusKey,
     required this.lastStatusUpdateUtcMs,
     this.nextFollowUpUtcMs,
@@ -47,12 +50,17 @@ class Claim {
   // Claim (spec §7.3).
   final String claimNumber;
   final String customerInsuranceCompany;
+
   /// Liability share of the claim: 0, 50 or 100 (percent). Null = not set.
   final double? liabilityPercent;
   final DateTime submissionDateUtcMs;
   final String? insurerReferenceNumber;
   final double? claimAmountSar;
   final String? notes;
+
+  /// User-defined fields that came in as extra spreadsheet columns, keyed by
+  /// the column header. Stored as JSON; never null (empty = none).
+  final Map<String, String> extraFields;
 
   // Follow-up (spec §7.4).
   /// One of [ClaimStatus.all] keys — see `claim_status.dart`.
@@ -82,6 +90,7 @@ class Claim {
     String? insurerReferenceNumber,
     double? claimAmountSar,
     String? notes,
+    Map<String, String>? extraFields,
     String? statusKey,
     DateTime? lastStatusUpdateUtcMs,
     DateTime? nextFollowUpUtcMs,
@@ -109,6 +118,7 @@ class Claim {
           insurerReferenceNumber ?? this.insurerReferenceNumber,
       claimAmountSar: claimAmountSar ?? this.claimAmountSar,
       notes: notes ?? this.notes,
+      extraFields: extraFields ?? this.extraFields,
       statusKey: statusKey ?? this.statusKey,
       lastStatusUpdateUtcMs:
           lastStatusUpdateUtcMs ?? this.lastStatusUpdateUtcMs,
@@ -137,6 +147,7 @@ class Claim {
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
     'notes': notes,
+    'extra_fields': encodeExtraFields(extraFields),
     'status_key': statusKey,
     'last_status_update_utc_ms': lastStatusUpdateUtcMs.millisecondsSinceEpoch,
     'next_follow_up_utc_ms': nextFollowUpUtcMs?.millisecondsSinceEpoch,
@@ -169,6 +180,7 @@ class Claim {
     insurerReferenceNumber: row['insurer_reference_number'] as String?,
     claimAmountSar: (row['claim_amount_sar'] as num?)?.toDouble(),
     notes: row['notes'] as String?,
+    extraFields: decodeExtraFields(row['extra_fields'] as String?),
     statusKey: row['status_key']! as String,
     lastStatusUpdateUtcMs: DateTime.fromMillisecondsSinceEpoch(
       row['last_status_update_utc_ms']! as int,
@@ -190,4 +202,24 @@ class Claim {
       isUtc: true,
     ),
   );
+
+  /// JSON for the `extra_fields` column; null when there are none.
+  static String? encodeExtraFields(Map<String, String> fields) =>
+      fields.isEmpty ? null : jsonEncode(fields);
+
+  /// Reads the `extra_fields` column. A missing or unreadable value is
+  /// treated as "no extra fields" rather than failing the whole claim.
+  static Map<String, String> decodeExtraFields(String? raw) {
+    if (raw == null || raw.isEmpty) return const <String, String>{};
+    try {
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map) return const <String, String>{};
+      return <String, String>{
+        for (final MapEntry<dynamic, dynamic> e in decoded.entries)
+          e.key.toString(): e.value?.toString() ?? '',
+      };
+    } on FormatException {
+      return const <String, String>{};
+    }
+  }
 }

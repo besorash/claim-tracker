@@ -40,6 +40,7 @@ abstract final class S {
   // Common actions.
   static String get addClaim => _l.addClaim;
   static String get edit => _l.edit;
+  static String get noPlate => _l.noPlate;
   static String get save => _l.save;
   static String get cancel => _l.cancel;
   static String get delete => _l.delete;
@@ -106,6 +107,14 @@ abstract final class S {
   static String get csvErrorLiability => _l.csvErrorLiability;
   static String get csvErrorDate => _l.csvErrorDate;
   static String get csvErrorStatus => _l.csvErrorStatus;
+  static String csvImportUnchanged(int count) => _l.csvImportUnchanged(count);
+  static String get csvNothingChanged => _l.csvNothingChanged;
+  static String get csvNoRows => _l.csvNoRows;
+  static String csvUnknownIdsAdded(int count) => _l.csvUnknownIdsAdded(count);
+  static String get csvDatesMonthFirst => _l.csvDatesMonthFirst;
+  static String csvExtraColumnsSaved(String columns) =>
+      _l.csvExtraColumnsSaved(columns);
+  static String get extraFieldsLabel => _l.extraFieldsLabel;
   static String get submissionDateLabel => _l.submissionDateLabel;
   static String get insurerRefLabel => _l.insurerRefLabel;
   static String get claimAmountLabel => _l.claimAmountLabel;

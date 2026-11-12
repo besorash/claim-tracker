@@ -287,12 +287,23 @@ class _AttentionSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Text(
+                              item.claim.vehiclePlate ?? S.noPlate,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: item.claim.vehiclePlate == null
+                                    ? AppTheme.muted(context)
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
                               item.claim.customerName,
                               style: theme.textTheme.titleSmall,
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              item.claim.claimNumber,
+                              '${S.claimNumberLabel}: '
+                              '${item.claim.claimNumber}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppTheme.muted(context),
                               ),

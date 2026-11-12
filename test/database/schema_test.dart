@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
 import 'package:claim_tracker/core/database/app_database.dart';
+import 'package:claim_tracker/core/models/claim.dart';
 
 void main() {
   setUpAll(() {
@@ -176,6 +177,33 @@ void main() {
         await db.close();
       },
     );
+
+    test('v2 → v3 adds extra_fields and keeps existing claims', () async {
+      final ffi.Database db = await openInMemory();
+      await AppDatabase.migrate(db, from: 0, to: 2);
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+      await db.insert('claims', <String, Object?>{
+        'customer_name': 'عميل',
+        'customer_mobile': '0501234567',
+        'accident_date_utc_ms': now,
+        'claim_number': 'CLM-V2',
+        'customer_insurance_company': 'شركة أ',
+        'submission_date_utc_ms': now,
+        'status_key': 'new',
+        'last_status_update_utc_ms': now,
+        'created_at_utc_ms': now,
+        'updated_at_utc_ms': now,
+      });
+
+      await AppDatabase.migrate(db, from: 2, to: 3);
+
+      final List<Claim> claims = (await db.query('claims'))
+          .map(Claim.fromRow)
+          .toList();
+      expect(claims.single.claimNumber, 'CLM-V2');
+      expect(claims.single.extraFields, isEmpty);
+      await db.close();
+    });
 
     test('v2 migration does not use ALTER TABLE DROP COLUMN', () async {
       // Android 13 and older ship SQLite < 3.35, where DROP COLUMN is a

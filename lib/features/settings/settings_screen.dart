@@ -447,11 +447,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final List<String> shown = report.errors.take(10).toList();
       final String more = report.errors.length > shown.length ? '\n…' : '';
       message = '${S.csvImportRejected}\n${shown.join('\n')}$more';
+    } else if (report.isEmpty) {
+      message = S.csvNoRows;
+    } else if (report.created + report.updated == 0) {
+      message = S.csvNothingChanged;
     } else {
-      message = report.reminderFailures > 0
-          ? '${S.csvImportedOk(report.created, report.updated)}\n'
-                '${S.csvReminderWarning}'
-          : S.csvImportedOk(report.created, report.updated);
+      message = <String>[
+        S.csvImportedOk(report.created, report.updated),
+        if (report.unchanged > 0) S.csvImportUnchanged(report.unchanged),
+        if (report.unknownIdsAdded > 0)
+          S.csvUnknownIdsAdded(report.unknownIdsAdded),
+        if (report.extraColumns.isNotEmpty)
+          S.csvExtraColumnsSaved(report.extraColumns.join('، ')),
+        if (report.dateOrderAssumed) S.csvDatesMonthFirst,
+        if (report.reminderFailures > 0) S.csvReminderWarning,
+      ].join('\n');
     }
     setState(() {
       _busy = false;
@@ -469,8 +479,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Production picker seam: reads the chosen `.csv` as UTF-8 text. A file that
-  /// is not valid UTF-8 (e.g. Excel's default "CSV" on Arabic Windows) throws
+  /// Production picker seam: reads the chosen `.csv` as text — UTF-8, or
+  /// UTF-16 with a byte-order mark ("Unicode text" in Excel/WPS). Anything
+  /// else (e.g. Excel's default "CSV" on Arabic Windows) throws
   /// [_CsvEncodingError] so the user is asked to save it as "CSV UTF-8".
   static Future<String?> _defaultPickCsvText() async {
     final PlatformFile? picked = await FilePicker.pickFile(
@@ -480,11 +491,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (picked == null) return null;
     final Uint8List bytes = await picked.readAsBytes();
+    final String? utf16 = _decodeUtf16(bytes);
+    if (utf16 != null) return utf16;
     try {
       return utf8.decode(bytes);
     } on FormatException {
       throw const _CsvEncodingError();
     }
+  }
+
+  /// Decodes UTF-16 text that starts with a byte-order mark; null otherwise.
+  static String? _decodeUtf16(Uint8List bytes) {
+    if (bytes.length < 2) return null;
+    final bool little = bytes[0] == 0xFF && bytes[1] == 0xFE;
+    final bool big = bytes[0] == 0xFE && bytes[1] == 0xFF;
+    if (!little && !big) return null;
+    final List<int> units = <int>[];
+    for (int i = 2; i + 1 < bytes.length; i += 2) {
+      units.add(
+        little ? bytes[i] | bytes[i + 1] << 8 : bytes[i] << 8 | bytes[i + 1],
+      );
+    }
+    return String.fromCharCodes(units);
   }
 
   /// Notification seam — production singleton by default (spec §10).

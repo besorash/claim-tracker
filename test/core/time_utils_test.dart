@@ -141,14 +141,14 @@ void main() {
       AppLocale.locale = const Locale('en'); // restore default
     });
 
-    test('only مغلقة/Closed counts as closed (spec §5)', () {
+    test('Closed, Approved and Rejected count as closed; the rest open', () {
+      const Set<String> closed = <String>{'closed', 'approved', 'rejected'};
       for (final meta in ClaimStatus.all) {
-        if (meta.key == 'closed') {
-          expect(meta.isClosed, isTrue);
-        } else {
-          expect(meta.isClosed, isFalse, reason: meta.label);
-        }
+        expect(meta.isClosed, closed.contains(meta.key), reason: meta.key);
       }
+      expect(ClaimStatus.closedKeys.toSet(), closed);
+      // Compensated stays open until the user closes it.
+      expect(ClaimStatus.isClosedKey('compensated'), isFalse);
     });
 
     test('byKey throws on unknown keys', () {

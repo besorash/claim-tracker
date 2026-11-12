@@ -332,6 +332,12 @@ abstract class AppLocalizations {
   /// **'Accident Type'**
   String get accidentTypeLabel;
 
+  /// No description provided for @noPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'No plate'**
+  String get noPlate;
+
   /// No description provided for @vehiclePlateLabel.
   ///
   /// In en, this message translates to:
@@ -467,14 +473,56 @@ abstract class AppLocalizations {
   /// No description provided for @csvErrorDate.
   ///
   /// In en, this message translates to:
-  /// **'Dates must look like 2026-03-31, or 2026-03-31 14:30 for follow-ups.'**
+  /// **'Unrecognized date. Use e.g. 2026-03-31 or 31/03/2026 (add 14:30 for a follow-up time).'**
   String get csvErrorDate;
 
   /// No description provided for @csvErrorStatus.
   ///
   /// In en, this message translates to:
-  /// **'Unknown status key.'**
+  /// **'Unknown status. Use the status name shown in the app or its key.'**
   String get csvErrorStatus;
+
+  /// No description provided for @csvImportUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unchanged.'**
+  String csvImportUnchanged(int count);
+
+  /// No description provided for @csvNothingChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing changed: the file matches what is already in the app. If you edited it in WPS or Excel, make sure you saved the file before importing it.'**
+  String get csvNothingChanged;
+
+  /// No description provided for @csvUnknownIdsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} row(s) had an id not found in the app and were added as new claims.'**
+  String csvUnknownIdsAdded(int count);
+
+  /// No description provided for @csvNoRows.
+  ///
+  /// In en, this message translates to:
+  /// **'The file has no claims in it.'**
+  String get csvNoRows;
+
+  /// No description provided for @csvDatesMonthFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates were read as month/day/year (11/4/2026 = 4 November 2026).'**
+  String get csvDatesMonthFirst;
+
+  /// No description provided for @csvExtraColumnsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra columns saved with the claims: {columns}'**
+  String csvExtraColumnsSaved(String columns);
+
+  /// No description provided for @extraFieldsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Fields'**
+  String get extraFieldsLabel;
 
   /// No description provided for @submissionDateLabel.
   ///

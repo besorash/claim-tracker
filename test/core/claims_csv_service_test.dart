@@ -12,7 +12,6 @@ import 'package:claim_tracker/core/csv/claims_csv_service.dart';
 import 'package:claim_tracker/core/database/app_database.dart';
 import 'package:claim_tracker/core/database/claims_repository.dart';
 import 'package:claim_tracker/core/database/status_history_repository.dart';
-import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
 import 'package:claim_tracker/core/models/reminder.dart';
 import 'package:claim_tracker/core/notifications/notification_service.dart';
@@ -147,8 +146,92 @@ void main() {
 
     expect(report.hasErrors, isFalse);
     expect(report.created, 0);
-    expect(report.updated, 2);
+    expect(report.updated, 0);
+    expect(report.unchanged, 2);
     expect(await claims.all(), hasLength(2));
+  });
+
+  test('a file re-saved by WPS (slash dates, no leading zero, new row and '
+      'extra column) imports', () async {
+    final int id = await seed(name: 'بسام');
+    final Claim before = (await db.claimById(id))!;
+    // What WPS writes back: M/d/yyyy dates, mobile as a number, plus a row
+    // the user added and a column of their own.
+    final String file =
+        'id,customer_name,customer_mobile,accident_date,claim_number,'
+        'customer_insurance_company,submission_date,liability_percent,'
+        'status_key,اسم المندوب\r\n'
+        '$id,بسام,501234567,10/1/2026,${before.claimNumber},تعاونية,'
+        '10/5/2026,100,new,فهد\r\n'
+        ',سعد,567897654,11/5/2026,CLM-NEW,GIG,11/12/2026,50,'
+        'awaiting_review,\r\n';
+
+    final CsvImportReport report = await service.importText(file);
+
+    expect(report.hasErrors, isFalse, reason: report.errors.join('\n'));
+    expect(report.created, 1);
+    expect(report.updated, 1); // only the extra field changed
+    expect(report.extraColumns, <String>['اسم المندوب']);
+    expect(report.dateOrderAssumed, isTrue);
+
+    final Claim after = (await db.claimById(id))!;
+    expect(after.customerMobile, '0501234567');
+    expect(after.accidentDateUtcMs, before.accidentDateUtcMs);
+    expect(after.extraFields, <String, String>{'اسم المندوب': 'فهد'});
+
+    final Claim added = (await claims.all()).firstWhere(
+      (Claim c) => c.claimNumber == 'CLM-NEW',
+    );
+    expect(added.customerMobile, '0567897654');
+    expect(added.accidentDateUtcMs, DateTime(2026, 11, 5).toUtc());
+    expect(added.extraFields, isEmpty);
+
+    // Extra fields go back out as a column and survive another round trip.
+    final String again = await exportText();
+    expect(again.split('\r\n').first, endsWith(',اسم المندوب'));
+    final CsvImportReport second = await service.importText(again);
+    expect(second.unchanged, 2);
+  });
+
+  test('columns left out of the file keep the stored values', () async {
+    final int id = await seed(name: 'أحمد');
+    final Claim before = (await db.claimById(id))!;
+    final String file =
+        'id,customer_name,customer_mobile,accident_date,claim_number,'
+        'customer_insurance_company,submission_date\r\n'
+        '$id,أحمد الجديد,0501234567,2026-10-01,${before.claimNumber},'
+        'تعاونية,2026-10-05\r\n';
+
+    final CsvImportReport report = await service.importText(file);
+
+    expect(report.hasErrors, isFalse, reason: report.errors.join('\n'));
+    final Claim after = (await db.claimById(id))!;
+    expect(after.customerName, 'أحمد الجديد');
+    expect(after.liabilityPercent, 100); // not in the file → kept
+    expect(after.statusKey, before.statusKey);
+  });
+
+  test('an empty extra-field cell removes that field', () async {
+    final int id = await seed(name: 'أحمد');
+    await claims.update(
+      (await db.claimById(id))!.copyWith(
+        extraFields: <String, String>{'اسم المندوب': 'فهد', 'فرع': 'الخبر'},
+      ),
+    );
+    final String csv = setCell(await exportText(), 'اسم المندوب', '');
+
+    await service.importText(csv);
+
+    expect((await db.claimById(id))!.extraFields, <String, String>{
+      'فرع': 'الخبر',
+    });
+  });
+
+  test('a file with only a header reports no rows', () async {
+    final String header = (await exportText()).split('\r\n').first;
+    final CsvImportReport report = await service.importText('$header\r\n');
+    expect(report.hasErrors, isFalse);
+    expect(report.isEmpty, isTrue);
   });
 
   test(
@@ -185,16 +268,24 @@ void main() {
     expect(await claims.all(), hasLength(2));
   });
 
-  test('an unknown id blocks the whole import and writes nothing', () async {
+  test('a row whose id the app does not have is added as new', () async {
     final int id = await seed(name: 'أحمد');
-    final String csv = setCell(await exportText(), 'id', '999999');
+    final String csv = setCell(
+      setCell(await exportText(), 'id', '999999'),
+      'customer_name',
+      'سالم',
+    );
 
     final CsvImportReport report = await service.importText(csv);
 
-    expect(report.hasErrors, isTrue);
-    expect(report.errors.single, contains(S.csvErrorUnknownId));
-    expect(report.created + report.updated, 0);
+    expect(report.hasErrors, isFalse, reason: report.errors.join('\n'));
+    expect(report.created, 1);
+    expect(report.unknownIdsAdded, 1);
     expect((await db.claimById(id))!.customerName, 'أحمد');
+    final List<Claim> all = await claims.all();
+    expect(all, hasLength(2));
+    expect(all.where((Claim c) => c.customerName == 'سالم'), hasLength(1));
+    expect(await db.claimById(999999), isNull); // gets a fresh id
   });
 
   test('one bad row among good rows writes nothing at all', () async {

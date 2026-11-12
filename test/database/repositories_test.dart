@@ -106,19 +106,49 @@ void main() {
     });
 
     test(
-      'open/closed split follows spec §5 (only مغلقة counts closed)',
+      'approved, rejected and closed are closed; compensated stays open',
       () async {
-        final int a = await claims.create(sampleClaim(claimNumber: 'A'));
-        final int b = await claims.create(sampleClaim(claimNumber: 'B'));
-        // A -> compensated (still open per spec), B -> closed.
-        await history.changeStatus(claimId: a, newStatusKey: 'compensated');
-        await history.changeStatus(claimId: b, newStatusKey: 'closed');
+        final Map<String, int> ids = <String, int>{};
+        for (final String key in <String>[
+          'compensated',
+          'closed',
+          'approved',
+          'rejected',
+        ]) {
+          final int id = await claims.create(sampleClaim(claimNumber: key));
+          await history.changeStatus(claimId: id, newStatusKey: key);
+          // A follow-up date on every claim: closed ones must not show up in
+          // the follow-up or overdue lists either.
+          final Claim c = (await db.claimById(id))!;
+          await claims.update(
+            c.copyWith(
+              nextFollowUpUtcMs: DateTime.now().toUtc().subtract(
+                const Duration(hours: 1),
+              ),
+            ),
+          );
+          ids[key] = id;
+        }
 
-        final List<Claim> open = await claims.open();
-        final List<Claim> closed = await claims.closed();
-        expect(open.map((c) => c.id), contains(a));
-        expect(open.map((c) => c.id), isNot(contains(b)));
-        expect(closed.map((c) => c.id), contains(b));
+        final Set<int> open = (await claims.open()).map((c) => c.id).toSet();
+        final Set<int> closed = (await claims.closed())
+            .map((c) => c.id)
+            .toSet();
+        final Set<int> followUp = (await claims.needsFollowUp())
+            .map((c) => c.id)
+            .toSet();
+        final Set<int> overdue = (await claims.overdue(DateTime.now().toUtc()))
+            .map((c) => c.id)
+            .toSet();
+
+        expect(open, <int>{ids['compensated']!});
+        expect(closed, <int>{
+          ids['closed']!,
+          ids['approved']!,
+          ids['rejected']!,
+        });
+        expect(followUp, <int>{ids['compensated']!});
+        expect(overdue, <int>{ids['compensated']!});
       },
     );
 

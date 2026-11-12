@@ -59,8 +59,10 @@ void main() {
     String name = 'Ø¹Ù…ÙŠÙ„',
     String mobile = '0501234567',
     String claimNumber = 'CLM-900',
+    String? plate,
   }) => Claim(
     id: 0,
+    vehiclePlate: plate,
     customerName: name,
     customerMobile: mobile,
     accidentDateUtcMs: DateTime.utc(2026, 10, 1),
@@ -237,6 +239,7 @@ void main() {
             followUpUtcMs: now.subtract(const Duration(hours: 24)),
             name: 'Ø¹Ù…ÙŠÙ„ Ø£',
             claimNumber: 'CLM-200',
+            plate: '1234 ABC',
           ),
         );
 
@@ -247,13 +250,26 @@ void main() {
         );
 
         final Finder cardA = find.byKey(Key('card-$idA'));
-        expect(find.text(S.claimNumberLabel), findsOneWidget); // label shown
-        expect(find.text('CLM-200'), findsOneWidget); // value shown
-        expect(find.text('Ø¹Ù…ÙŠÙ„ Ø£'), findsOneWidget); // customer name
+        // Plate first, then the customer name, then the claim number.
+        final Finder plate = find.text('1234 ABC');
+        final Finder name = find.text('Ø¹Ù…ÙŠÙ„ Ø£');
+        final Finder number = find.text('CLM-200');
+        expect(plate, findsOneWidget);
+        expect(name, findsOneWidget);
+        expect(number, findsOneWidget);
+        expect(find.text('${S.claimNumberLabel}: '), findsOneWidget);
         expect(
-          find.text('${S.liabilityPercentLabel}: 50%'),
-          findsOneWidget,
-        ); // liability share
+          tester.getTopLeft(plate).dy,
+          lessThan(tester.getTopLeft(name).dy),
+        );
+        expect(
+          tester.getTopLeft(name).dy,
+          lessThan(tester.getTopLeft(number).dy),
+        );
+        // Liability share is no longer on the card.
+        expect(find.text('${S.liabilityPercentLabel}: 50%'), findsNothing);
+        // Without action callbacks there are no card buttons.
+        expect(find.byKey(Key('card-edit-$idA')), findsNothing);
         expect(
           find.descendant(of: cardA, matching: find.byType(StatusChip)),
           findsOneWidget,
@@ -263,6 +279,47 @@ void main() {
           find.descendant(of: cardA, matching: find.text(S.notesLabel)),
           findsNothing,
         );
+      });
+    },
+  );
+
+  testWidgets('a claim without a plate shows the no-plate placeholder', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      await create(seed(statusKey: 'new'));
+      await tester.pumpWidget(_harness(claims));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+      expect(find.text(S.noPlate), findsOneWidget);
+    });
+  });
+
+  testWidgets(
+    'card buttons run change-status, edit and delete for that claim',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await create(seed(statusKey: 'new'));
+        final List<String> calls = <String>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ClaimsListScreen(
+              repo: claims,
+              onChangeStatus: (Claim c) async => calls.add('status-${c.id}'),
+              onEdit: (Claim c) async => calls.add('edit-${c.id}'),
+              onDelete: (Claim c) async => calls.add('delete-${c.id}'),
+            ),
+          ),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 1,
+        );
+
+        for (final String action in <String>['status', 'edit', 'delete']) {
+          await tester.tap(find.byKey(Key('card-$action-$id')));
+          await tester.pump();
+        }
+        expect(calls, <String>['status-$id', 'edit-$id', 'delete-$id']);
       });
     },
   );

@@ -433,7 +433,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                   child: Text('${option.toStringAsFixed(0)}%'),
                 ),
             ],
-            onChanged: (double? v) => setState(() => _model.liabilityPercent = v),
+            onChanged: (double? v) =>
+                setState(() => _model.liabilityPercent = v),
           ),
         ),
       ),

@@ -31,6 +31,7 @@ import '../../shared/widgets/status_chip.dart';
 import '../attachments/attachment_file_service.dart';
 import '../attachments/attachment_picker_seam.dart';
 import 'claim_actions.dart';
+import 'claim_dialogs.dart';
 import 'claim_form_screen.dart';
 
 class ClaimDetailsScreen extends StatefulWidget {
@@ -186,149 +187,21 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     await _load();
   }
 
-  /// Status-change dialog (spec §9): new status + optional note + an explicit
-  /// follow-up decision (keep / set / clear). Confirm runs the atomic
-  /// ClaimActions flow, then refreshes.
-  Future<void> _changeStatus() async {
-    final Claim current = _claim!;
-    String selectedKey = current.statusKey;
-    String note = '';
-    int followUpChoice = 0; // 0 = keep, 1 = set new, 2 = clear
-    DateTime? fireAtUtc;
-
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => StatefulBuilder(
-        builder: (BuildContext ctx, StateSetter setDialogState) => AlertDialog(
-          title: Text(S.changeStatusTitle),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DropdownButton<String>(
-                  value: selectedKey,
-                  isExpanded: true,
-                  items: ClaimStatus.all
-                      .map(
-                        (meta) => DropdownMenuItem<String>(
-                          value: meta.key,
-                          child: Text(meta.label),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (String? key) {
-                    if (key != null) setDialogState(() => selectedKey = key);
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  key: const Key('status-note'),
-                  decoration: InputDecoration(hintText: S.statusNoteHint),
-                  onChanged: (String value) => note = value,
-                ),
-                const SizedBox(height: 8),
-                RadioGroup<int>(
-                  groupValue: followUpChoice,
-                  onChanged: (int? v) {
-                    if (v != null) setDialogState(() => followUpChoice = v);
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RadioListTile<int>(
-                        title: Text(S.keepExistingFollowUp),
-                        secondary: Icon(Icons.event_available_outlined),
-                        value: 0,
-                      ),
-                      RadioListTile<int>(
-                        title: Text(S.setNextFollowUp),
-                        secondary: Icon(Icons.event_outlined),
-                        value: 1,
-                      ),
-                      RadioListTile<int>(
-                        title: Text(S.clearFollowUp),
-                        secondary: Icon(Icons.event_busy_outlined),
-                        value: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(S.cancel),
-            ),
-            FilledButton(
-              onPressed: () async {
-                // Pick the follow-up date/time BEFORE dismissing, so the
-                // dialog stays open if the user cancels the pickers.
-                DateTime? picked;
-                if (followUpChoice == 1) {
-                  final DateTime now = DateTime.now().toUtc();
-                  final DateTime? d = await showDatePicker(
-                    context: ctx,
-                    initialDate: (fireAtUtc ?? current.nextFollowUpUtcMs ?? now)
-                        .toLocal(),
-                    firstDate: DateTime(now.year - 1),
-                    lastDate: DateTime(now.year + 5),
-                  );
-                  if (d == null || !ctx.mounted) return;
-                  final TimeOfDay? t = await showTimePicker(
-                    context: ctx,
-                    initialTime: TimeOfDay.fromDateTime(d.toLocal()),
-                  );
-                  if (t == null || !ctx.mounted) return;
-                  picked = DateTime(
-                    d.year,
-                    d.month,
-                    d.day,
-                    t.hour,
-                    t.minute,
-                  ).toUtc();
-                }
-                // Persist FIRST, then dismiss — the dialog stays open if the
-                // write fails (same principle as the form's self-pop).
-                await _applyStatusChange(
-                  selectedKey: selectedKey,
-                  note: note,
-                  followUpChoice: followUpChoice,
-                  fireAtUtc: picked,
-                );
-                if (!ctx.mounted) return;
-                Navigator.of(ctx).pop();
-              },
-              child: Text(S.save),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _applyStatusChange({
-    required String selectedKey,
-    required String note,
-    required int followUpChoice,
-    DateTime? fireAtUtc,
-  }) async {
-    final FollowUpChange change = switch (followUpChoice) {
-      1 => SetFollowUp(fireAtUtc ?? DateTime.now().toUtc()),
-      2 => const ClearFollowUp(),
-      _ => const KeepFollowUp(),
-    };
-    await _actions.changeStatus(
-      widget.claimId,
-      selectedKey,
-      note: note.isEmpty ? null : note,
-      followUp: change,
-    );
-    if (!mounted) return;
-    await _load();
-  }
+  /// Status-change dialog (spec §9), shared with the claims list.
+  Future<void> _changeStatus() => showChangeStatusDialog(
+    context,
+    claim: _claim!,
+    onSave: (StatusChangeRequest request) async {
+      await _actions.changeStatus(
+        widget.claimId,
+        request.statusKey,
+        note: request.note,
+        followUp: request.followUp,
+      );
+      if (!mounted) return;
+      await _load();
+    },
+  );
 
   /// Reminder set/reschedule flow (spec §10): date picker → time picker, then
   /// the permission-aware save below.
@@ -477,28 +350,8 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
   }
 
   Future<void> _delete() async {
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(S.deleteClaimTitle),
-        content: Text(S.deleteClaimBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(S.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-              backgroundColor: Theme.of(ctx).colorScheme.errorContainer,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(S.confirm),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
+    final bool confirmed = await confirmDeleteClaim(context);
+    if (!confirmed || !mounted) return;
     // Delete through ClaimActions so reminders are cancelled and attachment
     // files cleaned up (spec §12); file cleanup is skipped when the store
     // cannot be resolved, so deletion always succeeds.
@@ -838,6 +691,16 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         _row(theme, S.notesLabel, c.notes!),
                     ],
                   ),
+                  if (claim.extraFields.isNotEmpty)
+                    _section(
+                      S.extraFieldsLabel,
+                      claim,
+                      (c) => [
+                        for (final MapEntry<String, String> e
+                            in c.extraFields.entries)
+                          _row(theme, e.key, e.value),
+                      ],
+                    ),
                   _section(
                     S.statusLabel,
                     claim,

@@ -10,6 +10,7 @@ import '../../core/database/claims_repository.dart';
 import '../../core/database/reminders_repository.dart';
 import '../../core/database/status_history_repository.dart';
 import '../../core/models/attachment.dart';
+import '../../core/models/claim_status.dart';
 import '../../core/models/reminder.dart';
 import '../../core/notifications/notification_service.dart' show AlarmPrecision;
 import '../../core/notifications/reminder_scheduler.dart';
@@ -72,7 +73,7 @@ class ClaimActions {
 
   /// Atomic status+history write (spec §9), then applies [followUp]:
   /// Keep = no reminder change; Set(atUtc) = saveReminder(claimId, atUtc);
-  /// Clear = clearFollowUp(claimId).
+  /// Clear = clearFollowUp(claimId). A closed status always clears.
   Future<void> changeStatus(
     int claimId,
     String newStatusKey, {
@@ -85,6 +86,11 @@ class ClaimActions {
       changedAtUtc: DateTime.now().toUtc(),
       note: (note == null || note.trim().isEmpty) ? null : note.trim(),
     );
+    // A closed outcome (Closed, Approved, Rejected) needs no more follow-up:
+    // its reminder and notification are removed whatever was chosen.
+    if (ClaimStatus.isClosedKey(newStatusKey)) {
+      followUp = const ClearFollowUp();
+    }
     switch (followUp) {
       case KeepFollowUp():
         break;

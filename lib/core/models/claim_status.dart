@@ -40,9 +40,9 @@ class ClaimStatusMeta {
   /// Semantic color role — resolved to concrete colors per theme.
   final StatusTone tone;
 
-  /// Whether this status counts as "closed" for dashboard metrics (spec §5:
-  /// only `مغلقة`/Closed is closed; `تم التعويض`/Compensated is not unless
-  /// explicitly closed).
+  /// Whether this status counts as "closed" for lists, dashboard metrics and
+  /// follow-ups: Closed, Approved and Rejected are final outcomes.
+  /// Compensated stays open until the user closes it.
   final bool isClosed;
 }
 
@@ -70,20 +70,26 @@ abstract final class ClaimStatus {
       tone: StatusTone.warning,
       isClosed: false,
     ),
-    ClaimStatusMeta(key: 'approved', tone: StatusTone.success, isClosed: false),
+    ClaimStatusMeta(key: 'approved', tone: StatusTone.success, isClosed: true),
     ClaimStatusMeta(
       key: 'compensated',
       tone: StatusTone.success,
       isClosed: false,
     ),
-    ClaimStatusMeta(key: 'rejected', tone: StatusTone.danger, isClosed: false),
+    ClaimStatusMeta(key: 'rejected', tone: StatusTone.danger, isClosed: true),
     ClaimStatusMeta(key: 'closed', tone: StatusTone.neutral, isClosed: true),
   ];
 
   static const String defaultKey = 'new';
 
-  /// The single status that counts as closed (spec §5).
+  /// The explicit "Closed" status (what closing a claim sets).
   static final ClaimStatusMeta closed = all.last;
+
+  /// Every status key that counts as closed (see [ClaimStatusMeta.isClosed]).
+  static final List<String> closedKeys = <String>[
+    for (final ClaimStatusMeta m in all)
+      if (m.isClosed) m.key,
+  ];
 
   static ClaimStatusMeta byKey(String key) {
     for (final meta in all) {

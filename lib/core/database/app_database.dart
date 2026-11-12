@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 2;
+const int kDatabaseVersion = 3;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -81,6 +81,8 @@ class AppDatabase {
             await _createSchemaV1(txn);
           case 2:
             await _migrateToV2(txn);
+          case 3:
+            await _migrateToV3(txn);
           // Future versions add cases here.
         }
       }
@@ -155,6 +157,12 @@ class AppDatabase {
     await txn.execute(
       'CREATE INDEX idx_claims_next_follow_up ON claims(next_follow_up_utc_ms)',
     );
+  }
+
+  /// v3: user-defined fields imported from extra spreadsheet columns, stored
+  /// as a JSON object. ADD COLUMN works on every SQLite version Android ships.
+  static Future<void> _migrateToV3(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN extra_fields TEXT');
   }
 
   static Future<void> _createSchemaV1(sqf.Transaction txn) async {

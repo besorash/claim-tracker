@@ -27,13 +27,24 @@ class CsvImportReport {
   const CsvImportReport({
     this.created = 0,
     this.updated = 0,
+    this.unchanged = 0,
     this.reminderFailures = 0,
     this.errors = const <String>[],
     this.databaseError = false,
+    this.unknownIdsAdded = 0,
+    this.extraColumns = const <String>[],
+    this.dateOrderAssumed = false,
   });
+
+  /// Rows whose id the app does not have; they were created as new claims
+  /// (and are included in [created]).
+  final int unknownIdsAdded;
 
   final int created;
   final int updated;
+
+  /// Rows that matched an existing claim exactly — nothing was written.
+  final int unchanged;
 
   /// Follow-ups saved but whose OS alarm could not be scheduled (future dates
   /// only — past dates are saved without an alarm on purpose).
@@ -45,7 +56,16 @@ class CsvImportReport {
   /// Set when the apply phase failed midway; earlier rows may be saved.
   final bool databaseError;
 
+  /// Headers of the file's extra columns, saved as extra fields.
+  final List<String> extraColumns;
+
+  /// Slash dates fitted both day/month orders and were read month first.
+  final bool dateOrderAssumed;
+
   bool get hasErrors => errors.isNotEmpty || databaseError;
+
+  /// True when the file had no data rows at all.
+  bool get isEmpty => !hasErrors && created + updated + unchanged == 0;
 }
 
 class ClaimsCsvService {
@@ -75,14 +95,24 @@ class ClaimsCsvService {
     // Phase 1 — validate everything, write nothing.
     final List<String> errors = <String>[];
     final Set<int> seenIds = <int>{};
+    int unknownIds = 0;
     final List<_PlannedRow> plan = <_PlannedRow>[];
     for (final CsvRecord record in doc.records) {
-      final CsvRowResult row = ClaimsCsv.toForm(record);
+      // Existing claim first: columns left out of the file keep its values.
+      final int? id = ClaimsCsv.idOf(record);
+      final Claim? existing = id == null ? null : await db.claimById(id);
+      final CsvRecord full = existing == null
+          ? record
+          : CsvRecord(record.line, <String, String>{
+              ...ClaimsCsv.valuesOf(existing),
+              ...record.values,
+            }, extras: record.extras);
+
+      final CsvRowResult row = ClaimsCsv.toForm(full, dateOrder: doc.dateOrder);
       if (row.errors.isNotEmpty || row.model == null) {
         errors.addAll(row.errors);
         continue;
       }
-      Claim? existing;
       if (row.id != null) {
         if (!seenIds.add(row.id!)) {
           errors.add(
@@ -90,15 +120,14 @@ class ClaimsCsvService {
           );
           continue;
         }
-        existing = await db.claimById(row.id!);
-        if (existing == null) {
-          errors.add(
-            '${S.csvRowLabel} ${record.line} (id): ${S.csvErrorUnknownId}',
-          );
-          continue;
-        }
+        // An id the app does not have (claim deleted, or the file comes from
+        // another device or an older backup) is added as a new claim.
+        if (existing == null) unknownIds++;
       }
-      plan.add(_PlannedRow(row.model!, existing));
+      final ClaimFormModel model = row.model!
+        ..extraFields = _mergeExtras(existing, record.extras);
+      if (existing != null) _keepStoredForms(model, existing);
+      plan.add(_PlannedRow(model, existing));
     }
     if (errors.isNotEmpty) {
       return CsvImportReport(errors: errors);
@@ -108,6 +137,7 @@ class ClaimsCsvService {
     final DateTime now = DateTime.now().toUtc();
     int created = 0;
     int updated = 0;
+    int unchanged = 0;
     int reminderFailures = 0;
     try {
       for (final _PlannedRow item in plan) {
@@ -116,19 +146,24 @@ class ClaimsCsvService {
           created++;
           if (failed) reminderFailures++;
         } else {
-          final bool failed = await _updateClaim(
+          final _UpdateOutcome outcome = await _updateClaim(
             item.model,
             item.existing!,
             now,
           );
-          updated++;
-          if (failed) reminderFailures++;
+          if (outcome == _UpdateOutcome.unchanged) {
+            unchanged++;
+          } else {
+            updated++;
+          }
+          if (outcome == _UpdateOutcome.reminderFailed) reminderFailures++;
         }
       }
     } on Object catch (_) {
       return CsvImportReport(
         created: created,
         updated: updated,
+        unchanged: unchanged,
         reminderFailures: reminderFailures,
         databaseError: true,
       );
@@ -136,8 +171,57 @@ class ClaimsCsvService {
     return CsvImportReport(
       created: created,
       updated: updated,
+      unchanged: unchanged,
       reminderFailures: reminderFailures,
+      unknownIdsAdded: unknownIds,
+      extraColumns: doc.extraColumns,
+      dateOrderAssumed: doc.dateOrderAssumed,
     );
+  }
+
+  /// A spreadsheet rewrites values without changing them (`0569896589` →
+  /// `569896589`, a stored date → that day at midnight). Keep the stored
+  /// form when the meaning is the same, so such rows count as unchanged.
+  static void _keepStoredForms(ClaimFormModel model, Claim existing) {
+    if (ClaimFormModel.normalizeMobile(model.customerMobile) ==
+        ClaimFormModel.normalizeMobile(existing.customerMobile)) {
+      model.customerMobile = existing.customerMobile;
+    }
+    if (_sameLocalDay(model.accidentDateUtcMs, existing.accidentDateUtcMs)) {
+      model.accidentDateUtcMs = existing.accidentDateUtcMs;
+    }
+    if (_sameLocalDay(
+      model.submissionDateUtcMs,
+      existing.submissionDateUtcMs,
+    )) {
+      model.submissionDateUtcMs = existing.submissionDateUtcMs;
+    }
+  }
+
+  static bool _sameLocalDay(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    final DateTime x = a.toLocal();
+    final DateTime y = b.toLocal();
+    return x.year == y.year && x.month == y.month && x.day == y.day;
+  }
+
+  /// Extra fields after the import: a filled cell sets the field, an empty
+  /// cell removes it, and fields whose column is not in the file are kept.
+  static Map<String, String> _mergeExtras(
+    Claim? existing,
+    Map<String, String> fromFile,
+  ) {
+    final Map<String, String> merged = <String, String>{
+      ...?existing?.extraFields,
+    };
+    fromFile.forEach((String key, String value) {
+      if (value.isEmpty) {
+        merged.remove(key);
+      } else {
+        merged[key] = value;
+      }
+    });
+    return merged;
   }
 
   /// Creates a claim from [model]. Returns true when a future follow-up could
@@ -150,9 +234,9 @@ class ClaimsCsvService {
     return _applyFollowUp(id, followUp, now);
   }
 
-  /// Updates an existing claim from [model]. Returns true when a future
-  /// follow-up could not be scheduled.
-  Future<bool> _updateClaim(
+  /// Updates an existing claim from [model]. Writes nothing when the row
+  /// matches the stored claim.
+  Future<_UpdateOutcome> _updateClaim(
     ClaimFormModel model,
     Claim existing,
     DateTime now,
@@ -166,6 +250,9 @@ class ClaimsCsvService {
     // Keep the stored follow-up for the row write; it is reconciled below.
     model.nextFollowUpUtcMs = existing.nextFollowUpUtcMs;
     final Claim target = model.applyTo(existing, now);
+    if (followUpUnchanged && _sameContent(target, existing)) {
+      return _UpdateOutcome.unchanged;
+    }
 
     if (target.statusKey != existing.statusKey) {
       await StatusHistoryRepository(db).changeStatus(
@@ -176,12 +263,27 @@ class ClaimsCsvService {
     }
     await _claims.update(target);
 
-    if (followUpUnchanged) return false;
+    if (followUpUnchanged) return _UpdateOutcome.updated;
     if (wanted == null) {
       await _actions.clearFollowUp(existing.id);
-      return false;
+      return _UpdateOutcome.updated;
     }
-    return _applyFollowUp(existing.id, wanted, now);
+    return await _applyFollowUp(existing.id, wanted, now)
+        ? _UpdateOutcome.reminderFailed
+        : _UpdateOutcome.updated;
+  }
+
+  /// Same stored values, ignoring the bookkeeping timestamps.
+  static bool _sameContent(Claim a, Claim b) {
+    final Map<String, Object?> x = a.toRow();
+    final Map<String, Object?> y = b.toRow();
+    for (final String key in x.keys) {
+      if (key == 'updated_at_utc_ms' || key == 'last_status_update_utc_ms') {
+        continue;
+      }
+      if (x[key] != y[key]) return false;
+    }
+    return true;
   }
 
   /// Sets a follow-up through [ClaimActions]. Schedules an alarm only for
@@ -215,3 +317,5 @@ class _PlannedRow {
   final ClaimFormModel model;
   final Claim? existing;
 }
+
+enum _UpdateOutcome { updated, unchanged, reminderFailed }

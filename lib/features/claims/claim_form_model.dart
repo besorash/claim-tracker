@@ -33,6 +33,10 @@ class ClaimFormModel {
   String claimAmount = ''; // editable string; parsed to SAR double on save
   String notes = '';
 
+  /// Extra spreadsheet columns (see [Claim.extraFields]). Not shown in the
+  /// form; carried through edits so saving the form never drops them.
+  Map<String, String> extraFields = <String, String>{};
+
   // Follow-up (spec §7.4) — status defaults to `new`; follow-up optional.
   String statusKey = ClaimStatus.defaultKey;
   DateTime? nextFollowUpUtcMs;
@@ -55,6 +59,7 @@ class ClaimFormModel {
     insurerReferenceNumber = claim.insurerReferenceNumber ?? '';
     claimAmount = claim.claimAmountSar?.toString() ?? '';
     notes = claim.notes ?? '';
+    extraFields = Map<String, String>.of(claim.extraFields);
     statusKey = claim.statusKey;
     nextFollowUpUtcMs = claim.nextFollowUpUtcMs;
   }
@@ -134,6 +139,7 @@ class ClaimFormModel {
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),
       notes: _opt(notes),
+      extraFields: Map<String, String>.unmodifiable(extraFields),
       statusKey: statusKey,
       lastStatusUpdateUtcMs: createdAtUtcMs,
       nextFollowUpUtcMs: nextFollowUpUtcMs,

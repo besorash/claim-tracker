@@ -181,6 +181,21 @@ void main() {
     expect(fake.scheduled.single.notificationId, id);
   });
 
+  test('approving or rejecting clears the follow-up even with Keep', () async {
+    for (final String key in <String>['approved', 'rejected']) {
+      final int id = await seedClaim();
+      await seedReminder(id);
+
+      await actions.changeStatus(id, key, followUp: const KeepFollowUp());
+
+      final Claim updated = (await db.claimById(id))!;
+      expect(updated.statusKey, key);
+      expect(updated.nextFollowUpUtcMs, isNull);
+      expect(fake.cancelled, contains(id));
+    }
+    expect(await reminders.allEnabled(), isEmpty);
+  });
+
   test('changeStatus with KeepFollowUp does not touch reminders', () async {
     final int id = await seedClaim();
     await seedReminder(id);

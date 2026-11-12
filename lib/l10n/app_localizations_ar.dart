@@ -127,6 +127,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accidentTypeLabel => 'نوع الحادث';
 
   @override
+  String get noPlate => 'بدون لوحة';
+
+  @override
   String get vehiclePlateLabel => 'رقم اللوحة';
 
   @override
@@ -200,10 +203,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get csvErrorDate =>
-      'التواريخ يجب أن تكون بالشكل 2026-03-31، أو 2026-03-31 14:30 للمتابعات.';
+      'تاريخ غير مفهوم. استخدم مثلاً 2026-03-31 أو 31/03/2026 (وأضف 14:30 لوقت المتابعة).';
 
   @override
-  String get csvErrorStatus => 'رمز الحالة غير معروف.';
+  String get csvErrorStatus =>
+      'حالة غير معروفة. استخدم اسم الحالة كما يظهر في التطبيق أو رمزها.';
+
+  @override
+  String csvImportUnchanged(int count) {
+    return '$count بدون تغيير.';
+  }
+
+  @override
+  String get csvNothingChanged =>
+      'لم يتغير شيء: محتوى الملف مطابق لما في التطبيق. إذا عدّلت الملف في WPS أو Excel فتأكد من حفظه قبل استيراده.';
+
+  @override
+  String csvUnknownIdsAdded(int count) {
+    return '$count صف برقم id غير موجود في التطبيق أُضيف كمطالبة جديدة.';
+  }
+
+  @override
+  String get csvNoRows => 'الملف لا يحتوي على أي مطالبات.';
+
+  @override
+  String get csvDatesMonthFirst =>
+      'قُرئت التواريخ بصيغة شهر/يوم/سنة (‎11/4/2026‎ = 4 نوفمبر 2026).';
+
+  @override
+  String csvExtraColumnsSaved(String columns) {
+    return 'حُفظت الأعمدة الإضافية مع المطالبات: $columns';
+  }
+
+  @override
+  String get extraFieldsLabel => 'حقول إضافية';
 
   @override
   String get submissionDateLabel => 'تاريخ تقديم المطالبة';
