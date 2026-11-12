@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:claim_tracker/core/constants/insurers.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
@@ -65,9 +66,82 @@ Future<void> pickDate(WidgetTester tester, String row) async {
   await tester.pumpAndSettle();
 }
 
+/// Picks [label] from the insurer list.
+Future<void> chooseInsurer(WidgetTester tester, String label) async {
+  final Finder dropdown = field('insurerChoice');
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tappable(tester, dropdown);
+  await tester.tap(dropdown);
+  await tester.pumpAndSettle();
+  // The open menu is a scrolling list; bring the entry into view first.
+  await tester.scrollUntilVisible(
+    find.text(label),
+    80,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() async {
     await TimeUtils.ensureInitialized();
+  });
+
+  testWidgets('insurer "Other" lets the user type a company name', (
+    WidgetTester tester,
+  ) async {
+    final List<Claim> saved = [];
+    await tester.pumpWidget(_harness(saved: saved));
+    await tester.pumpAndSettle();
+
+    // The free-text box only appears after choosing "Other".
+    expect(field('custInsurer'), findsNothing);
+    await tester.enterText(field('customerName'), 'خالد');
+    await tester.enterText(field('mobile'), '0559876543');
+    await tester.enterText(field('claimNumber'), 'CLM-2');
+    await chooseInsurer(tester, S.insurerOther);
+    expect(field('custInsurer'), findsOneWidget);
+    await tester.enterText(field('custInsurer'), 'Buruj');
+    await pickDate(tester, 'accident');
+    await pickDate(tester, 'submission');
+
+    await tester.tap(find.text(S.save));
+    await tester.pumpAndSettle();
+
+    expect(saved.single.customerInsuranceCompany, 'Buruj');
+  });
+
+  testWidgets('editing a claim with an unlisted insurer keeps it under Other', (
+    WidgetTester tester,
+  ) async {
+    final DateTime t = DateTime.utc(2026, 9, 1);
+    final Claim existing = Claim(
+      id: 3,
+      customerName: 'سعد',
+      customerMobile: '0501112233',
+      accidentDateUtcMs: t,
+      claimNumber: 'CLM-3',
+      customerInsuranceCompany: 'Buruj',
+      submissionDateUtcMs: t,
+      statusKey: 'new',
+      lastStatusUpdateUtcMs: t,
+      createdAtUtcMs: t,
+      updatedAtUtcMs: t,
+    );
+    await tester.pumpWidget(_harness(claim: existing));
+    await tester.pumpAndSettle();
+
+    final TextField typed = tester.widget<TextField>(field('custInsurer'));
+    expect(typed.controller!.text, 'Buruj');
+  });
+
+  test('a stored insurer in any spelling matches the list', () {
+    expect(Insurers.match('ORIENT')?.en, 'Orient');
+    expect(Insurers.match('شركة أورينت للتأمين')?.en, 'Orient');
+    expect(Insurers.match('Buruj'), isNull);
+    expect(Insurers.namesContaining('الخليجية'), <String>['GIG']);
   });
 
   testWidgets(
@@ -119,7 +193,7 @@ void main() {
       await tester.enterText(field('customerName'), 'خالد');
       await tester.enterText(field('mobile'), '0559876543');
       await tester.enterText(field('claimNumber'), 'CLM-1');
-      await tester.enterText(field('custInsurer'), 'تعاونية');
+      await chooseInsurer(tester, Insurers.match('Tawuniya')!.label);
       await pickDate(tester, 'accident');
       await pickDate(tester, 'submission');
 
@@ -131,7 +205,8 @@ void main() {
       expect(c.customerName, 'خالد');
       expect(c.customerMobile, '0559876543');
       expect(c.claimNumber, 'CLM-1');
-      expect(c.customerInsuranceCompany, 'تعاونية');
+      // The listed company is stored under its English name.
+      expect(c.customerInsuranceCompany, 'Tawuniya');
       expect(c.liabilityPercent, isNull);
       expect(c.accidentDateUtcMs, isNotNull);
       expect(c.submissionDateUtcMs, isNotNull);

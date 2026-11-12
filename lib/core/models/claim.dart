@@ -16,6 +16,7 @@ class Claim {
     this.accidentCity,
     this.accidentType,
     this.vehiclePlate,
+    this.vehicleType,
     required this.claimNumber,
     required this.customerInsuranceCompany,
     this.liabilityPercent,
@@ -46,6 +47,9 @@ class Claim {
   final String? accidentCity;
   final String? accidentType;
   final String? vehiclePlate;
+
+  /// Vehicle make/model as typed, e.g. "Camry 2022".
+  final String? vehicleType;
 
   // Claim (spec §7.3).
   final String claimNumber;
@@ -83,6 +87,7 @@ class Claim {
     String? accidentCity,
     String? accidentType,
     String? vehiclePlate,
+    String? vehicleType,
     String? claimNumber,
     String? customerInsuranceCompany,
     double? liabilityPercent,
@@ -109,6 +114,7 @@ class Claim {
       accidentCity: accidentCity ?? this.accidentCity,
       accidentType: accidentType ?? this.accidentType,
       vehiclePlate: vehiclePlate ?? this.vehiclePlate,
+      vehicleType: vehicleType ?? this.vehicleType,
       claimNumber: claimNumber ?? this.claimNumber,
       customerInsuranceCompany:
           customerInsuranceCompany ?? this.customerInsuranceCompany,
@@ -140,6 +146,7 @@ class Claim {
     'accident_city': accidentCity,
     'accident_type': accidentType,
     'vehicle_plate': vehiclePlate,
+    'vehicle_type': vehicleType,
     'claim_number': claimNumber,
     'customer_insurance_company': customerInsuranceCompany,
     'liability_percent': liabilityPercent,
@@ -170,6 +177,7 @@ class Claim {
     accidentCity: row['accident_city'] as String?,
     accidentType: row['accident_type'] as String?,
     vehiclePlate: row['vehicle_plate'] as String?,
+    vehicleType: row['vehicle_type'] as String?,
     claimNumber: row['claim_number']! as String,
     customerInsuranceCompany: row['customer_insurance_company']! as String,
     liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),

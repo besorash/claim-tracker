@@ -202,6 +202,14 @@ void main() {
           .toList();
       expect(claims.single.claimNumber, 'CLM-V2');
       expect(claims.single.extraFields, isEmpty);
+
+      // v3 → v4: vehicle type added, accident number kept.
+      await db.update('claims', <String, Object?>{'accident_number': 'A-1'});
+      await AppDatabase.migrate(db, from: 3, to: 4);
+      final Claim v4 = Claim.fromRow((await db.query('claims')).single);
+      expect(v4.claimNumber, 'CLM-V2');
+      expect(v4.accidentNumber, 'A-1');
+      expect(v4.vehicleType, isNull);
       await db.close();
     });
 

@@ -41,6 +41,12 @@ abstract final class S {
   static String get addClaim => _l.addClaim;
   static String get edit => _l.edit;
   static String get noPlate => _l.noPlate;
+  static String get vehicleTypeLabel => _l.vehicleTypeLabel;
+  static String get sectionCustomerInfo => _l.sectionCustomerInfo;
+  static String get sectionAccidentInfo => _l.sectionAccidentInfo;
+  static String get sectionClaimInfo => _l.sectionClaimInfo;
+  static String get insurerOther => _l.insurerOther;
+  static String get insurerOtherLabel => _l.insurerOtherLabel;
   static String get save => _l.save;
   static String get cancel => _l.cancel;
   static String get delete => _l.delete;

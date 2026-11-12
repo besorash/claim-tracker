@@ -91,8 +91,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterClosed => 'Closed';
 
   @override
-  String get searchHint =>
-      'Claim number, customer name, mobile, accident number…';
+  String get searchHint => 'Search plate, name, claim number, vehicle…';
 
   @override
   String get claimsEmpty => 'No matching claims.';
@@ -130,6 +129,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noPlate => 'No plate';
+
+  @override
+  String get vehicleTypeLabel => 'Vehicle Type';
+
+  @override
+  String get sectionCustomerInfo => 'Customer Information';
+
+  @override
+  String get sectionAccidentInfo => 'Accident & Vehicle Information';
+
+  @override
+  String get sectionClaimInfo => 'Claim & Insurance Information';
+
+  @override
+  String get insurerOther => 'Other';
+
+  @override
+  String get insurerOtherLabel => 'Insurance company name';
 
   @override
   String get vehiclePlateLabel => 'Vehicle Plate';

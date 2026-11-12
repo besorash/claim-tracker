@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/constants/insurers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
@@ -41,7 +42,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'mobile',
     'nationalId',
     'email',
-    'accidentNumber',
+    'vehicleType',
     'city',
     'type',
     'plate',
@@ -52,11 +53,26 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'notes',
   ];
 
+  /// Selected entry of the insurer list: a listed company's stored name,
+  /// [_otherInsurer] for a typed-in company, or null when nothing is chosen.
+  String? _insurerChoice;
+  static const String _otherInsurer = '__other__';
+
   @override
   void initState() {
     super.initState();
     final Claim? existing = widget.claim;
     if (existing != null) _model.loadFrom(existing);
+    // A stored company from the list selects it (whatever its spelling); any
+    // other stored name opens under "Other" with the text kept.
+    final String stored = _model.customerInsuranceCompany.trim();
+    final Insurer? listed = Insurers.match(stored);
+    if (listed != null) {
+      _insurerChoice = listed.en;
+      _model.customerInsuranceCompany = listed.en;
+    } else if (stored.isNotEmpty) {
+      _insurerChoice = _otherInsurer;
+    }
     for (final String key in _textFields) {
       _controllers[key] = TextEditingController(text: _valueFor(key));
     }
@@ -75,7 +91,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'mobile' => _model.customerMobile,
     'nationalId' => _model.customerNationalId,
     'email' => _model.customerEmail,
-    'accidentNumber' => _model.accidentNumber,
+    'vehicleType' => _model.vehicleType,
     'city' => _model.accidentCity,
     'type' => _model.accidentType,
     'plate' => _model.vehiclePlate,
@@ -97,8 +113,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         _model.customerNationalId = value;
       case 'email':
         _model.customerEmail = value;
-      case 'accidentNumber':
-        _model.accidentNumber = value;
+      case 'vehicleType':
+        _model.vehicleType = value;
       case 'city':
         _model.accidentCity = value;
       case 'type':
@@ -194,7 +210,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _section(S.customerNameLabel, [
+            _section(S.sectionCustomerInfo, [
               _field(
                 'customerName',
                 label: S.customerNameLabel,
@@ -209,26 +225,22 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               _field('nationalId', label: S.nationalIdLabel),
               _field('email', label: S.emailLabel),
             ]),
-            _section(S.accidentDateLabel, [
+            _section(S.sectionAccidentInfo, [
               _dateRow(
                 which: 'accident',
                 label: S.accidentDateLabel,
                 value: _model.accidentDateUtcMs,
                 required: true,
               ),
-              _field('accidentNumber', label: S.accidentNumberLabel),
               _field('city', label: S.cityLabel),
               _field('type', label: S.accidentTypeLabel),
               _field('plate', label: S.vehiclePlateLabel),
-            ]),
-            _section(S.claimNumberLabel, [
-              _field('claimNumber', label: S.claimNumberLabel, required: true),
-              _field(
-                'custInsurer',
-                label: S.customerInsurerLabel,
-                required: true,
-              ),
+              _field('vehicleType', label: S.vehicleTypeLabel),
               _liabilityField(),
+            ]),
+            _section(S.sectionClaimInfo, [
+              _field('claimNumber', label: S.claimNumberLabel, required: true),
+              _insurerField(),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,
@@ -404,6 +416,73 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
           errorText: _errors[key],
           border: const OutlineInputBorder(),
         ),
+      ),
+    );
+  }
+
+  /// Insurer list in the app's language, plus "Other" to type a company that
+  /// is not listed. The claim stores the listed company's English name.
+  Widget _insurerField() {
+    final bool other = _insurerChoice == _otherInsurer;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InputDecorator(
+            key: const Key('field-insurerChoice'),
+            decoration: InputDecoration(
+              labelText: S.customerInsurerLabel,
+              errorText: other ? null : _errors['custInsurer'],
+              border: const OutlineInputBorder(),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                isDense: true,
+                value: _insurerChoice,
+                items: <DropdownMenuItem<String>>[
+                  for (final Insurer i in Insurers.all)
+                    DropdownMenuItem<String>(
+                      value: i.en,
+                      child: Text(i.label, overflow: TextOverflow.ellipsis),
+                    ),
+                  DropdownMenuItem<String>(
+                    value: _otherInsurer,
+                    child: Text(S.insurerOther),
+                  ),
+                ],
+                onChanged: (String? v) => setState(() {
+                  _insurerChoice = v;
+                  _errors['custInsurer'] = null;
+                  if (v == _otherInsurer) {
+                    // Start from whatever was typed before, not a list name.
+                    final String typed = _controllers['custInsurer']!.text;
+                    _model.customerInsuranceCompany =
+                        Insurers.match(typed) == null ? typed : '';
+                    _controllers['custInsurer']!.text =
+                        _model.customerInsuranceCompany;
+                  } else if (v != null) {
+                    _model.customerInsuranceCompany = v;
+                  }
+                }),
+              ),
+            ),
+          ),
+          if (other) ...[
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('field-custInsurer'),
+              controller: _controllers['custInsurer'],
+              onChanged: (String v) => _onChanged('custInsurer', v),
+              decoration: InputDecoration(
+                labelText: S.insurerOtherLabel,
+                errorText: _errors['custInsurer'],
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

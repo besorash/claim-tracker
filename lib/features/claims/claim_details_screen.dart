@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/constants/insurers.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/attachments_repository.dart';
 import '../../core/database/claims_repository.dart';
@@ -624,7 +625,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _section(
-                    S.customerNameLabel,
+                    S.sectionCustomerInfo,
                     claim,
                     (c) => [
                       _row(theme, S.customerNameLabel, c.customerName),
@@ -636,7 +637,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                     ],
                   ),
                   _section(
-                    S.accidentDateLabel,
+                    S.sectionAccidentInfo,
                     claim,
                     (c) => [
                       _row(
@@ -644,32 +645,32 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         S.accidentDateLabel,
                         TimeUtils.formatDate(c.accidentDateUtcMs),
                       ),
-                      if (c.accidentNumber != null)
-                        _row(theme, S.accidentNumberLabel, c.accidentNumber!),
                       if (c.accidentCity != null)
                         _row(theme, S.cityLabel, c.accidentCity!),
                       if (c.accidentType != null)
                         _row(theme, S.accidentTypeLabel, c.accidentType!),
                       if (c.vehiclePlate != null)
                         _row(theme, S.vehiclePlateLabel, c.vehiclePlate!),
-                    ],
-                  ),
-                  _section(
-                    S.claimNumberLabel,
-                    claim,
-                    (c) => [
-                      _row(theme, S.claimNumberLabel, c.claimNumber),
-                      _row(
-                        theme,
-                        S.customerInsurerLabel,
-                        c.customerInsuranceCompany,
-                      ),
+                      if (c.vehicleType != null)
+                        _row(theme, S.vehicleTypeLabel, c.vehicleType!),
                       _row(
                         theme,
                         S.liabilityPercentLabel,
                         c.liabilityPercent == null
                             ? S.liabilityNotSet
                             : '${c.liabilityPercent!.toStringAsFixed(0)}%',
+                      ),
+                    ],
+                  ),
+                  _section(
+                    S.sectionClaimInfo,
+                    claim,
+                    (c) => [
+                      _row(theme, S.claimNumberLabel, c.claimNumber),
+                      _row(
+                        theme,
+                        S.customerInsurerLabel,
+                        Insurers.display(c.customerInsuranceCompany),
                       ),
                       _row(
                         theme,

@@ -263,7 +263,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Claim number, customer name, mobile, accident number…'**
+  /// **'Search plate, name, claim number, vehicle…'**
   String get searchHint;
 
   /// No description provided for @claimsEmpty.
@@ -337,6 +337,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No plate'**
   String get noPlate;
+
+  /// No description provided for @vehicleTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Type'**
+  String get vehicleTypeLabel;
+
+  /// No description provided for @sectionCustomerInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Information'**
+  String get sectionCustomerInfo;
+
+  /// No description provided for @sectionAccidentInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Accident & Vehicle Information'**
+  String get sectionAccidentInfo;
+
+  /// No description provided for @sectionClaimInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim & Insurance Information'**
+  String get sectionClaimInfo;
+
+  /// No description provided for @insurerOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get insurerOther;
+
+  /// No description provided for @insurerOtherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance company name'**
+  String get insurerOtherLabel;
 
   /// No description provided for @vehiclePlateLabel.
   ///

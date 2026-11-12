@@ -22,6 +22,7 @@
 library;
 
 import '../../features/claims/claim_form_model.dart';
+import '../constants/insurers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ar.dart';
 import '../../l10n/app_localizations_en.dart';
@@ -41,6 +42,7 @@ const List<String> kClaimsCsvColumns = <String>[
   'accident_city',
   'accident_type',
   'vehicle_plate',
+  'vehicle_type',
   'claim_number',
   'customer_insurance_company',
   'submission_date',
@@ -188,6 +190,7 @@ abstract final class ClaimsCsv {
     'accident_city': c.accidentCity ?? '',
     'accident_type': c.accidentType ?? '',
     'vehicle_plate': c.vehiclePlate ?? '',
+    'vehicle_type': c.vehicleType ?? '',
     'claim_number': c.claimNumber,
     'customer_insurance_company': c.customerInsuranceCompany,
     'submission_date': _formatDate(c.submissionDateUtcMs),
@@ -325,8 +328,9 @@ abstract final class ClaimsCsv {
       ..accidentCity = text('accident_city')
       ..accidentType = text('accident_type')
       ..vehiclePlate = text('vehicle_plate')
+      ..vehicleType = text('vehicle_type')
       ..claimNumber = text('claim_number')
-      ..customerInsuranceCompany = text('customer_insurance_company')
+      ..customerInsuranceCompany = _insurer(text('customer_insurance_company'))
       ..insurerReferenceNumber = text('insurer_reference_number')
       ..notes = text('notes');
 
@@ -422,6 +426,7 @@ abstract final class ClaimsCsv {
       add(l.cityLabel, 'accident_city');
       add(l.accidentTypeLabel, 'accident_type');
       add(l.vehiclePlateLabel, 'vehicle_plate');
+      add(l.vehicleTypeLabel, 'vehicle_type');
       add(l.claimNumberLabel, 'claim_number');
       add(l.customerInsurerLabel, 'customer_insurance_company');
       add(l.submissionDateLabel, 'submission_date');
@@ -509,6 +514,10 @@ abstract final class ClaimsCsv {
     }
     return out.toString();
   }
+
+  /// A listed insurer in any spelling (`ORIENT`, its Arabic name) is stored
+  /// under its list name; any other company is kept as written.
+  static String _insurer(String raw) => Insurers.match(raw)?.en ?? raw;
 
   /// Puts back what a spreadsheet strips from a number cell: the leading `0`
   /// (`569896589` → `0569896589`) or the `+` (`966569896589`).

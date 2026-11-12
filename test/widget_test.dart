@@ -15,6 +15,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
+import 'package:claim_tracker/core/constants/insurers.dart';
 import 'package:claim_tracker/app/home_shell.dart';
 import 'package:claim_tracker/core/database/app_database.dart';
 import 'package:claim_tracker/core/database/claims_repository.dart';
@@ -306,10 +307,15 @@ void main() {
           find.byKey(const Key('field-claimNumber')),
           'CLM-E2E',
         );
-        await tester.enterText(
-          find.byKey(const Key('field-custInsurer')),
-          'تعاونية',
-        );
+        // Insurer comes from the list.
+        final Finder insurer = find.byKey(const Key('field-insurerChoice'));
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump(const Duration(milliseconds: 16));
+        await _tappableInForm(tester, insurer);
+        await tester.tap(insurer);
+        await _settle(tester);
+        await tester.tap(find.text(Insurers.all.first.label).last);
+        await _settle(tester);
         // And the two required dates.
         await _pickDate(tester, 'accident');
         await _pickDate(tester, 'submission');

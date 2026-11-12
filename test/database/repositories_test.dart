@@ -193,6 +193,28 @@ void main() {
       },
     );
 
+    test('search looks in every field, insurer names and statuses', () async {
+      await claims.create(
+        sampleClaim(claimNumber: 'S1').copyWith(
+          vehicleType: 'Camry 2022',
+          customerInsuranceCompany: 'GIG',
+          accidentCity: 'Khobar',
+          notes: 'waiting for invoice',
+          extraFields: <String, String>{'agent': 'Fahad'},
+        ),
+      );
+      await claims.create(sampleClaim(claimNumber: 'S2'));
+
+      Future<List<String>> hits(String q) async =>
+          (await claims.search(q)).map((c) => c.claimNumber).toList();
+
+      expect(await hits('camry'), <String>['S1']); // vehicle type
+      expect(await hits('khobar'), <String>['S1']); // city
+      expect(await hits('invoice'), <String>['S1']); // notes
+      expect(await hits('fahad'), <String>['S1']); // extra field
+      expect(await hits('الخليجية'), <String>['S1']); // insurer, Arabic name
+    });
+
     test('search also matches the vehicle plate', () async {
       await claims.create(
         sampleClaim(claimNumber: 'P1').copyWith(vehiclePlate: '4051 VJD'),

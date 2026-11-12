@@ -23,6 +23,7 @@ class ClaimFormModel {
   String accidentCity = '';
   String accidentType = '';
   String vehiclePlate = '';
+  String vehicleType = '';
 
   // Claim (spec §7.3) — number, both insurers and submission date are required.
   String claimNumber = '';
@@ -52,6 +53,7 @@ class ClaimFormModel {
     accidentCity = claim.accidentCity ?? '';
     accidentType = claim.accidentType ?? '';
     vehiclePlate = claim.vehiclePlate ?? '';
+    vehicleType = claim.vehicleType ?? '';
     claimNumber = claim.claimNumber;
     customerInsuranceCompany = claim.customerInsuranceCompany;
     liabilityPercent = claim.liabilityPercent;
@@ -132,6 +134,7 @@ class ClaimFormModel {
       accidentCity: _opt(accidentCity),
       accidentType: _opt(accidentType),
       vehiclePlate: _opt(vehiclePlate),
+      vehicleType: _opt(vehicleType),
       claimNumber: claimNumber.trim(),
       customerInsuranceCompany: customerInsuranceCompany.trim(),
       liabilityPercent: liabilityPercent,

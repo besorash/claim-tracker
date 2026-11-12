@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 3;
+const int kDatabaseVersion = 4;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -83,6 +83,8 @@ class AppDatabase {
             await _migrateToV2(txn);
           case 3:
             await _migrateToV3(txn);
+          case 4:
+            await _migrateToV4(txn);
           // Future versions add cases here.
         }
       }
@@ -163,6 +165,12 @@ class AppDatabase {
   /// as a JSON object. ADD COLUMN works on every SQLite version Android ships.
   static Future<void> _migrateToV3(sqf.Transaction txn) async {
     await txn.execute('ALTER TABLE claims ADD COLUMN extra_fields TEXT');
+  }
+
+  /// v4: vehicle type (make/model, free text). Replaces the accident number
+  /// in the app's forms; the old column is kept so no data is lost.
+  static Future<void> _migrateToV4(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN vehicle_type TEXT');
   }
 
   static Future<void> _createSchemaV1(sqf.Transaction txn) async {

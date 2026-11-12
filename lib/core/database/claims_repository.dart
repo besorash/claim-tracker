@@ -3,6 +3,7 @@ library;
 
 import 'package:sqflite/sqflite.dart' as sqf;
 
+import '../constants/insurers.dart';
 import '../models/attachment.dart';
 import '../models/claim.dart';
 import '../models/claim_status.dart';
@@ -59,30 +60,65 @@ class ClaimsRepository {
   // Search & filters (spec §6)
   // ---------------------------------------------------------------------------
 
-  /// Forgiving search across the supported fields (spec §6). The query is
-  /// trimmed and matched case-insensitively with LIKE.
+  /// Every text column a search looks in.
+  static const List<String> _searchFields = <String>[
+    'vehicle_plate',
+    'vehicle_type',
+    'claim_number',
+    'customer_name',
+    'customer_mobile',
+    'customer_national_id',
+    'customer_email',
+    'accident_number',
+    'accident_city',
+    'accident_type',
+    'customer_insurance_company',
+    'insurer_reference_number',
+    'notes',
+    'extra_fields',
+  ];
+
+  /// Forgiving search across all of a claim's information (spec §6): plate,
+  /// vehicle type, names, numbers, city, notes, extra fields... The query is
+  /// trimmed and matched case-insensitively. A listed insurer also matches
+  /// by its name in either language, and a status by its displayed name.
   Future<List<Claim>> search(String rawQuery) async {
     final String q = rawQuery.trim();
     if (q.isEmpty) return all();
 
-    // SQLite LIKE has no default escape character; for a personal app the
-    // forgiving behavior (spec §6) is trimming, which we already do.
     final String like = '%$q%';
-    const List<String> fields = [
-      'vehicle_plate',
-      'claim_number',
-      'customer_name',
-      'customer_mobile',
-      'accident_number',
-      'customer_insurance_company',
-      'insurer_reference_number',
+    final List<String> clauses = <String>[
+      for (final String f in _searchFields) '$f LIKE ?',
     ];
-    final String where = fields.map((f) => '$f LIKE ?').join(' OR ');
+    final List<Object?> args = <Object?>[
+      for (final String _ in _searchFields) like,
+    ];
+
+    final List<String> insurers = Insurers.namesContaining(q);
+    if (insurers.isNotEmpty) {
+      clauses.add(
+        'customer_insurance_company COLLATE NOCASE IN '
+        '(${List<String>.filled(insurers.length, '?').join(', ')})',
+      );
+      args.addAll(insurers);
+    }
+
+    final String lower = q.toLowerCase();
+    final List<String> statuses = <String>[
+      for (final ClaimStatusMeta m in ClaimStatus.all)
+        if (m.label.toLowerCase().contains(lower)) m.key,
+    ];
+    if (statuses.isNotEmpty) {
+      clauses.add(
+        'status_key IN (${List<String>.filled(statuses.length, '?').join(', ')})',
+      );
+      args.addAll(statuses);
+    }
 
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where: where,
-      whereArgs: List<Object>.filled(fields.length, like),
+      where: clauses.join(' OR '),
+      whereArgs: args,
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }

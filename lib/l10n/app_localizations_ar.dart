@@ -91,7 +91,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get filterClosed => 'المغلقة';
 
   @override
-  String get searchHint => 'رقم المطالبة، اسم العميل، الجوال، رقم الحادث…';
+  String get searchHint => 'ابحث باللوحة، الاسم، رقم المطالبة، المركبة…';
 
   @override
   String get claimsEmpty => 'لا توجد مطالبات مطابقة.';
@@ -128,6 +128,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noPlate => 'بدون لوحة';
+
+  @override
+  String get vehicleTypeLabel => 'نوع المركبة';
+
+  @override
+  String get sectionCustomerInfo => 'معلومات العميل';
+
+  @override
+  String get sectionAccidentInfo => 'معلومات الحادث والمركبة';
+
+  @override
+  String get sectionClaimInfo => 'معلومات المطالبة وشركة التأمين';
+
+  @override
+  String get insurerOther => 'أخرى';
+
+  @override
+  String get insurerOtherLabel => 'اسم شركة التأمين';
 
   @override
   String get vehiclePlateLabel => 'رقم اللوحة';
