@@ -20,7 +20,7 @@ class Claim {
     required this.claimNumber,
     required this.customerInsuranceCompany,
     this.liabilityPercent,
-    required this.submissionDateUtcMs,
+    this.submissionDateUtcMs,
     this.insurerReferenceNumber,
     this.claimAmountSar,
     this.notes,
@@ -58,7 +58,9 @@ class Claim {
 
   /// Liability share of the claim: 0, 50 or 100 (percent). Null = not set.
   final double? liabilityPercent;
-  final DateTime submissionDateUtcMs;
+
+  /// Optional since v6 (null = not submitted yet / not recorded).
+  final DateTime? submissionDateUtcMs;
   final String? insurerReferenceNumber;
   final double? claimAmountSar;
   final String? notes;
@@ -156,7 +158,7 @@ class Claim {
     'claim_number': claimNumber,
     'customer_insurance_company': customerInsuranceCompany,
     'liability_percent': liabilityPercent,
-    'submission_date_utc_ms': submissionDateUtcMs.millisecondsSinceEpoch,
+    'submission_date_utc_ms': submissionDateUtcMs?.millisecondsSinceEpoch,
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
     'notes': notes,
@@ -188,10 +190,12 @@ class Claim {
     claimNumber: row['claim_number']! as String,
     customerInsuranceCompany: row['customer_insurance_company']! as String,
     liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),
-    submissionDateUtcMs: DateTime.fromMillisecondsSinceEpoch(
-      row['submission_date_utc_ms']! as int,
-      isUtc: true,
-    ),
+    submissionDateUtcMs: (row['submission_date_utc_ms'] as int?) == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(
+            row['submission_date_utc_ms']! as int,
+            isUtc: true,
+          ),
     insurerReferenceNumber: row['insurer_reference_number'] as String?,
     claimAmountSar: (row['claim_amount_sar'] as num?)?.toDouble(),
     notes: row['notes'] as String?,
@@ -223,6 +227,9 @@ class Claim {
       isUtc: true,
     ),
   );
+
+  /// Claim number for display: "—" when none was entered.
+  String get claimNumberDisplay => claimNumber.isEmpty ? '—' : claimNumber;
 
   /// "Last update" as the user means it: the later of the last status change
   /// and the last notes edit.

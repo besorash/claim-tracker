@@ -311,6 +311,14 @@ void main() {
           find.byKey(const Key('field-claimNumber')),
           'CLM-E2E',
         );
+        await tester.enterText(
+          find.byKey(const Key('field-plate')),
+          '4051 VJD',
+        );
+        await tester.enterText(
+          find.byKey(const Key('field-vehicleType')),
+          'Camry 2022',
+        );
         // Insurer comes from the list.
         final Finder insurer = find.byKey(const Key('field-insurerChoice'));
         FocusManager.instance.primaryFocus?.unfocus();

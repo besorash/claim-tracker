@@ -303,7 +303,7 @@ class _AttentionSection extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               '${S.claimNumberLabel}: '
-                              '${item.claim.claimNumber}',
+                              '${item.claim.claimNumberDisplay}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppTheme.muted(context),
                               ),

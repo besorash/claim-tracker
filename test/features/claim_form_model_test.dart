@@ -7,23 +7,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/features/claims/claim_form_model.dart';
 
+/// Only the required fields: plate, accident date, vehicle type, customer
+/// name and insurer (plus an optional liability share).
 ClaimFormModel _validModel() => ClaimFormModel()
-  ..customerName = 'خالد'
-  ..customerMobile = '0559876543'
-  ..claimNumber = 'CLM-1'
-  ..customerInsuranceCompany = 'تعاونية'
-  ..liabilityPercent = 50
+  ..vehiclePlate = '4051 VJD'
   ..accidentDateUtcMs = DateTime.utc(2026, 10, 1)
-  ..submissionDateUtcMs = DateTime.utc(2026, 10, 5);
+  ..vehicleType = 'Camry 2022'
+  ..customerName = 'خالد'
+  ..customerInsuranceCompany = 'GIG'
+  ..liabilityPercent = 50;
 
 void main() {
   group('required-field validation', () {
     test('all required fields blank → each validator returns S.requiredField; '
         'isValid is false', () {
       final ClaimFormModel m = ClaimFormModel();
+      expect(m.validateVehiclePlate(), S.requiredField);
+      expect(m.validateVehicleType(), S.requiredField);
       expect(m.validateCustomerName(), S.requiredField);
-      expect(m.validateMobile(), S.requiredField);
-      expect(m.validateClaimNumber(), S.requiredField);
       expect(m.validateCustomerInsurer(), S.requiredField);
       expect(m.isValid, isFalse);
     });
@@ -35,16 +36,34 @@ void main() {
 
     test('all required fields filled → every validator null; isValid true', () {
       final ClaimFormModel m = _validModel();
+      expect(m.validateVehiclePlate(), isNull);
+      expect(m.validateVehicleType(), isNull);
       expect(m.validateCustomerName(), isNull);
-      expect(m.validateMobile(), isNull);
-      expect(m.validateClaimNumber(), isNull);
       expect(m.validateCustomerInsurer(), isNull);
       expect(m.isValid, isTrue);
     });
 
-    test('missing a date keeps isValid false even when text fields pass', () {
-      final ClaimFormModel m = _validModel()..submissionDateUtcMs = null;
+    test('mobile, claim number and submission date are optional', () {
+      final ClaimFormModel m = _validModel();
+      expect(m.customerMobile, isEmpty);
+      expect(m.claimNumber, isEmpty);
+      expect(m.submissionDateUtcMs, isNull);
+      expect(m.isValid, isTrue);
+      final claim = m.toClaim(id: 1, createdAtUtcMs: DateTime.utc(2026));
+      expect(claim.submissionDateUtcMs, isNull);
+      expect(claim.claimNumberDisplay, '—');
+    });
+
+    test('missing the accident date keeps isValid false', () {
+      final ClaimFormModel m = _validModel()..accidentDateUtcMs = null;
       expect(m.isValid, isFalse);
+    });
+
+    test('each newly required field blocks saving on its own', () {
+      expect((_validModel()..vehiclePlate = '').isValid, isFalse);
+      expect((_validModel()..vehicleType = ' ').isValid, isFalse);
+      expect((_validModel()..customerName = '').isValid, isFalse);
+      expect((_validModel()..customerInsuranceCompany = '').isValid, isFalse);
     });
   });
 
@@ -73,9 +92,9 @@ void main() {
       },
     );
 
-    test('blank mobile is required, not invalid-number', () {
+    test('blank mobile is allowed (optional)', () {
       final ClaimFormModel m = ClaimFormModel();
-      expect(m.validateMobile(), S.requiredField);
+      expect(m.validateMobile(), isNull);
     });
   });
 

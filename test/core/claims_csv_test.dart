@@ -21,6 +21,8 @@ Claim _claim({
     id: id,
     customerName: name,
     customerMobile: '0559876543',
+    vehiclePlate: '4051 VJD',
+    vehicleType: 'Camry 2022',
     accidentDateUtcMs: DateTime(2026, 10, 1).toUtc(),
     claimNumber: 'CLM-7',
     customerInsuranceCompany: 'تعاونية',
@@ -96,9 +98,9 @@ void main() {
 
     test('a missing required column is a header error that names it', () {
       final String csv = ClaimsCsv.encode(<Claim>[_claim()])
-          .replaceFirst(',claim_number', '');
+          .replaceFirst(',vehicle_type', '');
       final CsvDocument doc = ClaimsCsv.parse(csv);
-      expect(doc.headerError, contains('claim_number'));
+      expect(doc.headerError, contains('vehicle_type'));
       expect(doc.records, isEmpty);
     });
 
@@ -179,6 +181,28 @@ void main() {
       expect(row.errors.single, contains('customer_name'));
     });
 
+    test('plate and vehicle type are required; claim number is not', () {
+      final CsvRowResult noPlate = ClaimsCsv.toForm(
+        _firstRecord(rowWith(<String, String>{'vehicle_plate': ''})),
+      );
+      expect(noPlate.errors.single, contains('vehicle_plate'));
+      final CsvRowResult noType = ClaimsCsv.toForm(
+        _firstRecord(rowWith(<String, String>{'vehicle_type': ''})),
+      );
+      expect(noType.errors.single, contains('vehicle_type'));
+      final CsvRowResult optional = ClaimsCsv.toForm(
+        _firstRecord(
+          rowWith(<String, String>{
+            'claim_number': '',
+            'customer_mobile': '',
+            'submission_date': '',
+          }),
+        ),
+      );
+      expect(optional.errors, isEmpty);
+      expect(optional.model!.submissionDateUtcMs, isNull);
+    });
+
     test('a non-numeric id is rejected', () {
       final CsvRowResult row = ClaimsCsv.toForm(
         _firstRecord(rowWith(<String, String>{'id': 'abc'})),
@@ -197,8 +221,9 @@ void main() {
 
   group('files edited in Excel / WPS', () {
     const String required =
-        'customer_name,customer_mobile,accident_date,claim_number,'
-        'customer_insurance_company,submission_date';
+        'vehicle_plate,vehicle_type,customer_name,customer_mobile,'
+        'accident_date,claim_number,customer_insurance_company,'
+        'submission_date';
 
     CsvDocument parseOk(String csv) {
       final CsvDocument doc = ClaimsCsv.parse(csv);
@@ -209,7 +234,7 @@ void main() {
     test('semicolon-separated files are read', () {
       final CsvDocument doc = parseOk(
         '${required.replaceAll(',', ';')}\r\n'
-        'سعد;0567897654;2026-11-05;CLM-1;GIG;2026-11-13\r\n',
+        '1234 ABC;Camry;سعد;0567897654;2026-11-05;CLM-1;GIG;2026-11-13\r\n',
       );
       final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
       expect(row.errors, isEmpty);
@@ -218,9 +243,10 @@ void main() {
 
     test('headers may be the Arabic field names, in any order', () {
       final CsvDocument doc = parseOk(
-        'رقم المطالبة,اسم العميل,رقم الجوال,شركة تأمين العميل,'
-        'تاريخ الحادث,تاريخ تقديم المطالبة,الحالة\r\n'
-        'CLM-2,سعد,0567897654,GIG,2026-11-05,2026-11-13,approved\r\n',
+        'رقم اللوحة,نوع المركبة,رقم المطالبة,اسم العميل,رقم الجوال,'
+        'شركة تأمين العميل,تاريخ الحادث,تاريخ تقديم المطالبة,الحالة\r\n'
+        '1234 ABC,Camry,CLM-2,سعد,0567897654,GIG,2026-11-05,2026-11-13,'
+        'approved\r\n',
       );
       final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
       expect(row.errors, isEmpty);
@@ -232,7 +258,7 @@ void main() {
       for (final String name in <String>['Approved', 'APPROVED']) {
         final CsvDocument doc = parseOk(
           '$required,status_key\r\n'
-          'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$name\r\n',
+          '1234 ABC,Camry,سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$name\r\n',
         );
         expect(
           ClaimsCsv.toForm(doc.records.single).model!.statusKey,
@@ -250,7 +276,7 @@ void main() {
       cases.forEach((String cell, String key) {
         final CsvDocument doc = parseOk(
           '$required,status_key\r\n'
-          'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$cell\r\n',
+          '1234 ABC,Camry,سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$cell\r\n',
         );
         expect(
           ClaimsCsv.toForm(doc.records.single).model?.statusKey,
@@ -263,7 +289,7 @@ void main() {
     test('an unknown status error names the value', () {
       final CsvDocument doc = parseOk(
         '$required,status_key\r\n'
-        'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,on hold\r\n',
+        '1234 ABC,Camry,سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,on hold\r\n',
       );
       expect(
         ClaimsCsv.toForm(doc.records.single).errors.single,
@@ -274,7 +300,7 @@ void main() {
     test('month-first slash dates (WPS) are read, and flagged as assumed', () {
       final CsvDocument doc = parseOk(
         '$required\r\n'
-        'سعد,567897654,11/5/2026,CLM-1,GIG,11/12/2026\r\n',
+        '1234 ABC,Camry,سعد,567897654,11/5/2026,CLM-1,GIG,11/12/2026\r\n',
       );
       expect(doc.dateOrder, CsvDateOrder.monthFirst);
       expect(doc.dateOrderAssumed, isTrue);
@@ -291,7 +317,7 @@ void main() {
     test('a day above 12 anywhere in the file switches to day-first', () {
       final CsvDocument doc = parseOk(
         '$required\r\n'
-        'سعد,0567897654,4/11/2026,CLM-1,GIG,31/10/2026\r\n',
+        '1234 ABC,Camry,سعد,0567897654,4/11/2026,CLM-1,GIG,31/10/2026\r\n',
       );
       expect(doc.dateOrder, CsvDateOrder.dayFirst);
       expect(doc.dateOrderAssumed, isFalse);
@@ -305,7 +331,7 @@ void main() {
     test('Arabic digits, thousands commas and 12-hour times are read', () {
       final CsvDocument doc = parseOk(
         '$required,claim_amount_sar,next_follow_up\r\n'
-        'سعد,٠٥٦٧٨٩٧٦٥٤,2026/11/05,CLM-1,GIG,2026-11-13,"1,500",'
+        '1234 ABC,Camry,سعد,٠٥٦٧٨٩٧٦٥٤,2026/11/05,CLM-1,GIG,2026-11-13,"1,500",'
         '2026-11-20 2:30 PM\r\n',
       );
       final CsvRowResult row = ClaimsCsv.toForm(doc.records.single);
@@ -321,7 +347,7 @@ void main() {
     test('unknown columns become extra fields; blank headers are ignored', () {
       final CsvDocument doc = parseOk(
         '$required,اسم المندوب,,Car Model\r\n'
-        'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,فهد,,Camry\r\n',
+        '1234 ABC,Camry,سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,فهد,,Camry\r\n',
       );
       expect(doc.extraColumns, <String>['اسم المندوب', 'Car Model']);
       expect(doc.records.single.extras, <String, String>{

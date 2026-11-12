@@ -190,11 +190,10 @@ class ClaimsCsvService {
     if (_sameLocalDay(model.accidentDateUtcMs, existing.accidentDateUtcMs)) {
       model.accidentDateUtcMs = existing.accidentDateUtcMs;
     }
-    if (_sameLocalDay(
-      model.submissionDateUtcMs,
-      existing.submissionDateUtcMs,
-    )) {
-      model.submissionDateUtcMs = existing.submissionDateUtcMs;
+    final DateTime? storedSubmission = existing.submissionDateUtcMs;
+    if (storedSubmission != null &&
+        _sameLocalDay(model.submissionDateUtcMs, storedSubmission)) {
+      model.submissionDateUtcMs = storedSubmission;
     }
   }
 

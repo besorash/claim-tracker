@@ -57,12 +57,11 @@ const List<String> kClaimsCsvColumns = <String>[
 /// Columns an import must contain. The others are optional: when one is left
 /// out, new claims get it empty and existing claims keep their stored value.
 const List<String> kRequiredCsvColumns = <String>[
-  'customer_name',
-  'customer_mobile',
+  'vehicle_plate',
   'accident_date',
-  'claim_number',
+  'vehicle_type',
+  'customer_name',
   'customer_insurance_company',
-  'submission_date',
 ];
 
 const List<String> _dateColumns = <String>[
@@ -193,7 +192,9 @@ abstract final class ClaimsCsv {
     'vehicle_type': c.vehicleType ?? '',
     'claim_number': c.claimNumber,
     'customer_insurance_company': c.customerInsuranceCompany,
-    'submission_date': _formatDate(c.submissionDateUtcMs),
+    'submission_date': c.submissionDateUtcMs == null
+        ? ''
+        : _formatDate(c.submissionDateUtcMs!),
     'insurer_reference_number': c.insurerReferenceNumber ?? '',
     'claim_amount_sar': c.claimAmountSar == null
         ? ''
@@ -377,20 +378,19 @@ abstract final class ClaimsCsv {
     m.nextFollowUpUtcMs = date('next_follow_up', defaultHour: 9);
 
     // The same required-field rules as the claim form.
-    final String? nameError = m.validateCustomerName();
-    if (nameError != null) fail('customer_name', nameError);
-    final String? mobileError = m.validateMobile();
-    if (mobileError != null) fail('customer_mobile', mobileError);
-    final String? claimError = m.validateClaimNumber();
-    if (claimError != null) fail('claim_number', claimError);
-    final String? insurerError = m.validateCustomerInsurer();
-    if (insurerError != null) fail('customer_insurance_company', insurerError);
+    final String? plateError = m.validateVehiclePlate();
+    if (plateError != null) fail('vehicle_plate', plateError);
     if (text('accident_date').isEmpty) {
       fail('accident_date', S.requiredField);
     }
-    if (text('submission_date').isEmpty) {
-      fail('submission_date', S.requiredField);
-    }
+    final String? typeError = m.validateVehicleType();
+    if (typeError != null) fail('vehicle_type', typeError);
+    final String? nameError = m.validateCustomerName();
+    if (nameError != null) fail('customer_name', nameError);
+    final String? insurerError = m.validateCustomerInsurer();
+    if (insurerError != null) fail('customer_insurance_company', insurerError);
+    final String? mobileError = m.validateMobile();
+    if (mobileError != null) fail('customer_mobile', mobileError);
 
     return CsvRowResult(
       id: id,

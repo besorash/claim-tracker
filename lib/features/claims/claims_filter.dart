@@ -50,17 +50,21 @@ enum ClaimsSort {
     ClaimsSort.updatedNewest || ClaimsSort.updatedOldest => c.lastActivityUtcMs,
   };
 
-  /// [claims] in this order; [smart] keeps the given order. Equal dates keep
-  /// the newest claim (highest id) first.
+  /// [claims] in this order; [smart] keeps the given order. Claims without
+  /// the date go last; equal dates keep the newest claim (highest id) first.
   List<Claim> apply(List<Claim> claims) {
     if (this == ClaimsSort.smart) return claims;
     final bool newest =
         this == ClaimsSort.submissionNewest || this == ClaimsSort.updatedNewest;
     final List<Claim> sorted = List<Claim>.of(claims);
     sorted.sort((Claim a, Claim b) {
-      final int byDate = newest
-          ? dateOf(b)!.compareTo(dateOf(a)!)
-          : dateOf(a)!.compareTo(dateOf(b)!);
+      final DateTime? da = dateOf(a);
+      final DateTime? db = dateOf(b);
+      if (da == null || db == null) {
+        if (da != db) return da == null ? 1 : -1;
+        return b.id.compareTo(a.id);
+      }
+      final int byDate = newest ? db.compareTo(da) : da.compareTo(db);
       return byDate != 0 ? byDate : b.id.compareTo(a.id);
     });
     return sorted;

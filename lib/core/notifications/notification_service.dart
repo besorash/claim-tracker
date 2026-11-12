@@ -287,11 +287,11 @@ class NotificationService implements ReminderScheduler {
     final String plate = claim.vehiclePlate ?? S.noPlate;
     return (
       title: '$plate • ${claim.customerName}',
-      body: '${S.claimNumberLabel}: ${claim.claimNumber}',
+      body: '${S.claimNumberLabel}: ${claim.claimNumberDisplay}',
       bigText:
           '${S.vehiclePlateLabel}: $plate\n'
           '${S.customerNameLabel}: ${claim.customerName}\n'
-          '${S.claimNumberLabel}: ${claim.claimNumber}',
+          '${S.claimNumberLabel}: ${claim.claimNumberDisplay}',
     );
   }
 

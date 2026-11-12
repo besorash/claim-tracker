@@ -84,7 +84,7 @@ class ClaimCard extends StatelessWidget {
                           ),
                           Flexible(
                             child: Text(
-                              claim.claimNumber,
+                              claim.claimNumberDisplay,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),

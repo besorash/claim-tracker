@@ -100,13 +100,12 @@ void main() {
     // The free-text box only appears after choosing "Other".
     expect(field('custInsurer'), findsNothing);
     await tester.enterText(field('customerName'), 'خالد');
-    await tester.enterText(field('mobile'), '0559876543');
-    await tester.enterText(field('claimNumber'), 'CLM-2');
+    await tester.enterText(field('plate'), '4051 VJD');
+    await tester.enterText(field('vehicleType'), 'Camry 2022');
     await chooseInsurer(tester, S.insurerOther);
     expect(field('custInsurer'), findsOneWidget);
     await tester.enterText(field('custInsurer'), 'Buruj');
     await pickDate(tester, 'accident');
-    await pickDate(tester, 'submission');
 
     await tester.tap(find.text(S.save));
     await tester.pumpAndSettle();
@@ -181,12 +180,16 @@ void main() {
       await tester.tap(find.text(S.save));
       await tester.pumpAndSettle();
 
-      // Four required text fields + two required dates → at least 4 messages
-      // (the liability share is optional and has no required error).
-      expect(
-        find.text(S.requiredField).evaluate().length,
-        greaterThanOrEqualTo(4),
+      // Required: plate, vehicle type, customer name, insurer and accident
+      // date — five messages. Mobile, claim number and submission date are
+      // optional and show none.
+      expect(find.text(S.requiredField), findsNWidgets(5));
+      final TextField claimNumber = tester.widget<TextField>(
+        field('claimNumber'),
       );
+      expect(claimNumber.decoration!.errorText, isNull);
+      final TextField mobile = tester.widget<TextField>(field('mobile'));
+      expect(mobile.decoration!.errorText, isNull);
       expect(saved, isEmpty);
     },
   );
@@ -220,6 +223,8 @@ void main() {
       await tester.enterText(field('customerName'), 'خالد');
       await tester.enterText(field('mobile'), '0559876543');
       await tester.enterText(field('claimNumber'), 'CLM-1');
+      await tester.enterText(field('plate'), '4051 VJD');
+      await tester.enterText(field('vehicleType'), 'Camry 2022');
       await chooseInsurer(tester, Insurers.match('Tawuniya')!.label);
       await pickDate(tester, 'accident');
       await pickDate(tester, 'submission');
@@ -234,6 +239,8 @@ void main() {
       expect(c.claimNumber, 'CLM-1');
       // The listed company is stored under its English name.
       expect(c.customerInsuranceCompany, 'Tawuniya');
+      expect(c.vehiclePlate, '4051 VJD');
+      expect(c.vehicleType, 'Camry 2022');
       expect(c.liabilityPercent, isNull);
       expect(c.accidentDateUtcMs, isNotNull);
       expect(c.submissionDateUtcMs, isNotNull);
@@ -248,6 +255,8 @@ void main() {
         id: 9,
         customerName: 'سعد',
         customerMobile: '0501112233',
+        vehiclePlate: '6653 NRA',
+        vehicleType: 'Hilux',
         accidentDateUtcMs: DateTime.utc(2026, 8, 1),
         claimNumber: 'CLM-77',
         customerInsuranceCompany: 'تعاونية',

@@ -173,12 +173,10 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     final Map<String, String?> errors = <String, String?>{
       'customerName': _model.validateCustomerName(),
       'mobile': _model.validateMobile(),
-      'claimNumber': _model.validateClaimNumber(),
       'custInsurer': _model.validateCustomerInsurer(),
-      'accidentDate': _model.accidentDateUtcMs == null ? S.requiredField : null,
-      'submissionDate': _model.submissionDateUtcMs == null
-          ? S.requiredField
-          : null,
+      'plate': _model.validateVehiclePlate(),
+      'vehicleType': _model.validateVehicleType(),
+      'accident': _model.accidentDateUtcMs == null ? S.requiredField : null,
     };
 
     if (errors.values.any((String? e) => e != null)) {
@@ -216,12 +214,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                 label: S.customerNameLabel,
                 required: true,
               ),
-              _field(
-                'mobile',
-                label: S.mobileLabel,
-                required: true,
-                number: true,
-              ),
+              _field('mobile', label: S.mobileLabel, number: true),
               _field('nationalId', label: S.nationalIdLabel),
               _field('email', label: S.emailLabel),
             ]),
@@ -234,18 +227,17 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               ),
               _field('city', label: S.cityLabel),
               _field('type', label: S.accidentTypeLabel),
-              _field('plate', label: S.vehiclePlateLabel),
-              _field('vehicleType', label: S.vehicleTypeLabel),
+              _field('plate', label: S.vehiclePlateLabel, required: true),
+              _field('vehicleType', label: S.vehicleTypeLabel, required: true),
               _liabilityField(),
             ]),
             _section(S.sectionClaimInfo, [
-              _field('claimNumber', label: S.claimNumberLabel, required: true),
+              _field('claimNumber', label: S.claimNumberLabel),
               _insurerField(),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,
                 value: _model.submissionDateUtcMs,
-                required: true,
               ),
               _field('insurerRef', label: S.insurerRefLabel),
               _field('amount', label: S.claimAmountLabel, number: true),

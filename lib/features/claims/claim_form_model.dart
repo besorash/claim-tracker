@@ -75,9 +75,11 @@ class ClaimFormModel {
 
   String? validateCustomerName() => _required(customerName);
 
-  String? validateClaimNumber() => _required(claimNumber);
-
   String? validateCustomerInsurer() => _required(customerInsuranceCompany);
+
+  String? validateVehiclePlate() => _required(vehiclePlate);
+
+  String? validateVehicleType() => _required(vehicleType);
 
   /// Liability percentage is optional; when set it must be one of the
   /// allowed shares.
@@ -98,30 +100,32 @@ class ClaimFormModel {
     return s;
   }
 
+  /// Mobile is optional; when entered it must be a valid Saudi number.
   String? validateMobile() {
     final String raw = customerMobile.trim();
-    if (raw.isEmpty) return S.requiredField;
+    if (raw.isEmpty) return null;
     if (!RegExp(r'^\d{9}$').hasMatch(normalizeMobile(raw))) {
       return S.invalidNumber;
     }
     return null;
   }
 
-  /// All required validators pass AND both dates are set.
+  /// Required: vehicle plate, accident date, vehicle type, customer name and
+  /// insurer. Everything else is optional (an entered mobile must be valid).
   bool get isValid =>
+      validateVehiclePlate() == null &&
+      validateVehicleType() == null &&
       validateCustomerName() == null &&
-      validateMobile() == null &&
-      validateClaimNumber() == null &&
       validateCustomerInsurer() == null &&
-      accidentDateUtcMs != null &&
-      submissionDateUtcMs != null;
+      validateMobile() == null &&
+      accidentDateUtcMs != null;
 
   // ---------------------------------------------------------------------------
   // Claim construction (spec §7) — the screen never touches the repository.
   // ---------------------------------------------------------------------------
 
   /// Builds a [Claim] from the current field values with the given identity.
-  /// Only call when [isValid] is true (dates are then guaranteed non-null).
+  /// Only call when [isValid] is true (the accident date is then set).
   Claim toClaim({
     required int id,
     required DateTime createdAtUtcMs,
@@ -142,7 +146,7 @@ class ClaimFormModel {
       claimNumber: claimNumber.trim(),
       customerInsuranceCompany: customerInsuranceCompany.trim(),
       liabilityPercent: liabilityPercent,
-      submissionDateUtcMs: submissionDateUtcMs!,
+      submissionDateUtcMs: submissionDateUtcMs,
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),
       notes: _opt(notes),

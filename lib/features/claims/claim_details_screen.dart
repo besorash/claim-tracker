@@ -629,7 +629,8 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                     claim,
                     (c) => [
                       _row(theme, S.customerNameLabel, c.customerName),
-                      _row(theme, S.mobileLabel, c.customerMobile),
+                      if (c.customerMobile.isNotEmpty)
+                        _row(theme, S.mobileLabel, c.customerMobile),
                       if (c.customerNationalId != null)
                         _row(theme, S.nationalIdLabel, c.customerNationalId!),
                       if (c.customerEmail != null)
@@ -666,17 +667,18 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                     S.sectionClaimInfo,
                     claim,
                     (c) => [
-                      _row(theme, S.claimNumberLabel, c.claimNumber),
+                      _row(theme, S.claimNumberLabel, c.claimNumberDisplay),
                       _row(
                         theme,
                         S.customerInsurerLabel,
                         Insurers.display(c.customerInsuranceCompany),
                       ),
-                      _row(
-                        theme,
-                        S.submissionDateLabel,
-                        TimeUtils.formatDate(c.submissionDateUtcMs),
-                      ),
+                      if (c.submissionDateUtcMs != null)
+                        _row(
+                          theme,
+                          S.submissionDateLabel,
+                          TimeUtils.formatDate(c.submissionDateUtcMs!),
+                        ),
                       if (c.insurerReferenceNumber != null)
                         _row(
                           theme,
