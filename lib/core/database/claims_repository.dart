@@ -74,7 +74,6 @@ class ClaimsRepository {
       'customer_mobile',
       'accident_number',
       'customer_insurance_company',
-      'submitted_to_insurance_company',
       'insurer_reference_number',
     ];
     final String where = fields.map((f) => '$f LIKE ?').join(' OR ');

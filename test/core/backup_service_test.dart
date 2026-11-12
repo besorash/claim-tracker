@@ -76,7 +76,7 @@ void main() {
     accidentDateUtcMs: DateTime.utc(2026, 10, 1),
     claimNumber: 'CLM-100',
     customerInsuranceCompany: 'تعاونية',
-    submittedToInsuranceCompany: 'بوبا',
+    liabilityPercent: 50,
     submissionDateUtcMs: DateTime.utc(2026, 10, 5),
     statusKey: 'new',
     lastStatusUpdateUtcMs: DateTime.utc(2026, 10, 6),

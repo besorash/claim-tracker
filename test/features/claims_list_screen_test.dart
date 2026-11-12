@@ -66,7 +66,7 @@ void main() {
     accidentDateUtcMs: DateTime.utc(2026, 10, 1),
     claimNumber: claimNumber,
     customerInsuranceCompany: 'ØªØ¹Ø§ÙˆÙ†ÙŠØ©',
-    submittedToInsuranceCompany: 'Ø¨ÙˆØ¨Ø§',
+    liabilityPercent: 50,
     submissionDateUtcMs: DateTime.utc(2026, 10, 5),
     statusKey: statusKey,
     lastStatusUpdateUtcMs: DateTime.now().toUtc(),
@@ -250,7 +250,10 @@ void main() {
         expect(find.text(S.claimNumberLabel), findsOneWidget); // label shown
         expect(find.text('CLM-200'), findsOneWidget); // value shown
         expect(find.text('Ø¹Ù…ÙŠÙ„ Ø£'), findsOneWidget); // customer name
-        expect(find.text('Ø¨ÙˆØ¨Ø§'), findsOneWidget); // submitted-to insurer
+        expect(
+          find.text('${S.liabilityPercentLabel}: 50%'),
+          findsOneWidget,
+        ); // liability share
         expect(
           find.descendant(of: cardA, matching: find.byType(StatusChip)),
           findsOneWidget,

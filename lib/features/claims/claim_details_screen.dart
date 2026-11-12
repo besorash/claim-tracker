@@ -466,10 +466,12 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     }
   }
 
-  /// Disable keeps the date visible in-app; only the alarm is cancelled
-  /// (spec §10: disable ≠ delete).
-  Future<void> _disableReminder() async {
-    await _actions.disableReminder(widget.claimId);
+  /// Cancels the reminder directly, without changing the status. Clears the
+  /// alarm, the reminder row and the follow-up date, so the claim leaves the
+  /// follow-up and overdue lists — also when the reminder is already overdue
+  /// or has already fired.
+  Future<void> _cancelReminder() async {
+    await _actions.clearFollowUp(widget.claimId);
     if (!mounted) return;
     await _load();
   }
@@ -811,8 +813,10 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                       ),
                       _row(
                         theme,
-                        S.submittedToInsurerLabel,
-                        c.submittedToInsuranceCompany,
+                        S.liabilityPercentLabel,
+                        c.liabilityPercent == null
+                            ? S.liabilityNotSet
+                            : '${c.liabilityPercent!.toStringAsFixed(0)}%',
                       ),
                       _row(
                         theme,
@@ -899,11 +903,11 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                               label: Text(S.reminderSet),
                             ),
                           ),
-                          if (_reminder != null && _reminder!.enabled) ...[
+                          if (c.nextFollowUpUtcMs != null) ...[
                             const SizedBox(width: 12),
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: _disableReminder,
+                                onPressed: _cancelReminder,
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(64, 48),
                                 ),

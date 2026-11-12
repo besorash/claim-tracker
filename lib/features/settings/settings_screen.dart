@@ -3,6 +3,7 @@
 /// status and about/version card. No non-functional controls (spec §3.3).
 library;
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:claim_tracker/core/constants/app_constants.dart';
+import 'package:claim_tracker/core/csv/claims_csv_service.dart';
 import 'package:claim_tracker/core/database/settings_repository.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/notifications/notification_service.dart';
@@ -34,6 +36,9 @@ class SettingsScreen extends StatefulWidget {
     this.reconnectAfterRestore,
     this.onDataRestored,
     this.notifications,
+    this.csvService,
+    this.saveCsv,
+    this.pickCsvText,
   });
 
   final SettingsRepository settingsRepo;
@@ -80,6 +85,17 @@ class SettingsScreen extends StatefulWidget {
   /// no method channels are touched on the host.
   final ReminderScheduler? notifications;
 
+  /// Spreadsheet (CSV) import/export engine. When null the CSV card is hidden,
+  /// so no dead buttons are shown (spec §3.3). Production always provides one.
+  final ClaimsCsvService? csvService;
+
+  /// Save-file seam for CSV export (defaults to `FilePicker.saveFile`).
+  final Future<Uri?> Function(Uint8List bytes)? saveCsv;
+
+  /// Picker seam for CSV import: returns the chosen file's text, or null when
+  /// canceled. Defaults to `FilePicker.pickFile` filtered to `.csv`.
+  final Future<String?> Function()? pickCsvText;
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -105,6 +121,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// backup buttons are disabled and a small progress indicator is shown so
   /// the user sees work is happening instead of a frozen UI.
   bool _busy = false;
+
+  /// One-shot result text for the spreadsheet (CSV) card.
+  String? _csvMessage;
 
   @override
   void initState() {
@@ -364,6 +383,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return backupFileFromPicked(picked);
   }
 
+  // ---------------------------------------------------------------------------
+  // Spreadsheet (CSV) export / import. Plain text, no passphrase — it holds the
+  // claims only (no attachments or status history; those stay in the encrypted
+  // backup above).
+  // ---------------------------------------------------------------------------
+
+  Future<void> _exportCsv() async {
+    final ClaimsCsvService? svc = widget.csvService;
+    if (svc == null) return;
+
+    setState(() {
+      _busy = true;
+      _csvMessage = null;
+    });
+    Uri? destination;
+    try {
+      final Uint8List bytes = await svc.buildExport();
+      final Future<Uri?> Function(Uint8List) save =
+          widget.saveCsv ?? _defaultSaveCsv;
+      destination = await save(bytes);
+    } on Object catch (_) {
+      destination = null; // build or picker failure — not saved
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _csvMessage = destination == null ? S.csvExportFailed : S.csvExportedOk;
+    });
+  }
+
+  Future<void> _importCsv() async {
+    final ClaimsCsvService? svc = widget.csvService;
+    if (svc == null) return;
+
+    String? text;
+    try {
+      text = await (widget.pickCsvText ?? _defaultPickCsvText)();
+    } on _CsvEncodingError {
+      if (mounted) setState(() => _csvMessage = S.csvErrorEncoding);
+      return;
+    } on Object catch (_) {
+      text = null; // picker failure — nothing to import
+    }
+    if (!mounted || text == null) return; // canceled
+
+    setState(() {
+      _busy = true;
+      _csvMessage = null;
+    });
+    CsvImportReport report;
+    try {
+      report = await svc.importText(text);
+    } on Object catch (_) {
+      report = const CsvImportReport(databaseError: true);
+    }
+    if (!mounted) return;
+
+    final String message;
+    if (report.databaseError) {
+      message = S.csvImportFailed;
+    } else if (report.hasErrors) {
+      final List<String> shown = report.errors.take(10).toList();
+      final String more = report.errors.length > shown.length ? '\n…' : '';
+      message = '${S.csvImportRejected}\n${shown.join('\n')}$more';
+    } else {
+      message = report.reminderFailures > 0
+          ? '${S.csvImportedOk(report.created, report.updated)}\n'
+                '${S.csvReminderWarning}'
+          : S.csvImportedOk(report.created, report.updated);
+    }
+    setState(() {
+      _busy = false;
+      _csvMessage = message;
+    });
+  }
+
+  /// Production save seam: hands the CSV bytes to the OS save dialog.
+  static Future<Uri?> _defaultSaveCsv(Uint8List bytes) {
+    return FilePicker.saveFile(
+      fileName: 'claims.csv',
+      bytes: bytes,
+      mimeType: 'text/csv',
+      dialogTitle: S.csvCardTitle,
+    );
+  }
+
+  /// Production picker seam: reads the chosen `.csv` as UTF-8 text. A file that
+  /// is not valid UTF-8 (e.g. Excel's default "CSV" on Arabic Windows) throws
+  /// [_CsvEncodingError] so the user is asked to save it as "CSV UTF-8".
+  static Future<String?> _defaultPickCsvText() async {
+    final PlatformFile? picked = await FilePicker.pickFile(
+      dialogTitle: S.csvCardTitle,
+      type: FileType.custom,
+      allowedExtensions: const <String>['csv'],
+    );
+    if (picked == null) return null;
+    final Uint8List bytes = await picked.readAsBytes();
+    try {
+      return utf8.decode(bytes);
+    } on FormatException {
+      throw const _CsvEncodingError();
+    }
+  }
+
   /// Notification seam — production singleton by default (spec §10).
   ReminderScheduler get _notifications =>
       widget.notifications ?? NotificationService.instance;
@@ -530,6 +653,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ]),
             ],
+            if (widget.csvService != null) ...<Widget>[
+              const SizedBox(height: 12),
+              _card(theme, S.csvCardTitle, <Widget>[
+                FilledButton.icon(
+                  key: const Key('csv-export'),
+                  onPressed: _busy ? null : _exportCsv,
+                  icon: const Icon(Icons.table_chart_outlined),
+                  label: Text(S.csvExportAction),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('csv-import'),
+                  onPressed: _busy ? null : _importCsv,
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: Text(S.csvImportAction),
+                ),
+                if (_csvMessage != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Text(
+                    _csvMessage!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.muted(context),
+                    ),
+                  ),
+                ],
+              ]),
+            ],
             const SizedBox(height: 12),
             _card(theme, S.securityInfoTitle, <Widget>[
               Text(S.securityInfoBody),
@@ -630,6 +780,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+/// Raised by the CSV picker when the chosen file is not valid UTF-8.
+class _CsvEncodingError implements Exception {
+  const _CsvEncodingError();
 }
 
 /// Passphrase entry dialog (spec §15). Owns its [TextEditingController] for

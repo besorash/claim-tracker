@@ -133,7 +133,77 @@ class AppLocalizationsAr extends AppLocalizations {
   String get customerInsurerLabel => 'شركة تأمين العميل';
 
   @override
-  String get submittedToInsurerLabel => 'الشركة المقدمة إليها المطالبة';
+  String get liabilityPercentLabel => 'نسبة المسؤولية';
+
+  @override
+  String get liabilityNotSet => 'غير محدد';
+
+  @override
+  String get csvCardTitle => 'ملف إكسل (CSV)';
+
+  @override
+  String get csvExportAction => 'تصدير إلى ملف CSV';
+
+  @override
+  String get csvImportAction => 'استيراد من ملف CSV';
+
+  @override
+  String get csvExportedOk => 'تم تصدير ملف CSV.';
+
+  @override
+  String get csvExportFailed => 'تعذّر تصدير ملف CSV.';
+
+  @override
+  String csvImportedOk(int created, int updated) {
+    return 'تم الاستيراد: $created جديدة، و$updated محدّثة.';
+  }
+
+  @override
+  String get csvImportRejected =>
+      'لم يُحفظ شيء. صحّح هذه الصفوف في الملف ثم أعد الاستيراد:';
+
+  @override
+  String get csvImportFailed =>
+      'توقف الاستيراد بسبب خطأ في قاعدة البيانات، وقد تكون بعض الصفوف حُفظت.';
+
+  @override
+  String get csvReminderWarning => 'تعذّر جدولة بعض التذكيرات على هذا الجهاز.';
+
+  @override
+  String get csvErrorEncoding => 'احفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.';
+
+  @override
+  String get csvErrorMalformed => 'تعذّر قراءة الملف. تحقق من علامات الاقتباس.';
+
+  @override
+  String get csvErrorMissingColumns => 'أعمدة ناقصة:';
+
+  @override
+  String get csvRowLabel => 'صف';
+
+  @override
+  String get csvErrorBadId =>
+      'يجب أن يكون العمود id رقماً صحيحاً من الملف المصدّر.';
+
+  @override
+  String get csvErrorUnknownId => 'لا توجد مطالبة بهذا الرقم في التطبيق.';
+
+  @override
+  String get csvErrorDuplicateId => 'هذا الرقم مكرر في الملف.';
+
+  @override
+  String get csvErrorAmount => 'المبلغ يجب أن يكون رقماً.';
+
+  @override
+  String get csvErrorLiability =>
+      'نسبة المسؤولية يجب أن تكون فارغة أو 0 أو 50 أو 100.';
+
+  @override
+  String get csvErrorDate =>
+      'التواريخ يجب أن تكون بالشكل 2026-03-31، أو 2026-03-31 14:30 للمتابعات.';
+
+  @override
+  String get csvErrorStatus => 'رمز الحالة غير معروف.';
 
   @override
   String get submissionDateLabel => 'تاريخ تقديم المطالبة';
@@ -229,7 +299,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reminderSet => 'تحديد موعد التذكير';
 
   @override
-  String get reminderDisable => 'إيقاف التذكير';
+  String get reminderDisable => 'إلغاء التذكير';
 
   @override
   String get reminderRepeatLabel => 'التكرار';

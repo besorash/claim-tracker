@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 1;
+const int kDatabaseVersion = 2;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -75,11 +75,22 @@ class AppDatabase {
         switch (v) {
           case 1:
             await _createSchemaV1(txn);
-          // Future versions add cases here, e.g.:
-          // case 2: await _migrateToV2(txn);
+          case 2:
+            await _migrateToV2(txn);
+          // Future versions add cases here.
         }
       }
     });
+  }
+
+  /// v2: the "submitted to insurer" column is replaced by the liability
+  /// percentage (0 / 50 / 100, nullable). The app has no user data yet, so the
+  /// old values are dropped rather than carried over.
+  static Future<void> _migrateToV2(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN liability_percent REAL');
+    await txn.execute(
+      'ALTER TABLE claims DROP COLUMN submitted_to_insurance_company',
+    );
   }
 
   static Future<void> _createSchemaV1(sqf.Transaction txn) async {

@@ -107,7 +107,7 @@ void main() {
       accidentDateUtcMs: DateTime.utc(2026, 10, 1),
       claimNumber: 'CLM-ATT-${DateTime.now().microsecondsSinceEpoch % 9999}',
       customerInsuranceCompany: 'تعاونية',
-      submittedToInsuranceCompany: 'بوبا',
+      liabilityPercent: 50,
       submissionDateUtcMs: DateTime.utc(2026, 10, 5),
       statusKey: 'new',
       lastStatusUpdateUtcMs: DateTime.now().toUtc(),

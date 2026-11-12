@@ -18,6 +18,7 @@ import 'app/home_shell.dart';
 import 'core/l10n/app_strings.dart';
 import 'l10n/app_localizations.dart';
 import 'core/constants/app_constants.dart';
+import 'core/csv/claims_csv_service.dart';
 import 'core/database/app_database.dart';
 import 'core/database/reminders_repository.dart';
 import 'core/database/settings_repository.dart';
@@ -102,12 +103,16 @@ class ClaimTrackerApp extends StatefulWidget {
     required this.files,
     required this.backup,
     this.scheduler,
+    this.csv,
   });
 
   final AppDatabase db;
   final SettingsRepository settings;
   final AttachmentFileService files;
   final BackupService backup;
+
+  /// Spreadsheet (CSV) engine. Defaults to one built on [db] and [scheduler].
+  final ClaimsCsvService? csv;
 
   /// OS-side reminder scheduler used for post-restore reconciliation. Defaults
   /// to the production [NotificationService] singleton (spec §10).
@@ -133,6 +138,12 @@ class _ClaimTrackerAppState extends State<ClaimTrackerApp> {
   late SettingsRepository _settings = widget.settings;
   late AttachmentFileService _files = widget.files;
   late BackupService _backup = widget.backup;
+  late ClaimsCsvService _csv =
+      widget.csv ??
+      ClaimsCsvService(
+        widget.db,
+        widget.scheduler ?? NotificationService.instance,
+      );
 
   Future<void> reconnectAfterRestore() async {
     final AppDatabase fresh = await AppDatabase.open();
@@ -144,6 +155,10 @@ class _ClaimTrackerAppState extends State<ClaimTrackerApp> {
       _settings = SettingsRepository(fresh);
       _files = AttachmentFileService(baseDir: _files.baseDir);
       _backup = BackupService(fresh, _files);
+      _csv = ClaimsCsvService(
+        fresh,
+        widget.scheduler ?? NotificationService.instance,
+      );
     });
 
     // Reconcile the OS alarm set with the restored database (spec §10/§15):
@@ -224,6 +239,7 @@ class _ClaimTrackerAppState extends State<ClaimTrackerApp> {
         currentLanguageCode: _locale.languageCode,
         onLanguageChanged: _onLanguageChanged,
         backupService: _backup,
+        csvService: _csv,
         reconnectAfterRestore: reconnectAfterRestore,
       ),
     );

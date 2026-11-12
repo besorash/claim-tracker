@@ -87,7 +87,7 @@ void main() {
         'accident_date_utc_ms': now,
         'claim_number': 'CLM-1',
         'customer_insurance_company': 'شركة أ',
-        'submitted_to_insurance_company': 'شركة ب',
+        'liability_percent': 50,
         'submission_date_utc_ms': now,
         'status_key': 'new',
         'last_status_update_utc_ms': now,

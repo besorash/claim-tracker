@@ -16,7 +16,7 @@ class Claim {
     this.vehiclePlate,
     required this.claimNumber,
     required this.customerInsuranceCompany,
-    required this.submittedToInsuranceCompany,
+    this.liabilityPercent,
     required this.submissionDateUtcMs,
     this.insurerReferenceNumber,
     this.claimAmountSar,
@@ -47,7 +47,8 @@ class Claim {
   // Claim (spec §7.3).
   final String claimNumber;
   final String customerInsuranceCompany;
-  final String submittedToInsuranceCompany;
+  /// Liability share of the claim: 0, 50 or 100 (percent). Null = not set.
+  final double? liabilityPercent;
   final DateTime submissionDateUtcMs;
   final String? insurerReferenceNumber;
   final double? claimAmountSar;
@@ -76,7 +77,7 @@ class Claim {
     String? vehiclePlate,
     String? claimNumber,
     String? customerInsuranceCompany,
-    String? submittedToInsuranceCompany,
+    double? liabilityPercent,
     DateTime? submissionDateUtcMs,
     String? insurerReferenceNumber,
     double? claimAmountSar,
@@ -102,8 +103,7 @@ class Claim {
       claimNumber: claimNumber ?? this.claimNumber,
       customerInsuranceCompany:
           customerInsuranceCompany ?? this.customerInsuranceCompany,
-      submittedToInsuranceCompany:
-          submittedToInsuranceCompany ?? this.submittedToInsuranceCompany,
+      liabilityPercent: liabilityPercent ?? this.liabilityPercent,
       submissionDateUtcMs: submissionDateUtcMs ?? this.submissionDateUtcMs,
       insurerReferenceNumber:
           insurerReferenceNumber ?? this.insurerReferenceNumber,
@@ -132,7 +132,7 @@ class Claim {
     'vehicle_plate': vehiclePlate,
     'claim_number': claimNumber,
     'customer_insurance_company': customerInsuranceCompany,
-    'submitted_to_insurance_company': submittedToInsuranceCompany,
+    'liability_percent': liabilityPercent,
     'submission_date_utc_ms': submissionDateUtcMs.millisecondsSinceEpoch,
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
@@ -161,8 +161,7 @@ class Claim {
     vehiclePlate: row['vehicle_plate'] as String?,
     claimNumber: row['claim_number']! as String,
     customerInsuranceCompany: row['customer_insurance_company']! as String,
-    submittedToInsuranceCompany:
-        row['submitted_to_insurance_company']! as String,
+    liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),
     submissionDateUtcMs: DateTime.fromMillisecondsSinceEpoch(
       row['submission_date_utc_ms']! as int,
       isUtc: true,

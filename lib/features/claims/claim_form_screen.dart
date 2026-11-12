@@ -47,7 +47,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'plate',
     'claimNumber',
     'custInsurer',
-    'submittedInsurer',
     'insurerRef',
     'amount',
     'notes',
@@ -82,7 +81,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'plate' => _model.vehiclePlate,
     'claimNumber' => _model.claimNumber,
     'custInsurer' => _model.customerInsuranceCompany,
-    'submittedInsurer' => _model.submittedToInsuranceCompany,
     'insurerRef' => _model.insurerReferenceNumber,
     'amount' => _model.claimAmount,
     'notes' => _model.notes,
@@ -111,8 +109,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         _model.claimNumber = value;
       case 'custInsurer':
         _model.customerInsuranceCompany = value;
-      case 'submittedInsurer':
-        _model.submittedToInsuranceCompany = value;
       case 'insurerRef':
         _model.insurerReferenceNumber = value;
       case 'amount':
@@ -163,7 +159,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
       'mobile': _model.validateMobile(),
       'claimNumber': _model.validateClaimNumber(),
       'custInsurer': _model.validateCustomerInsurer(),
-      'submittedInsurer': _model.validateSubmittedToInsurer(),
       'accidentDate': _model.accidentDateUtcMs == null ? S.requiredField : null,
       'submissionDate': _model.submissionDateUtcMs == null
           ? S.requiredField
@@ -233,11 +228,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                 label: S.customerInsurerLabel,
                 required: true,
               ),
-              _field(
-                'submittedInsurer',
-                label: S.submittedToInsurerLabel,
-                required: true,
-              ),
+              _liabilityField(),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,
@@ -412,6 +403,38 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
           labelText: label,
           errorText: _errors[key],
           border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  /// Optional liability share: not set, 0%, 50% or 100%.
+  Widget _liabilityField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InputDecorator(
+        key: const Key('field-liability'),
+        decoration: InputDecoration(
+          labelText: S.liabilityPercentLabel,
+          border: const OutlineInputBorder(),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<double?>(
+            isExpanded: true,
+            value: _model.liabilityPercent,
+            items: <DropdownMenuItem<double?>>[
+              DropdownMenuItem<double?>(
+                value: null,
+                child: Text(S.liabilityNotSet),
+              ),
+              for (final double option in ClaimFormModel.liabilityOptions)
+                DropdownMenuItem<double?>(
+                  value: option,
+                  child: Text('${option.toStringAsFixed(0)}%'),
+                ),
+            ],
+            onChanged: (double? v) => setState(() => _model.liabilityPercent = v),
+          ),
         ),
       ),
     );

@@ -27,7 +27,7 @@ class ClaimFormModel {
   // Claim (spec §7.3) — number, both insurers and submission date are required.
   String claimNumber = '';
   String customerInsuranceCompany = '';
-  String submittedToInsuranceCompany = '';
+  double? liabilityPercent; // null = not set; otherwise 0, 50 or 100
   DateTime? submissionDateUtcMs;
   String insurerReferenceNumber = '';
   String claimAmount = ''; // editable string; parsed to SAR double on save
@@ -50,7 +50,7 @@ class ClaimFormModel {
     vehiclePlate = claim.vehiclePlate ?? '';
     claimNumber = claim.claimNumber;
     customerInsuranceCompany = claim.customerInsuranceCompany;
-    submittedToInsuranceCompany = claim.submittedToInsuranceCompany;
+    liabilityPercent = claim.liabilityPercent;
     submissionDateUtcMs = claim.submissionDateUtcMs;
     insurerReferenceNumber = claim.insurerReferenceNumber ?? '';
     claimAmount = claim.claimAmountSar?.toString() ?? '';
@@ -72,8 +72,9 @@ class ClaimFormModel {
 
   String? validateCustomerInsurer() => _required(customerInsuranceCompany);
 
-  String? validateSubmittedToInsurer() =>
-      _required(submittedToInsuranceCompany);
+  /// Liability percentage is optional; when set it must be one of the
+  /// allowed shares.
+  static const List<double> liabilityOptions = <double>[0, 50, 100];
 
   /// Canonical Saudi mobile: strip spaces/dashes/parens, a leading `+966` or
   /// `00966`, then one leading `0`; the result must be exactly 9 digits.
@@ -105,7 +106,6 @@ class ClaimFormModel {
       validateMobile() == null &&
       validateClaimNumber() == null &&
       validateCustomerInsurer() == null &&
-      validateSubmittedToInsurer() == null &&
       accidentDateUtcMs != null &&
       submissionDateUtcMs != null;
 
@@ -129,7 +129,7 @@ class ClaimFormModel {
       vehiclePlate: _opt(vehiclePlate),
       claimNumber: claimNumber.trim(),
       customerInsuranceCompany: customerInsuranceCompany.trim(),
-      submittedToInsuranceCompany: submittedToInsuranceCompany.trim(),
+      liabilityPercent: liabilityPercent,
       submissionDateUtcMs: submissionDateUtcMs!,
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),

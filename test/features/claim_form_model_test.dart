@@ -12,7 +12,7 @@ ClaimFormModel _validModel() => ClaimFormModel()
   ..customerMobile = '0559876543'
   ..claimNumber = 'CLM-1'
   ..customerInsuranceCompany = 'تعاونية'
-  ..submittedToInsuranceCompany = 'بوبا'
+  ..liabilityPercent = 50
   ..accidentDateUtcMs = DateTime.utc(2026, 10, 1)
   ..submissionDateUtcMs = DateTime.utc(2026, 10, 5);
 
@@ -25,7 +25,6 @@ void main() {
       expect(m.validateMobile(), S.requiredField);
       expect(m.validateClaimNumber(), S.requiredField);
       expect(m.validateCustomerInsurer(), S.requiredField);
-      expect(m.validateSubmittedToInsurer(), S.requiredField);
       expect(m.isValid, isFalse);
     });
 
@@ -40,7 +39,6 @@ void main() {
       expect(m.validateMobile(), isNull);
       expect(m.validateClaimNumber(), isNull);
       expect(m.validateCustomerInsurer(), isNull);
-      expect(m.validateSubmittedToInsurer(), isNull);
       expect(m.isValid, isTrue);
     });
 
@@ -96,6 +94,15 @@ void main() {
         expect(claim.statusKey, isNotEmpty);
       },
     );
+
+    test('liability percent is optional and carried into the claim', () {
+      final ClaimFormModel unset = _validModel()..liabilityPercent = null;
+      final DateTime t0 = DateTime.utc(2026, 1, 1);
+      expect(unset.toClaim(id: 1, createdAtUtcMs: t0).liabilityPercent, isNull);
+
+      final ClaimFormModel full = _validModel()..liabilityPercent = 100;
+      expect(full.toClaim(id: 1, createdAtUtcMs: t0).liabilityPercent, 100);
+    });
 
     test('applyTo preserves id and createdAt but bumps updatedAt', () {
       final ClaimFormModel m = _validModel();

@@ -310,10 +310,6 @@ void main() {
           find.byKey(const Key('field-custInsurer')),
           'تعاونية',
         );
-        await tester.enterText(
-          find.byKey(const Key('field-submittedInsurer')),
-          'بوبا',
-        );
         // And the two required dates.
         await _pickDate(tester, 'accident');
         await _pickDate(tester, 'submission');
@@ -372,7 +368,7 @@ void main() {
           accidentDateUtcMs: DateTime.utc(2026, 10, 1),
           claimNumber: 'CLM-NTF',
           customerInsuranceCompany: 'تعاونية',
-          submittedToInsuranceCompany: 'بوبا',
+          liabilityPercent: 50,
           submissionDateUtcMs: DateTime.utc(2026, 10, 1),
           statusKey: 'new',
           lastStatusUpdateUtcMs: DateTime.utc(2026, 10, 2),

@@ -286,7 +286,7 @@ void main() {
       accidentDateUtcMs: DateTime.utc(2026, 10, 1),
       claimNumber: 'CLM-500',
       customerInsuranceCompany: 'تعاونية',
-      submittedToInsuranceCompany: 'بوبا',
+      liabilityPercent: 50,
       submissionDateUtcMs: DateTime.utc(2026, 10, 5),
       claimAmountSar: 12500.5,
       notes: 'ملاحظة تجريبية',
@@ -707,14 +707,14 @@ void main() {
     },
   );
 
-  testWidgets('disabling cancels the alarm but keeps the date visible', (
+  testWidgets('cancel reminder clears the alarm and the overdue follow-up', (
     WidgetTester tester,
   ) async {
     await tester.runAsync(() async {
       final FakeScheduler fake = FakeScheduler();
       final int id = await seedFull();
-      // Seed an enabled reminder so there is something to disable — at ms
-      // precision (SQLite stores INTEGER ms; microseconds would truncate).
+      // Seed an enabled reminder that is already overdue — at ms precision
+      // (SQLite stores INTEGER ms; microseconds would truncate).
       final DateTime now = DateTime.now();
       final DateTime fireAt = DateTime.utc(
         now.year,
@@ -723,7 +723,7 @@ void main() {
         now.hour,
         now.minute,
         now.second,
-      ).add(const Duration(days: 2));
+      ).subtract(const Duration(days: 2));
       await claims.update(
         (await db.claimById(id))!.copyWith(nextFollowUpUtcMs: fireAt),
       );
@@ -759,11 +759,11 @@ void main() {
       expect(fake.cancelled, contains(id));
       final Reminder? reminder = await RemindersRepository(db)
           .latestForClaim(id);
-      expect(reminder, isNotNull);
-      expect(reminder!.enabled, false);
-      // The follow-up date stays visible in-app (spec §10).
+      expect(reminder, isNull, reason: 'reminder row is removed');
+      // The follow-up date is cleared, so the claim leaves the overdue list.
       final Claim updated = (await db.claimById(id))!;
-      expect(updated.nextFollowUpUtcMs, fireAt);
+      expect(updated.nextFollowUpUtcMs, isNull);
+      expect(await claims.overdue(DateTime.now().toUtc()), isEmpty);
     });
   });
 

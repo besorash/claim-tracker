@@ -59,19 +59,20 @@ class ClaimCard extends StatelessWidget {
                 StatusChip(statusKey: claim.statusKey, compact: true),
               ],
             ),
-            if (claim.submittedToInsuranceCompany.isNotEmpty) ...[
+            if (claim.liabilityPercent != null) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
                   Icon(
-                    Icons.apartment_outlined,
+                    Icons.percent,
                     size: 16,
                     color: AppTheme.muted(context),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      claim.submittedToInsuranceCompany,
+                      '${S.liabilityPercentLabel}: '
+                      '${claim.liabilityPercent!.toStringAsFixed(0)}%',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall

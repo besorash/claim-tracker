@@ -135,7 +135,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customerInsurerLabel => 'Customer\'s Insurance Company';
 
   @override
-  String get submittedToInsurerLabel => 'Claim Submitted To';
+  String get liabilityPercentLabel => 'Liability %';
+
+  @override
+  String get liabilityNotSet => 'Not set';
+
+  @override
+  String get csvCardTitle => 'Spreadsheet (CSV)';
+
+  @override
+  String get csvExportAction => 'Export to spreadsheet (CSV)';
+
+  @override
+  String get csvImportAction => 'Import from spreadsheet (CSV)';
+
+  @override
+  String get csvExportedOk => 'Spreadsheet exported.';
+
+  @override
+  String get csvExportFailed => 'Could not export the spreadsheet.';
+
+  @override
+  String csvImportedOk(int created, int updated) {
+    return 'Imported: $created new, $updated updated.';
+  }
+
+  @override
+  String get csvImportRejected =>
+      'Nothing was saved. Fix these rows in the file and import again:';
+
+  @override
+  String get csvImportFailed =>
+      'The import stopped because of a database error. Some rows may have been saved.';
+
+  @override
+  String get csvReminderWarning =>
+      'Some reminders could not be scheduled on this device.';
+
+  @override
+  String get csvErrorEncoding => 'Save the file as CSV UTF-8 and try again.';
+
+  @override
+  String get csvErrorMalformed =>
+      'The file could not be read. Check the quotation marks.';
+
+  @override
+  String get csvErrorMissingColumns => 'Missing columns:';
+
+  @override
+  String get csvRowLabel => 'Row';
+
+  @override
+  String get csvErrorBadId => 'The id must be a whole number from the export.';
+
+  @override
+  String get csvErrorUnknownId => 'No claim with this id exists in the app.';
+
+  @override
+  String get csvErrorDuplicateId =>
+      'This id appears more than once in the file.';
+
+  @override
+  String get csvErrorAmount => 'The amount must be a number.';
+
+  @override
+  String get csvErrorLiability => 'Liability % must be empty, 0, 50 or 100.';
+
+  @override
+  String get csvErrorDate =>
+      'Dates must look like 2026-03-31, or 2026-03-31 14:30 for follow-ups.';
+
+  @override
+  String get csvErrorStatus => 'Unknown status key.';
 
   @override
   String get submissionDateLabel => 'Submission Date';
@@ -232,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderSet => 'Set reminder time';
 
   @override
-  String get reminderDisable => 'Disable reminder';
+  String get reminderDisable => 'Cancel reminder';
 
   @override
   String get reminderRepeatLabel => 'Repeat';

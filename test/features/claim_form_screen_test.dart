@@ -80,10 +80,11 @@ void main() {
       await tester.tap(find.text(S.save));
       await tester.pumpAndSettle();
 
-      // Five required text fields + two required dates → at least 5 messages.
+      // Four required text fields + two required dates → at least 4 messages
+      // (the liability share is optional and has no required error).
       expect(
         find.text(S.requiredField).evaluate().length,
-        greaterThanOrEqualTo(5),
+        greaterThanOrEqualTo(4),
       );
       expect(saved, isEmpty);
     },
@@ -119,7 +120,6 @@ void main() {
       await tester.enterText(field('mobile'), '0559876543');
       await tester.enterText(field('claimNumber'), 'CLM-1');
       await tester.enterText(field('custInsurer'), 'تعاونية');
-      await tester.enterText(field('submittedInsurer'), 'بوبا');
       await pickDate(tester, 'accident');
       await pickDate(tester, 'submission');
 
@@ -132,7 +132,7 @@ void main() {
       expect(c.customerMobile, '0559876543');
       expect(c.claimNumber, 'CLM-1');
       expect(c.customerInsuranceCompany, 'تعاونية');
-      expect(c.submittedToInsuranceCompany, 'بوبا');
+      expect(c.liabilityPercent, isNull);
       expect(c.accidentDateUtcMs, isNotNull);
       expect(c.submissionDateUtcMs, isNotNull);
     },
@@ -149,7 +149,7 @@ void main() {
         accidentDateUtcMs: DateTime.utc(2026, 8, 1),
         claimNumber: 'CLM-77',
         customerInsuranceCompany: 'تعاونية',
-        submittedToInsuranceCompany: 'بوبا',
+        liabilityPercent: 50,
         submissionDateUtcMs: DateTime.utc(2026, 8, 5),
         statusKey: 'new',
         lastStatusUpdateUtcMs: created,

@@ -344,11 +344,137 @@ abstract class AppLocalizations {
   /// **'Customer\'s Insurance Company'**
   String get customerInsurerLabel;
 
-  /// No description provided for @submittedToInsurerLabel.
+  /// No description provided for @liabilityPercentLabel.
   ///
   /// In en, this message translates to:
-  /// **'Claim Submitted To'**
-  String get submittedToInsurerLabel;
+  /// **'Liability %'**
+  String get liabilityPercentLabel;
+
+  /// No description provided for @liabilityNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get liabilityNotSet;
+
+  /// No description provided for @csvCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreadsheet (CSV)'**
+  String get csvCardTitle;
+
+  /// No description provided for @csvExportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to spreadsheet (CSV)'**
+  String get csvExportAction;
+
+  /// No description provided for @csvImportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from spreadsheet (CSV)'**
+  String get csvImportAction;
+
+  /// No description provided for @csvExportedOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreadsheet exported.'**
+  String get csvExportedOk;
+
+  /// No description provided for @csvExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export the spreadsheet.'**
+  String get csvExportFailed;
+
+  /// No description provided for @csvImportedOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported: {created} new, {updated} updated.'**
+  String csvImportedOk(int created, int updated);
+
+  /// No description provided for @csvImportRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was saved. Fix these rows in the file and import again:'**
+  String get csvImportRejected;
+
+  /// No description provided for @csvImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The import stopped because of a database error. Some rows may have been saved.'**
+  String get csvImportFailed;
+
+  /// No description provided for @csvReminderWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Some reminders could not be scheduled on this device.'**
+  String get csvReminderWarning;
+
+  /// No description provided for @csvErrorEncoding.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the file as CSV UTF-8 and try again.'**
+  String get csvErrorEncoding;
+
+  /// No description provided for @csvErrorMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be read. Check the quotation marks.'**
+  String get csvErrorMalformed;
+
+  /// No description provided for @csvErrorMissingColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing columns:'**
+  String get csvErrorMissingColumns;
+
+  /// No description provided for @csvRowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Row'**
+  String get csvRowLabel;
+
+  /// No description provided for @csvErrorBadId.
+  ///
+  /// In en, this message translates to:
+  /// **'The id must be a whole number from the export.'**
+  String get csvErrorBadId;
+
+  /// No description provided for @csvErrorUnknownId.
+  ///
+  /// In en, this message translates to:
+  /// **'No claim with this id exists in the app.'**
+  String get csvErrorUnknownId;
+
+  /// No description provided for @csvErrorDuplicateId.
+  ///
+  /// In en, this message translates to:
+  /// **'This id appears more than once in the file.'**
+  String get csvErrorDuplicateId;
+
+  /// No description provided for @csvErrorAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount must be a number.'**
+  String get csvErrorAmount;
+
+  /// No description provided for @csvErrorLiability.
+  ///
+  /// In en, this message translates to:
+  /// **'Liability % must be empty, 0, 50 or 100.'**
+  String get csvErrorLiability;
+
+  /// No description provided for @csvErrorDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates must look like 2026-03-31, or 2026-03-31 14:30 for follow-ups.'**
+  String get csvErrorDate;
+
+  /// No description provided for @csvErrorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown status key.'**
+  String get csvErrorStatus;
 
   /// No description provided for @submissionDateLabel.
   ///
@@ -533,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderDisable.
   ///
   /// In en, this message translates to:
-  /// **'Disable reminder'**
+  /// **'Cancel reminder'**
   String get reminderDisable;
 
   /// No description provided for @reminderRepeatLabel.

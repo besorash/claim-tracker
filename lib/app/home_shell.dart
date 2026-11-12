@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../core/csv/claims_csv_service.dart';
 import '../core/database/app_database.dart';
 import '../core/database/claims_repository.dart';
 import '../core/security/backup_service.dart';
@@ -30,6 +31,7 @@ class HomeShell extends StatefulWidget {
     this.currentLanguageCode = 'en',
     this.onLanguageChanged,
     this.backupService,
+    this.csvService,
     this.reconnectAfterRestore,
   });
 
@@ -56,6 +58,9 @@ class HomeShell extends StatefulWidget {
   /// Backup engine for the settings card (spec §15). Null hides the card —
   /// widget tests that don't exercise backup simply omit it.
   final BackupService? backupService;
+
+  /// Spreadsheet (CSV) import/export engine handed to the settings screen.
+  final ClaimsCsvService? csvService;
 
   /// Reopens the database after a successful restore swap (the live handle is
   /// closed during the swap) and rebuilds the app around the new instance.
@@ -186,6 +191,7 @@ class _HomeShellState extends State<HomeShell> {
               currentLanguageCode: widget.currentLanguageCode,
               onLanguageChanged: widget.onLanguageChanged,
               backupService: widget.backupService,
+              csvService: widget.csvService,
               reconnectAfterRestore: widget.reconnectAfterRestore,
               // Refresh every destination after a restore (IndexedStack keeps
               // them alive — the _gen bump forces fresh loads).
