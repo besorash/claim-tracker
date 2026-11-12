@@ -58,7 +58,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashOpenClaims => 'Open Claims';
 
   @override
-  String get dashClosedClaims => 'Closed Claims';
+  String get dashClosedClaims => 'Finished Claims';
 
   @override
   String get dashDueToday => 'Follow-up Due Today';
@@ -88,7 +88,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterOverdue => 'Overdue';
 
   @override
-  String get filterClosed => 'Closed';
+  String get sortTooltip => 'Sort';
+
+  @override
+  String get sortDefault => 'Default order';
+
+  @override
+  String get sortSubmissionNewest => 'Submission date: newest first';
+
+  @override
+  String get sortSubmissionOldest => 'Submission date: oldest first';
+
+  @override
+  String get sortUpdatedNewest => 'Last update: newest first';
+
+  @override
+  String get sortUpdatedOldest => 'Last update: oldest first';
+
+  @override
+  String get lastUpdateLabel => 'Last update';
+
+  @override
+  String get filterClosed => 'Finished';
 
   @override
   String get searchHint => 'Search plate, name, claim number, vehicle…';

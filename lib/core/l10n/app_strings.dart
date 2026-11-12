@@ -41,6 +41,13 @@ abstract final class S {
   static String get addClaim => _l.addClaim;
   static String get edit => _l.edit;
   static String get noPlate => _l.noPlate;
+  static String get sortTooltip => _l.sortTooltip;
+  static String get sortDefault => _l.sortDefault;
+  static String get sortSubmissionNewest => _l.sortSubmissionNewest;
+  static String get sortSubmissionOldest => _l.sortSubmissionOldest;
+  static String get sortUpdatedNewest => _l.sortUpdatedNewest;
+  static String get sortUpdatedOldest => _l.sortUpdatedOldest;
+  static String get lastUpdateLabel => _l.lastUpdateLabel;
   static String get vehicleTypeLabel => _l.vehicleTypeLabel;
   static String get sectionCustomerInfo => _l.sectionCustomerInfo;
   static String get sectionAccidentInfo => _l.sectionAccidentInfo;

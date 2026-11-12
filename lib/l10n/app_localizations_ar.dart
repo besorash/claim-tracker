@@ -58,7 +58,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashOpenClaims => 'مطالبات مفتوحة';
 
   @override
-  String get dashClosedClaims => 'مطالبات مغلقة';
+  String get dashClosedClaims => 'مطالبات منتهية';
 
   @override
   String get dashDueToday => 'متابعة مستحقة اليوم';
@@ -88,7 +88,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get filterOverdue => 'متأخرة';
 
   @override
-  String get filterClosed => 'المغلقة';
+  String get sortTooltip => 'ترتيب';
+
+  @override
+  String get sortDefault => 'الترتيب الافتراضي';
+
+  @override
+  String get sortSubmissionNewest => 'تاريخ التقديم: الأحدث أولاً';
+
+  @override
+  String get sortSubmissionOldest => 'تاريخ التقديم: الأقدم أولاً';
+
+  @override
+  String get sortUpdatedNewest => 'آخر تحديث: الأحدث أولاً';
+
+  @override
+  String get sortUpdatedOldest => 'آخر تحديث: الأقدم أولاً';
+
+  @override
+  String get lastUpdateLabel => 'آخر تحديث';
+
+  @override
+  String get filterClosed => 'المنتهية';
 
   @override
   String get searchHint => 'ابحث باللوحة، الاسم، رقم المطالبة، المركبة…';

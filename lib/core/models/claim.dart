@@ -24,6 +24,7 @@ class Claim {
     this.insurerReferenceNumber,
     this.claimAmountSar,
     this.notes,
+    this.notesUpdatedUtcMs,
     this.extraFields = const <String, String>{},
     required this.statusKey,
     required this.lastStatusUpdateUtcMs,
@@ -62,6 +63,9 @@ class Claim {
   final double? claimAmountSar;
   final String? notes;
 
+  /// When the notes were last changed (null = never written).
+  final DateTime? notesUpdatedUtcMs;
+
   /// User-defined fields that came in as extra spreadsheet columns, keyed by
   /// the column header. Stored as JSON; never null (empty = none).
   final Map<String, String> extraFields;
@@ -95,6 +99,7 @@ class Claim {
     String? insurerReferenceNumber,
     double? claimAmountSar,
     String? notes,
+    DateTime? notesUpdatedUtcMs,
     Map<String, String>? extraFields,
     String? statusKey,
     DateTime? lastStatusUpdateUtcMs,
@@ -124,6 +129,7 @@ class Claim {
           insurerReferenceNumber ?? this.insurerReferenceNumber,
       claimAmountSar: claimAmountSar ?? this.claimAmountSar,
       notes: notes ?? this.notes,
+      notesUpdatedUtcMs: notesUpdatedUtcMs ?? this.notesUpdatedUtcMs,
       extraFields: extraFields ?? this.extraFields,
       statusKey: statusKey ?? this.statusKey,
       lastStatusUpdateUtcMs:
@@ -154,6 +160,7 @@ class Claim {
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
     'notes': notes,
+    'notes_updated_utc_ms': notesUpdatedUtcMs?.millisecondsSinceEpoch,
     'extra_fields': encodeExtraFields(extraFields),
     'status_key': statusKey,
     'last_status_update_utc_ms': lastStatusUpdateUtcMs.millisecondsSinceEpoch,
@@ -188,6 +195,12 @@ class Claim {
     insurerReferenceNumber: row['insurer_reference_number'] as String?,
     claimAmountSar: (row['claim_amount_sar'] as num?)?.toDouble(),
     notes: row['notes'] as String?,
+    notesUpdatedUtcMs: (row['notes_updated_utc_ms'] as int?) == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(
+            row['notes_updated_utc_ms']! as int,
+            isUtc: true,
+          ),
     extraFields: decodeExtraFields(row['extra_fields'] as String?),
     statusKey: row['status_key']! as String,
     lastStatusUpdateUtcMs: DateTime.fromMillisecondsSinceEpoch(
@@ -210,6 +223,15 @@ class Claim {
       isUtc: true,
     ),
   );
+
+  /// "Last update" as the user means it: the later of the last status change
+  /// and the last notes edit.
+  DateTime get lastActivityUtcMs {
+    final DateTime? notesAt = notesUpdatedUtcMs;
+    return notesAt != null && notesAt.isAfter(lastStatusUpdateUtcMs)
+        ? notesAt
+        : lastStatusUpdateUtcMs;
+  }
 
   /// JSON for the `extra_fields` column; null when there are none.
   static String? encodeExtraFields(Map<String, String> fields) =>

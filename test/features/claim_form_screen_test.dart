@@ -12,6 +12,7 @@ import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
+import 'package:claim_tracker/features/claims/claim_form_model.dart';
 import 'package:claim_tracker/features/claims/claim_form_screen.dart';
 
 Widget _harness({Claim? claim, List<Claim>? saved}) => MaterialApp(
@@ -135,6 +136,32 @@ void main() {
 
     final TextField typed = tester.widget<TextField>(field('custInsurer'));
     expect(typed.controller!.text, 'Buruj');
+  });
+
+  test('the notes stamp moves only when the notes change', () {
+    final DateTime t0 = DateTime.utc(2026, 1, 1);
+    final DateTime t1 = DateTime.utc(2026, 2, 1);
+    final Claim existing = Claim(
+      id: 5,
+      customerName: 'سعد',
+      customerMobile: '0501112233',
+      accidentDateUtcMs: t0,
+      claimNumber: 'CLM-5',
+      customerInsuranceCompany: 'GIG',
+      submissionDateUtcMs: t0,
+      notes: 'old',
+      statusKey: 'new',
+      lastStatusUpdateUtcMs: t0,
+      createdAtUtcMs: t0,
+      updatedAtUtcMs: t0,
+    );
+    final ClaimFormModel m = ClaimFormModel()..loadFrom(existing);
+    m.claimNumber = 'CLM-5b';
+    expect(m.applyTo(existing, t1).notesUpdatedUtcMs, isNull);
+    m.notes = 'new note';
+    final Claim edited = m.applyTo(existing, t1);
+    expect(edited.notesUpdatedUtcMs, t1);
+    expect(edited.lastActivityUtcMs, t1);
   });
 
   test('a stored insurer in any spelling matches the list', () {

@@ -231,17 +231,6 @@ class _HomeShellState extends State<HomeShell> {
               onEdit: _cardEdit,
               onDelete: _cardDelete,
             ),
-            // Reminders destination = the follow-up-filtered claims list — a
-            // real, honest view of scheduled follow-ups (spec §3.3: no stubs).
-            ClaimsListScreen(
-              key: ValueKey('reminders-$_gen'),
-              repo: _claims,
-              initialFilter: ClaimsFilter.followUp,
-              onClaimTapped: (Claim c) => _openClaim(c.id),
-              onChangeStatus: _cardChangeStatus,
-              onEdit: _cardEdit,
-              onDelete: _cardDelete,
-            ),
             SettingsScreen(
               settingsRepo: widget.settingsRepo,
               currentThemeMode: widget.currentThemeMode,
@@ -276,10 +265,6 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.folder_open_outlined),
             label: S.navClaims,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_none_rounded),
-            label: S.navReminders,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

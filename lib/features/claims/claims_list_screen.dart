@@ -13,6 +13,7 @@ import '../../core/database/claims_repository.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
+import '../../core/utils/time_utils.dart';
 import '../../shared/widgets/load_error_view.dart';
 import 'claim_card.dart';
 import 'claims_filter.dart';
@@ -49,6 +50,12 @@ class ClaimsListScreen extends StatefulWidget {
 class _ClaimsListScreenState extends State<ClaimsListScreen> {
   String _query = '';
   ClaimsFilter _filter = ClaimsFilter.all;
+
+  /// A single status chosen from the status chips; when set it replaces
+  /// [_filter] (which then stays at [ClaimsFilter.all]).
+  String? _status;
+
+  ClaimsSort _sort = ClaimsSort.smart;
   List<Claim> _claims = const [];
   bool _loaded = false;
 
@@ -83,11 +90,14 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       final String query = _query.trim();
 
       List<Claim> claims;
+      final String? status = _status;
       if (query.isNotEmpty) {
         // Search first, then re-apply the active filter in memory so search and
         // filters compose on a single code path.
         claims = await widget.repo.search(query);
         claims = claims.where((c) => _matches(c, nowUtc)).toList();
+      } else if (status != null) {
+        claims = await widget.repo.withStatus(status);
       } else {
         switch (_filter) {
           case ClaimsFilter.all:
@@ -105,7 +115,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
 
       if (!mounted || gen != _loadGen) return;
       setState(() {
-        _claims = claims;
+        _claims = _sort.apply(claims);
         _loadFailed = false;
         _loaded = true;
       });
@@ -118,8 +128,9 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   }
 
   /// In-memory mirror of the repository filter semantics (spec §5–§6):
-  /// closed means status key `closed` only — compensated stays open.
+  /// finished means Closed, Approved or Rejected — compensated stays open.
   bool _matches(Claim claim, DateTime nowUtc) {
+    if (_status != null) return claim.statusKey == _status;
     final bool closed = ClaimStatus.isClosedKey(claim.statusKey);
     final DateTime? followUp = claim.nextFollowUpUtcMs;
     switch (_filter) {
@@ -141,7 +152,38 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     final ThemeData theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(S.navClaims)),
+      appBar: AppBar(
+        title: Text(S.navClaims),
+        actions: <Widget>[
+          PopupMenuButton<ClaimsSort>(
+            key: const Key('claims-sort'),
+            tooltip: S.sortTooltip,
+            icon: Icon(
+              Icons.sort,
+              color: _sort == ClaimsSort.smart
+                  ? null
+                  : theme.colorScheme.primary,
+            ),
+            initialValue: _sort,
+            onSelected: (ClaimsSort s) {
+              setState(() {
+                _sort = s;
+                _claims = s.apply(_claims);
+              });
+              // Smart order comes from the repository; reload to restore it.
+              if (s == ClaimsSort.smart) _load();
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<ClaimsSort>>[
+              for (final ClaimsSort s in ClaimsSort.values)
+                CheckedPopupMenuItem<ClaimsSort>(
+                  value: s,
+                  checked: s == _sort,
+                  child: Text(s.label),
+                ),
+            ],
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -170,14 +212,35 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
+                  // Groups first, then one chip per status.
                   for (final ClaimsFilter f in ClaimsFilter.values) ...[
                     if (f != ClaimsFilter.all) const SizedBox(width: 8),
                     ChoiceChip(
+                      key: Key('filter-${f.name}'),
                       label: Text(f.label),
-                      selected: _filter == f,
+                      selected: _status == null && _filter == f,
                       onSelected: (bool selected) {
                         if (!selected) return;
-                        setState(() => _filter = f);
+                        setState(() {
+                          _filter = f;
+                          _status = null;
+                        });
+                        _load();
+                      },
+                    ),
+                  ],
+                  for (final ClaimStatusMeta m in ClaimStatus.all) ...[
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      key: Key('filter-status-${m.key}'),
+                      label: Text(m.label),
+                      selected: _status == m.key,
+                      onSelected: (bool selected) {
+                        if (!selected) return;
+                        setState(() {
+                          _filter = ClaimsFilter.all;
+                          _status = m.key;
+                        });
                         _load();
                       },
                     ),
@@ -186,6 +249,24 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
               ),
             ),
           ),
+          if (_sort != ClaimsSort.smart)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: Row(
+                children: [
+                  Icon(Icons.sort, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _sort.label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(child: _buildList(theme)),
         ],
       ),
@@ -199,6 +280,17 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       await run(claim);
       if (mounted) await _load();
     };
+  }
+
+  /// With a date order, each card shows the date it is sorted by.
+  String? _dateNote(Claim c) {
+    final DateTime? d = _sort.dateOf(c);
+    if (d == null) return null;
+    final bool submission =
+        _sort == ClaimsSort.submissionNewest ||
+        _sort == ClaimsSort.submissionOldest;
+    return '${submission ? S.submissionDateLabel : S.lastUpdateLabel}: '
+        '${TimeUtils.formatDate(d)}';
   }
 
   Widget _buildList(ThemeData theme) {
@@ -242,6 +334,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
               : () => widget.onClaimTapped!(c),
           child: ClaimCard(
             claim: c,
+            dateNote: _dateNote(c),
             onChangeStatus: _action(widget.onChangeStatus, c),
             onEdit: _action(widget.onEdit, c),
             onDelete: _action(widget.onDelete, c),

@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashClosedClaims.
   ///
   /// In en, this message translates to:
-  /// **'Closed Claims'**
+  /// **'Finished Claims'**
   String get dashClosedClaims;
 
   /// No description provided for @dashDueToday.
@@ -254,10 +254,52 @@ abstract class AppLocalizations {
   /// **'Overdue'**
   String get filterOverdue;
 
+  /// No description provided for @sortTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortTooltip;
+
+  /// No description provided for @sortDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default order'**
+  String get sortDefault;
+
+  /// No description provided for @sortSubmissionNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission date: newest first'**
+  String get sortSubmissionNewest;
+
+  /// No description provided for @sortSubmissionOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission date: oldest first'**
+  String get sortSubmissionOldest;
+
+  /// No description provided for @sortUpdatedNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update: newest first'**
+  String get sortUpdatedNewest;
+
+  /// No description provided for @sortUpdatedOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update: oldest first'**
+  String get sortUpdatedOldest;
+
+  /// No description provided for @lastUpdateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update'**
+  String get lastUpdateLabel;
+
   /// No description provided for @filterClosed.
   ///
   /// In en, this message translates to:
-  /// **'Closed'**
+  /// **'Finished'**
   String get filterClosed;
 
   /// No description provided for @searchHint.

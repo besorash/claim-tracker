@@ -22,12 +22,16 @@ class ClaimCard extends StatelessWidget {
     this.onChangeStatus,
     this.onEdit,
     this.onDelete,
+    this.dateNote,
   });
 
   final Claim claim;
   final VoidCallback? onChangeStatus;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+
+  /// Optional date line (e.g. the date the list is sorted by).
+  final String? dateNote;
 
   bool get _hasActions =>
       onChangeStatus != null || onEdit != null || onDelete != null;
@@ -88,6 +92,16 @@ class ClaimCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (dateNote != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          dateNote!,
+                          key: const Key('card-date-note'),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.muted(context),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

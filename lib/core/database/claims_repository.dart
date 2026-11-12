@@ -149,6 +149,16 @@ class ClaimsRepository {
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
 
+  /// Claims with exactly the status [statusKey].
+  Future<List<Claim>> withStatus(String statusKey) async {
+    final List<Map<String, Object?>> rows = await _db.rawDb.query(
+      'claims',
+      where: 'status_key = ?',
+      whereArgs: <Object?>[statusKey],
+    );
+    return sortDefault(rows.map(Claim.fromRow).toList());
+  }
+
   /// Claims with a scheduled next follow-up (spec §6 "Needs follow-up").
   Future<List<Claim>> needsFollowUp() async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(

@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 4;
+const int kDatabaseVersion = 5;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -85,6 +85,8 @@ class AppDatabase {
             await _migrateToV3(txn);
           case 4:
             await _migrateToV4(txn);
+          case 5:
+            await _migrateToV5(txn);
           // Future versions add cases here.
         }
       }
@@ -171,6 +173,14 @@ class AppDatabase {
   /// in the app's forms; the old column is kept so no data is lost.
   static Future<void> _migrateToV4(sqf.Transaction txn) async {
     await txn.execute('ALTER TABLE claims ADD COLUMN vehicle_type TEXT');
+  }
+
+  /// v5: when the notes were last edited, so "last update" can mean the
+  /// later of the last status change and the last notes edit.
+  static Future<void> _migrateToV5(sqf.Transaction txn) async {
+    await txn.execute(
+      'ALTER TABLE claims ADD COLUMN notes_updated_utc_ms INTEGER',
+    );
   }
 
   static Future<void> _createSchemaV1(sqf.Transaction txn) async {

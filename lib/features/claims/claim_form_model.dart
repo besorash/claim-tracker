@@ -122,7 +122,11 @@ class ClaimFormModel {
 
   /// Builds a [Claim] from the current field values with the given identity.
   /// Only call when [isValid] is true (dates are then guaranteed non-null).
-  Claim toClaim({required int id, required DateTime createdAtUtcMs}) {
+  Claim toClaim({
+    required int id,
+    required DateTime createdAtUtcMs,
+    DateTime? notesUpdatedUtcMs,
+  }) {
     return Claim(
       id: id,
       customerName: customerName.trim(),
@@ -142,6 +146,7 @@ class ClaimFormModel {
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),
       notes: _opt(notes),
+      notesUpdatedUtcMs: notesUpdatedUtcMs,
       extraFields: Map<String, String>.unmodifiable(extraFields),
       statusKey: statusKey,
       lastStatusUpdateUtcMs: createdAtUtcMs,
@@ -153,15 +158,23 @@ class ClaimFormModel {
   }
 
   /// Add mode: a brand-new claim (id assigned by the repository on create).
-  Claim buildNew(DateTime nowUtc) => toClaim(id: 0, createdAtUtcMs: nowUtc);
+  Claim buildNew(DateTime nowUtc) => toClaim(
+    id: 0,
+    createdAtUtcMs: nowUtc,
+    notesUpdatedUtcMs: _opt(notes) == null ? null : nowUtc,
+  );
 
   /// Edit mode: preserves [existing]'s id/createdAt and reminder flag; bumps
   /// `updatedAtUtcMs` to [nowUtc]; refreshes `lastStatusUpdateUtcMs` only when
   /// the status actually changed (no history writes — that is Phase 3).
   Claim applyTo(Claim existing, DateTime nowUtc) {
+    // Notes stamp moves only when the notes text actually changed.
     final Claim base = toClaim(
       id: existing.id,
       createdAtUtcMs: existing.createdAtUtcMs,
+      notesUpdatedUtcMs: _opt(notes) == existing.notes
+          ? existing.notesUpdatedUtcMs
+          : nowUtc,
     );
     return base.copyWith(
       updatedAtUtcMs: nowUtc,

@@ -298,6 +298,63 @@ void main() {
     });
   });
 
+  testWidgets('a status chip shows only claims with that status', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      await create(seed(statusKey: 'new', claimNumber: 'ST-NEW'));
+      await create(seed(statusKey: 'rejected', claimNumber: 'ST-REJ'));
+      await create(
+        seed(statusKey: 'awaiting_documents', claimNumber: 'ST-DOC'),
+      );
+      await tester.pumpWidget(_harness(claims));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 3);
+
+      final Finder chip = find.byKey(
+        const Key('filter-status-awaiting_documents'),
+      );
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+      expect(find.text('ST-DOC'), findsOneWidget);
+
+      // "Finished" groups rejected with approved and closed.
+      final Finder finished = find.byKey(const Key('filter-closed'));
+      await tester.ensureVisible(finished);
+      await tester.tap(finished);
+      await settle(tester, () => find.text('ST-REJ').evaluate().isNotEmpty);
+      expect(find.byType(ClaimCard), findsOneWidget);
+    });
+  });
+
+  test('date sorts order by submission date or last update', () {
+    Claim c(int id, DateTime submitted, DateTime status, [DateTime? notes]) =>
+        seed(statusKey: 'new').copyWith(
+          id: id,
+          submissionDateUtcMs: submitted,
+          lastStatusUpdateUtcMs: status,
+          notesUpdatedUtcMs: notes,
+        );
+    final List<Claim> list = <Claim>[
+      c(1, DateTime.utc(2026, 1, 1), DateTime.utc(2026, 5, 1)),
+      c(2, DateTime.utc(2026, 3, 1), DateTime.utc(2026, 2, 1)),
+      // Old status change, but notes written most recently.
+      c(
+        3,
+        DateTime.utc(2026, 2, 1),
+        DateTime.utc(2026, 1, 1),
+        DateTime.utc(2026, 6, 1),
+      ),
+    ];
+    List<int> ids(ClaimsSort s) => s.apply(list).map((x) => x.id).toList();
+
+    expect(ids(ClaimsSort.submissionNewest), <int>[2, 3, 1]);
+    expect(ids(ClaimsSort.submissionOldest), <int>[1, 3, 2]);
+    expect(ids(ClaimsSort.updatedNewest), <int>[3, 1, 2]);
+    expect(ids(ClaimsSort.updatedOldest), <int>[2, 1, 3]);
+    expect(ids(ClaimsSort.smart), <int>[1, 2, 3]); // unchanged
+  });
+
   testWidgets('a claim without a plate shows the no-plate placeholder', (
     WidgetTester tester,
   ) async {

@@ -198,7 +198,6 @@ void main() {
       for (final String label in <String>[
         S.navDashboard,
         S.navClaims,
-        S.navReminders,
         S.navSettings,
       ]) {
         expect(
@@ -207,6 +206,11 @@ void main() {
           reason: label,
         );
       }
+      // The Follow-ups tab was removed (its filter lives on the claims page).
+      expect(
+        find.descendant(of: nav, matching: find.text(S.navReminders)),
+        findsNothing,
+      );
 
       // RTL direction is applied to the shell.
       final Directionality dir = tester.firstWidget<Directionality>(
