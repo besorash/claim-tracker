@@ -241,6 +241,36 @@ void main() {
       }
     });
 
+    test('common status wordings map to app statuses', () {
+      const Map<String, String> cases = <String, String>{
+        'missing docs.': 'awaiting_documents',
+        'Missing Documents': 'awaiting_documents',
+        'invoice payment': 'processing',
+      };
+      cases.forEach((String cell, String key) {
+        final CsvDocument doc = parseOk(
+          '$required,status_key\r\n'
+          'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,$cell\r\n',
+        );
+        expect(
+          ClaimsCsv.toForm(doc.records.single).model?.statusKey,
+          key,
+          reason: cell,
+        );
+      });
+    });
+
+    test('an unknown status error names the value', () {
+      final CsvDocument doc = parseOk(
+        '$required,status_key\r\n'
+        'سعد,0567897654,2026-11-05,CLM-1,GIG,2026-11-13,on hold\r\n',
+      );
+      expect(
+        ClaimsCsv.toForm(doc.records.single).errors.single,
+        contains('"on hold"'),
+      );
+    });
+
     test('month-first slash dates (WPS) are read, and flagged as assumed', () {
       final CsvDocument doc = parseOk(
         '$required\r\n'

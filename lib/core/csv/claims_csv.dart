@@ -353,7 +353,7 @@ abstract final class ClaimsCsv {
     if (status != null) {
       m.statusKey = status;
     } else {
-      fail('status_key', S.csvErrorStatus);
+      fail('status_key', '"${text('status_key')}" — ${S.csvErrorStatus}');
     }
 
     DateTime? date(String column, {int defaultHour = 0}) {
@@ -440,7 +440,10 @@ abstract final class ClaimsCsv {
 
   /// A status cell: the key, or the status name in English or Arabic.
   static String? _statusKey(String raw) {
-    final String wanted = _normalize(raw);
+    // Trailing dots are dropped so "missing docs." matches "missing docs".
+    final String wanted = _normalize(raw).replaceAll(RegExp(r'\.+$'), '');
+    final String? alias = _statusAliases[wanted];
+    if (alias != null) return alias;
     for (final ClaimStatusMeta s in ClaimStatus.all) {
       if (_normalize(s.key) == wanted) return s.key;
       for (final AppLocalizations l in <AppLocalizations>[
@@ -452,6 +455,14 @@ abstract final class ClaimsCsv {
     }
     return null;
   }
+
+  /// Other wordings found in real spreadsheets (normalized, no trailing dot).
+  static const Map<String, String> _statusAliases = <String, String>{
+    'missing docs': 'awaiting_documents',
+    'missing documents': 'awaiting_documents',
+    'pending documents': 'awaiting_documents',
+    'invoice payment': 'processing',
+  };
 
   static String _statusLabel(AppLocalizations l, String key) => switch (key) {
     'new' => l.statusNew,

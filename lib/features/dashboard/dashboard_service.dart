@@ -36,13 +36,14 @@ class DashboardService {
   Future<DashboardMetrics> metrics() async {
     final DateTime nowUtc = DateTime.now().toUtc();
     final (DateTime start, DateTime end) = TimeUtils.riyadhDayRange(nowUtc);
-    final List<Claim> all = await _claims.all();
+    // Counted in SQL: loading every claim just to count them froze the app
+    // once ~1,700 claims were imported.
     return DashboardMetrics(
-      total: all.length,
-      open: (await _claims.open()).length,
-      closed: (await _claims.closed()).length,
-      dueToday: (await _claims.dueBetween(start, end)).length,
-      overdue: (await _claims.overdue(nowUtc)).length,
+      total: await _claims.countAll(),
+      open: await _claims.countOpen(),
+      closed: await _claims.countClosed(),
+      dueToday: await _claims.countDueBetween(start, end),
+      overdue: await _claims.countOverdue(nowUtc),
     );
   }
 
@@ -61,8 +62,11 @@ class DashboardService {
       }
     }
 
-    final List<Claim> recent = await _claims.all();
-    recent.sort((a, b) => b.updatedAtUtcMs.compareTo(a.updatedAtUtcMs));
+    // Only as many recent claims as could still fit (plus the ones that may
+    // already be listed above), not the whole table.
+    final List<Claim> recent = await _claims.recentlyUpdated(
+      limit + items.length,
+    );
     for (final Claim c in recent) {
       if (items.length >= limit) break;
       if (!items.any((NeedsAttentionItem i) => i.claim.id == c.id)) {

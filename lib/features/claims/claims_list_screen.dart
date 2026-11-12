@@ -5,6 +5,8 @@
 /// an empty query uses the repository's dedicated filter queries directly.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/database/claims_repository.dart';
@@ -54,6 +56,13 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   /// shown as an honest error state with retry, never a red screen (spec §3.3).
   bool _loadFailed = false;
 
+  /// Pending search after the user stops typing.
+  Timer? _debounce;
+
+  /// Bumped on every load; an older load that finishes late is ignored so a
+  /// slow query cannot overwrite newer results.
+  int _loadGen = 0;
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +70,14 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    final int gen = ++_loadGen;
     try {
       final DateTime nowUtc = DateTime.now().toUtc();
       final String query = _query.trim();
@@ -87,7 +103,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
         }
       }
 
-      if (!mounted) return;
+      if (!mounted || gen != _loadGen) return;
       setState(() {
         _claims = claims;
         _loadFailed = false;
@@ -139,8 +155,11 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
                 ),
               ),
               onChanged: (String value) {
-                setState(() => _query = value);
-                _load();
+                _query = value;
+                // Wait for a short pause in typing before searching, so a
+                // word does not trigger one full reload per letter.
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 250), _load);
               },
             ),
           ),
@@ -207,31 +226,28 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       );
     }
 
-    // Eager (non-lazy) list: this is a small single-user dataset and every
-    // card must be present in the tree at once — deterministic for tests and
-    // simple to reason about.
-    return SingleChildScrollView(
+    // Lazy list: only the cards on screen are built. Building every card up
+    // front froze the app (ANR) with ~1,700 imported claims.
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      child: Column(
-        children: [
-          for (final Claim c in _claims) ...[
-            if (c != _claims.first) const SizedBox(height: 10),
-            InkWell(
-              key: Key('card-${c.id}'),
-              borderRadius: BorderRadius.circular(12),
-              onTap: widget.onClaimTapped == null
-                  ? null
-                  : () => widget.onClaimTapped!(c),
-              child: ClaimCard(
-                claim: c,
-                onChangeStatus: _action(widget.onChangeStatus, c),
-                onEdit: _action(widget.onEdit, c),
-                onDelete: _action(widget.onDelete, c),
-              ),
-            ),
-          ],
-        ],
-      ),
+      itemCount: _claims.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (BuildContext context, int index) {
+        final Claim c = _claims[index];
+        return InkWell(
+          key: Key('card-${c.id}'),
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onClaimTapped == null
+              ? null
+              : () => widget.onClaimTapped!(c),
+          child: ClaimCard(
+            claim: c,
+            onChangeStatus: _action(widget.onChangeStatus, c),
+            onEdit: _action(widget.onEdit, c),
+            onDelete: _action(widget.onDelete, c),
+          ),
+        );
+      },
     );
   }
 }

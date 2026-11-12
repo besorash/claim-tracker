@@ -283,6 +283,21 @@ void main() {
     },
   );
 
+  testWidgets('a large list only builds the cards on screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (int i = 0; i < 300; i++) {
+        await create(seed(statusKey: 'new', claimNumber: 'BULK-$i'));
+      }
+      await tester.pumpWidget(_harness(claims));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+      final int built = find.byType(ClaimCard).evaluate().length;
+      expect(built, greaterThan(0));
+      expect(built, lessThan(50));
+    });
+  });
+
   testWidgets('a claim without a plate shows the no-plate placeholder', (
     WidgetTester tester,
   ) async {

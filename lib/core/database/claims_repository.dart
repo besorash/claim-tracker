@@ -69,6 +69,7 @@ class ClaimsRepository {
     // forgiving behavior (spec §6) is trimming, which we already do.
     final String like = '%$q%';
     const List<String> fields = [
+      'vehicle_plate',
       'claim_number',
       'customer_name',
       'customer_mobile',
@@ -148,6 +149,53 @@ class ClaimsRepository {
       ],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Counts for the dashboard — counted in SQL so no claim rows are loaded.
+  // Each uses the same condition as the list query of the same name.
+  // ---------------------------------------------------------------------------
+
+  Future<int> _count(String? where, List<Object?> args) async {
+    final List<Map<String, Object?>> rows = await _db.rawDb.query(
+      'claims',
+      columns: <String>['COUNT(*) AS n'],
+      where: where,
+      whereArgs: args.isEmpty ? null : args,
+    );
+    return (rows.first['n'] as int?) ?? 0;
+  }
+
+  Future<int> countAll() => _count(null, const <Object?>[]);
+
+  Future<int> countOpen() =>
+      _count('status_key NOT IN $_closedIn', ClaimStatus.closedKeys);
+
+  Future<int> countClosed() =>
+      _count('status_key IN $_closedIn', ClaimStatus.closedKeys);
+
+  Future<int> countOverdue(DateTime nowUtc) => _count(
+    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ? AND status_key NOT IN $_closedIn',
+    <Object?>[nowUtc.millisecondsSinceEpoch, ...ClaimStatus.closedKeys],
+  );
+
+  Future<int> countDueBetween(DateTime startUtc, DateTime endUtc) => _count(
+    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ? AND status_key NOT IN $_closedIn',
+    <Object?>[
+      startUtc.millisecondsSinceEpoch,
+      endUtc.millisecondsSinceEpoch,
+      ...ClaimStatus.closedKeys,
+    ],
+  );
+
+  /// The [limit] most recently updated claims, newest first.
+  Future<List<Claim>> recentlyUpdated(int limit) async {
+    final List<Map<String, Object?>> rows = await _db.rawDb.query(
+      'claims',
+      orderBy: 'updated_at_utc_ms DESC, id DESC',
+      limit: limit,
+    );
+    return rows.map(Claim.fromRow).toList();
   }
 
   // ---------------------------------------------------------------------------
