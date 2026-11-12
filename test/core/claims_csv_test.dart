@@ -142,9 +142,9 @@ void main() {
       expect(row.model, isNotNull);
     });
 
-    test('liability must be one of 0, 50 or 100', () {
+    test('liability must be one of 0, 25, 50, 75 or 100', () {
       final CsvRowResult row = ClaimsCsv.toForm(
-        _firstRecord(rowWith(<String, String>{'liability_percent': '75'})),
+        _firstRecord(rowWith(<String, String>{'liability_percent': '30'})),
       );
       expect(row.model, isNull);
       expect(row.errors.single, contains(S.csvErrorLiability));

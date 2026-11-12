@@ -295,10 +295,10 @@ void main() {
     final int first = await seed(name: 'أحمد');
     await seed(name: 'سالم');
     final List<String> lines = (await exportText()).split('\r\n');
-    // Break the second data row (liability 75 is not an allowed share).
+    // Break the second data row (liability 30 is not an allowed share).
     final List<String> header = lines.first.split(',');
     final List<String> bad = lines[2].split(',');
-    bad[header.indexOf('liability_percent')] = '75';
+    bad[header.indexOf('liability_percent')] = '30';
     final String csv = '${lines.first}\r\n${lines[1]}\r\n${bad.join(',')}\r\n';
 
     final CsvImportReport report = await service.importText(csv);

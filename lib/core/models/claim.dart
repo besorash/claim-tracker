@@ -56,7 +56,7 @@ class Claim {
   final String claimNumber;
   final String customerInsuranceCompany;
 
-  /// Liability share of the claim: 0, 50 or 100 (percent). Null = not set.
+  /// Liability share of the claim: 0, 25, 50, 75 or 100 (percent). Null = not set.
   final double? liabilityPercent;
 
   /// Optional since v6 (null = not submitted yet / not recorded).

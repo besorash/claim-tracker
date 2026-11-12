@@ -84,7 +84,7 @@
   "csvErrorUnknownId": "No claim with this id exists in the app.",
   "csvErrorDuplicateId": "This id appears more than once in the file.",
   "csvErrorAmount": "The amount must be a number.",
-  "csvErrorLiability": "Liability % must be empty, 0, 50 or 100.",
+  "csvErrorLiability": "Liability % must be empty, 0, 25, 50, 75 or 100.",
   "csvErrorDate": "Unrecognized date. Use e.g. 2026-03-31 or 31/03/2026 (add 14:30 for a follow-up time).",
   "csvErrorStatus": "Unknown status. Use the status name shown in the app or its key.",
   "csvImportUnchanged": "{count} unchanged.",

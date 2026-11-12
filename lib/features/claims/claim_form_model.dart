@@ -28,7 +28,7 @@ class ClaimFormModel {
   // Claim (spec §7.3) — number, both insurers and submission date are required.
   String claimNumber = '';
   String customerInsuranceCompany = '';
-  double? liabilityPercent; // null = not set; otherwise 0, 50 or 100
+  double? liabilityPercent; // null = not set; otherwise 0, 25, 50, 75 or 100
   DateTime? submissionDateUtcMs;
   String insurerReferenceNumber = '';
   String claimAmount = ''; // editable string; parsed to SAR double on save
@@ -83,7 +83,7 @@ class ClaimFormModel {
 
   /// Liability percentage is optional; when set it must be one of the
   /// allowed shares.
-  static const List<double> liabilityOptions = <double>[0, 50, 100];
+  static const List<double> liabilityOptions = <double>[0, 25, 50, 75, 100];
 
   /// Canonical Saudi mobile: strip spaces/dashes/parens, a leading `+966` or
   /// `00966`, then one leading `0`; the result must be exactly 9 digits.

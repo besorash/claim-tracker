@@ -238,7 +238,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get csvErrorLiability =>
-      'نسبة المسؤولية يجب أن تكون فارغة أو 0 أو 50 أو 100.';
+      'نسبة المسؤولية يجب أن تكون فارغة أو 0 أو 25 أو 50 أو 75 أو 100.';
 
   @override
   String get csvErrorDate =>

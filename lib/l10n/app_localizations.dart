@@ -545,7 +545,7 @@ abstract class AppLocalizations {
   /// No description provided for @csvErrorLiability.
   ///
   /// In en, this message translates to:
-  /// **'Liability % must be empty, 0, 50 or 100.'**
+  /// **'Liability % must be empty, 0, 25, 50, 75 or 100.'**
   String get csvErrorLiability;
 
   /// No description provided for @csvErrorDate.

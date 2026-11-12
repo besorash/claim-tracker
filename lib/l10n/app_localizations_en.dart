@@ -240,7 +240,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get csvErrorAmount => 'The amount must be a number.';
 
   @override
-  String get csvErrorLiability => 'Liability % must be empty, 0, 50 or 100.';
+  String get csvErrorLiability =>
+      'Liability % must be empty, 0, 25, 50, 75 or 100.';
 
   @override
   String get csvErrorDate =>

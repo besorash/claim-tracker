@@ -479,7 +479,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     );
   }
 
-  /// Optional liability share: not set, 0%, 50% or 100%.
+  /// Optional liability share: not set, 0%, 25%, 50%, 75% or 100%.
   Widget _liabilityField() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
