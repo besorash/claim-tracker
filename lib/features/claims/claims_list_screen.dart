@@ -84,9 +84,12 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   /// re-entry.
   bool _selectionMode = false;
 
-  /// Claim ids currently checked in selection mode. Pruned on every reload so
-  /// a claim is never bulk-deleted while invisible (filtered out, searched
-  /// away, ...) — what you see selected is exactly what gets deleted.
+  /// Claim ids currently checked in selection mode. The set deliberately
+  /// survives search and filter changes: the user may check claims, then
+  /// search for more to add, with nothing cleared until they deselect, exit
+  /// selection mode or bulk-delete. Bulk delete resolves these ids against
+  /// the repository (not just the visible list), so a checked claim that is
+  /// no longer on screen is still deleted.
   Set<int> _selectedIds = <int>{};
 
   void _enterSelectionMode() {
@@ -118,19 +121,31 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   /// same per-claim guarantees as a single delete — alarms cancelled, files
   /// removed best-effort, rows deleted last). Exits selection mode and reloads.
   Future<void> _bulkDeleteSelected() async {
-    final List<Claim> selected = <Claim>[
-      for (final Claim c in _claims)
-        if (_selectedIds.contains(c.id)) c,
-    ];
-    if (selected.isEmpty || widget.onBulkDelete == null) return;
+    if (_selectedIds.isEmpty || widget.onBulkDelete == null) return;
 
-    final bool confirmed = await confirmDeleteClaims(context, selected.length);
+    final bool confirmed = await confirmDeleteClaims(
+      context,
+      _selectedIds.length,
+    );
     if (!confirmed || !mounted) return;
+
+    // Resolve the checked claims fresh from the repository — NOT from the
+    // visible list: some may have been searched or filtered out after being
+    // checked (the selection survives those changes by design), and what is
+    // checked is exactly what gets deleted. A row already gone simply drops
+    // out of the result; the shell's delete tolerates that.
+    final Set<int> wanted = <int>{..._selectedIds};
+    final List<Claim> selected = (await widget.repo.all())
+        .where((Claim c) => wanted.contains(c.id))
+        .toList();
 
     // Persist first (the shell refreshes every destination on success), then
     // exit selection mode and reload this list.
-    await widget.onBulkDelete!(selected);
     if (!mounted) return;
+    if (selected.isNotEmpty) {
+      await widget.onBulkDelete!(selected);
+      if (!mounted) return;
+    }
     _exitSelectionMode();
     await _load();
   }
@@ -229,14 +244,12 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       }
 
       if (!mounted || gen != _loadGen) return;
-      final Set<int> visibleIds = claims.map((Claim c) => c.id).toSet();
       setState(() {
         _claims = _sort.apply(claims);
-        // Selection mode: drop any checked claim that is no longer visible, so
-        // the bulk delete can never reach a filtered-out or searched-away row.
-        if (_selectionMode) {
-          _selectedIds.removeWhere((int id) => !visibleIds.contains(id));
-        }
+        // NOTE: the checked set [_selectedIds] deliberately survives a reload —
+        // searching or filtering must not silently clear it, so the user can
+        // check claims and then search for more to add. Bulk delete resolves
+        // the checked ids against the repository (see _bulkDeleteSelected).
         _loadFailed = false;
         _loaded = true;
       });

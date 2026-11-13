@@ -658,4 +658,80 @@ void main() {
       });
     },
   );
+
+  testWidgets(
+    'selection mode: searching for more claims keeps earlier checks; bulk '
+    'delete removes every checked claim, even ones no longer on screen',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int idA = await create(
+          seed(statusKey: 'new', name: 'عميل ألف', claimNumber: 'CLM-AAA'),
+        );
+        final int idB = await create(
+          seed(statusKey: 'closed', name: 'عميل باء', claimNumber: 'CLM-BBB'),
+        );
+
+        List<Claim>? bulkDeleted;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ClaimsListScreen(
+              repo: claims,
+              onBulkDelete: (List<Claim> list) async {
+                bulkDeleted = List.of(list);
+              },
+            ),
+          ),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
+
+        // Check claim A in selection mode…
+        await tester.tap(find.byKey(const Key('enter-selection')));
+        await tester.pump();
+        await tester.tap(find.byKey(Key('card-$idA')));
+        await tester.pump();
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idA'))).value,
+          isTrue,
+        );
+
+        // …then search for claim B. A drops out of the visible list…
+        final Finder field = find.widgetWithText(TextField, S.searchHint);
+        await tester.enterText(field, 'CLM-BBB');
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 1,
+        );
+        expect(find.text('عميل ألف'), findsNothing);
+
+        // …but its check must survive: the count still says one selected.
+        expect(find.text(S.selectedCount(1)), findsOneWidget);
+
+        // Add B to the selection from the search results…
+        await tester.tap(find.byKey(Key('card-$idB')));
+        await tester.pump();
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idB'))).value,
+          isTrue,
+        );
+        expect(find.text(S.selectedCount(2)), findsOneWidget);
+
+        // …confirm the bulk delete…
+        await tester.tap(find.byKey(const Key('bulk-delete')));
+        await tester.pump();
+        expect(find.text(S.deleteClaimsTitle(2)), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, S.confirm));
+        await settle(tester, () => bulkDeleted != null);
+
+        // …and BOTH claims reach the owner — A was invisible all along.
+        expect(bulkDeleted, isNotNull);
+        expect(
+          bulkDeleted!.map((Claim c) => c.id).toSet(),
+          <int>{idA, idB},
+        );
+      });
+    },
+  );
 }
