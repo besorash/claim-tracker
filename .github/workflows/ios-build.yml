@@ -11,7 +11,7 @@ name: iOS build
 
 on:
   push:
-    branches: [main, master]
+    branches: ['**']
   workflow_dispatch:
 
 concurrency:
@@ -72,6 +72,20 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry ClaimTracker-unsigned.ipa Payload
           ls -lh ClaimTracker-unsigned.ipa
+
+      - name: Verify the .ipa contents
+        run: |
+          set -euo pipefail
+          APP=Payload/Runner.app
+          test -x "$APP/Runner"
+          test -f "$APP/Info.plist"
+          test -d "$APP/Frameworks/Flutter.framework"
+          test -d "$APP/Frameworks/App.framework"
+          lipo -info "$APP/Runner" | grep -q arm64
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
 
       - uses: actions/upload-artifact@v4
         with:
