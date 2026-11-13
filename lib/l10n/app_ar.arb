@@ -156,6 +156,10 @@
   "invalidDate": "أدخل تاريخًا صالحًا",
   "futureFollowUpRequired": "موعد المتابعة يجب أن يكون في المستقبل",
 
+  "pickFromContacts": "إضافة من جهات الاتصال",
+  "contactPickFailed": "تعذّر فتح جهات الاتصال",
+  "callFailed": "تعذّر فتح الهاتف",
+
   "deleteClaimTitle": "حذف المطالبة؟",
   "deleteClaimBody": "سيتم حذف المطالبة وسجل حالاتها وتذكيراتها ومرفقاتها نهائيًا.",
   "deleteClaimsTitle": "{count,plural, zero{حذف جميع المطالبات؟} one{حذف المطالبة؟} two{حذف المادتين؟} few{حذف {count} مطالبات؟} many{حذف {count} من المطالبات؟} other{حذف {count} من المطالبات؟}}",

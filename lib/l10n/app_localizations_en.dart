@@ -444,6 +444,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'The follow-up date must be in the future';
 
   @override
+  String get pickFromContacts => 'Add from contacts';
+
+  @override
+  String get contactPickFailed => 'Couldn\'t open the contact picker';
+
+  @override
+  String get callFailed => 'Couldn\'t open the dialer';
+
+  @override
   String get deleteClaimTitle => 'Delete claim?';
 
   @override

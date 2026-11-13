@@ -173,6 +173,10 @@
   "invalidDate": "Enter a valid date",
   "futureFollowUpRequired": "The follow-up date must be in the future",
 
+  "pickFromContacts": "Add from contacts",
+  "contactPickFailed": "Couldn't open the contact picker",
+  "callFailed": "Couldn't open the dialer",
+
   "deleteClaimTitle": "Delete claim?",
   "deleteClaimBody": "The claim, its status history, reminders and attachments will be permanently deleted.",
   "deleteClaimsTitle": "{count,plural, =1{Delete this claim?} other{Delete # claims?}}",

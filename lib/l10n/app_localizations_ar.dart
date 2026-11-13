@@ -439,6 +439,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get futureFollowUpRequired => 'موعد المتابعة يجب أن يكون في المستقبل';
 
   @override
+  String get pickFromContacts => 'إضافة من جهات الاتصال';
+
+  @override
+  String get contactPickFailed => 'تعذّر فتح جهات الاتصال';
+
+  @override
+  String get callFailed => 'تعذّر فتح الهاتف';
+
+  @override
   String get deleteClaimTitle => 'حذف المطالبة؟';
 
   @override

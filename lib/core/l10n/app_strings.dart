@@ -189,6 +189,11 @@ abstract final class S {
   static String get invalidDate => _l.invalidDate;
   static String get futureFollowUpRequired => _l.futureFollowUpRequired;
 
+  // Contacts / calls (contact picker + tap-to-call).
+  static String get pickFromContacts => _l.pickFromContacts;
+  static String get contactPickFailed => _l.contactPickFailed;
+  static String get callFailed => _l.callFailed;
+
   // Delete / close confirmations (spec §11).
   static String get deleteClaimTitle => _l.deleteClaimTitle;
   static String get deleteClaimBody => _l.deleteClaimBody;

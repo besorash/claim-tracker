@@ -902,6 +902,24 @@ abstract class AppLocalizations {
   /// **'The follow-up date must be in the future'**
   String get futureFollowUpRequired;
 
+  /// No description provided for @pickFromContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Add from contacts'**
+  String get pickFromContacts;
+
+  /// No description provided for @contactPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the contact picker'**
+  String get contactPickFailed;
+
+  /// No description provided for @callFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the dialer'**
+  String get callFailed;
+
   /// No description provided for @deleteClaimTitle.
   ///
   /// In en, this message translates to:
