@@ -691,7 +691,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         TimeUtils.formatSar(c.claimAmountSar),
                       ),
                       if (c.notes != null && c.notes!.isNotEmpty)
-                        _row(theme, S.notesLabel, c.notes!),
+                        _notesRow(theme, S.notesLabel, c.notes!),
                     ],
                   ),
                   if (claim.extraFields.isNotEmpty)
@@ -1024,6 +1024,59 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Notes row (spec §11) — the one field that must stand out on this screen:
+  /// a distinct orange highlight with fully legible text in both themes. Same
+  /// label/value layout as [_row] so it reads naturally in RTL.
+  Widget _notesRow(ThemeData theme, String label, String value) {
+    final bool isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkNotesFill : AppColors.lightNotesFill,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark
+                ? AppColors.darkNotesBorder
+                : AppColors.lightNotesBorder,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppColors.darkNotesText
+                      : AppColors.lightNotesText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppColors.darkNotesText
+                      : AppColors.lightNotesText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
