@@ -67,6 +67,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashOverdue => 'متابعات متأخرة';
 
   @override
+  String get dashAwaitingApproval => 'مطالبات بانتظار الموافقة';
+
+  @override
   String get dashNeedsAttention => 'تحتاج إلى انتباهك';
 
   @override
@@ -110,6 +113,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get filterClosed => 'المنتهية';
+
+  @override
+  String get clearFilters => 'مسح المرشحات';
 
   @override
   String get searchHint => 'ابحث باللوحة، الاسم، رقم المطالبة، المركبة…';

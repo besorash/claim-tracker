@@ -7,6 +7,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 import 'package:claim_tracker/core/database/app_database.dart';
 import 'package:claim_tracker/core/database/claims_repository.dart';
 import 'package:claim_tracker/core/models/claim.dart';
+import 'package:claim_tracker/core/models/claim_status.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/dashboard/dashboard_service.dart';
 
@@ -57,8 +58,8 @@ void main() {
   Future<int> create(Claim c) => claims.create(c);
 
   group('DashboardService.metrics', () {
-    test('counts total/open/closed/due-today/overdue from the database — '
-        'compensated stays OPEN (spec §5)', () async {
+    test('counts total/open/closed/awaiting-approval/due-today/overdue from the '
+        'database — compensated stays OPEN (spec §5)', () async {
       final DateTime now = DateTime.now().toUtc();
       // "Due today" must be seeded inside the current Riyadh day regardless of
       // what time the test runs: a fixed `now + 2h` offset crosses midnight
@@ -67,6 +68,9 @@ void main() {
       await create(seed(statusKey: 'new')); // plain open, no follow-up
       await create(seed(statusKey: 'compensated')); // open per spec §5
       await create(seed(statusKey: 'closed')); // the only closed one
+      await create(
+        seed(statusKey: ClaimStatus.awaitingApprovalKey),
+      ); // awaiting approval (open, not due/overdue)
       await create(
         seed(
           statusKey: 'new',
@@ -78,9 +82,10 @@ void main() {
       ); // due today (within the Riyadh day)
 
       final DashboardMetrics m = await service.metrics();
-      expect(m.total, 5);
-      expect(m.open, 4);
+      expect(m.total, 6);
+      expect(m.open, 5); // awaiting approval counts as open
       expect(m.closed, 1);
+      expect(m.awaitingApproval, 1);
       expect(m.dueToday, 1);
       expect(m.overdue, 1);
     });
@@ -90,6 +95,7 @@ void main() {
       expect(m.total, 0);
       expect(m.open, 0);
       expect(m.closed, 0);
+      expect(m.awaitingApproval, 0);
       expect(m.dueToday, 0);
       expect(m.overdue, 0);
     });

@@ -67,6 +67,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashOverdue => 'Overdue Follow-ups';
 
   @override
+  String get dashAwaitingApproval => 'Awaiting Approval Claims';
+
+  @override
   String get dashNeedsAttention => 'Needs Your Attention';
 
   @override
@@ -110,6 +113,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterClosed => 'Finished';
+
+  @override
+  String get clearFilters => 'Clear filters';
 
   @override
   String get searchHint => 'Search plate, name, claim number, vehicle…';

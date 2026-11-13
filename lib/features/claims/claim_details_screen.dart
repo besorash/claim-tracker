@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/constants/accident_types.dart';
 import '../../core/constants/insurers.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/attachments_repository.dart';
@@ -597,8 +598,16 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     final ThemeData theme = Theme.of(context);
     final Claim? claim = _claim;
 
+    // The page title is the screen's main heading — styled with the brand
+    // accent (the theme primary) so it matches the app style in both themes
+    // instead of falling back to near-white text.
     return Scaffold(
-      appBar: AppBar(title: Text(S.claimNumberLabel)),
+      appBar: AppBar(
+        title: Text(
+          S.claimNumberLabel,
+          style: TextStyle(color: theme.colorScheme.primary),
+        ),
+      ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : claim == null
@@ -649,7 +658,11 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                       if (c.accidentCity != null)
                         _row(theme, S.cityLabel, c.accidentCity!),
                       if (c.accidentType != null)
-                        _row(theme, S.accidentTypeLabel, c.accidentType!),
+                        _row(
+                          theme,
+                          S.accidentTypeLabel,
+                          AccidentTypes.display(c.accidentType!),
+                        ),
                       if (c.vehiclePlate != null)
                         _row(theme, S.vehiclePlateLabel, c.vehiclePlate!),
                       if (c.vehicleType != null)
@@ -988,10 +1001,14 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Section headings use the brand accent (the theme primary —
+              // teal in light mode, lightened teal in dark) so every title on
+              // this page matches the app style instead of rendering white.
               Text(
                 title,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 8),

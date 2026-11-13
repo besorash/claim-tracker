@@ -234,6 +234,11 @@ class ClaimsRepository {
     ],
   );
 
+  /// Claims with exactly [statusKey] — the dashboard "Awaiting Approval" tile;
+  /// same condition as its list twin ([withStatus]).
+  Future<int> countWithStatus(String statusKey) =>
+      _count('status_key = ?', <Object?>[statusKey]);
+
   /// The [limit] most recently updated claims, newest first.
   Future<List<Claim>> recentlyUpdated(int limit) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(

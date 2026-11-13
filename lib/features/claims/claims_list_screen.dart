@@ -23,6 +23,8 @@ class ClaimsListScreen extends StatefulWidget {
     super.key,
     required this.repo,
     this.initialFilter = ClaimsFilter.all,
+    this.initialStatus,
+    this.onSelectionChanged,
     this.onClaimTapped,
     this.onChangeStatus,
     this.onEdit,
@@ -33,6 +35,17 @@ class ClaimsListScreen extends StatefulWidget {
 
   /// Filter selected when the screen opens (e.g. from a dashboard tile).
   final ClaimsFilter initialFilter;
+
+  /// Status-chip selection active when the screen opens (null = the group
+  /// filter [initialFilter] applies). Together with [initialFilter] this is
+  /// how the shell's remembered choice survives remounts — e.g. returning
+  /// from the details screen must NOT reset a user-selected filter.
+  final String? initialStatus;
+
+  /// Reports every selection change (group filter or status chip) to the
+  /// owner so it can remember the active choice across navigation and
+  /// refreshes. Null in standalone use (tests, previews).
+  final void Function(ClaimsFilter filter, String? status)? onSelectionChanged;
 
   /// Optional tap handler — the shell owns navigation to details (spec §4).
   final void Function(Claim claim)? onClaimTapped;
@@ -73,7 +86,30 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   @override
   void initState() {
     super.initState();
+    // Restore the owner's remembered selection: a remount (returning from
+    // details, any data refresh) must keep the filter the user chose.
     _filter = widget.initialFilter;
+    _status = widget.initialStatus;
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant ClaimsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialFilter == oldWidget.initialFilter &&
+        widget.initialStatus == oldWidget.initialStatus) {
+      return;
+    }
+    // The selection changed externally (e.g. a dashboard metric tile). Adopt
+    // it — unless we already hold exactly this choice, which is the echo of
+    // our own onSelectionChanged report and must not reload twice.
+    if (_filter == widget.initialFilter && _status == widget.initialStatus) {
+      return;
+    }
+    setState(() {
+      _filter = widget.initialFilter;
+      _status = widget.initialStatus;
+    });
     _load();
   }
 
@@ -82,6 +118,22 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     _debounce?.cancel();
     super.dispose();
   }
+
+  /// Applies a new filter/status selection, reports it to the owner (so it
+  /// survives remounts) and reloads. One code path for chip taps and the
+  /// clear-filters action.
+  void _setSelection(ClaimsFilter filter, String? status) {
+    setState(() {
+      _filter = filter;
+      _status = status;
+    });
+    widget.onSelectionChanged?.call(filter, status);
+    _load();
+  }
+
+  /// Clears every active selection — group filter and status chip — back to
+  /// "all claims". The clear control is only shown while something is active.
+  void _clearFilters() => _setSelection(ClaimsFilter.all, null);
 
   Future<void> _load() async {
     final int gen = ++_loadGen;
@@ -221,11 +273,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
                       selected: _status == null && _filter == f,
                       onSelected: (bool selected) {
                         if (!selected) return;
-                        setState(() {
-                          _filter = f;
-                          _status = null;
-                        });
-                        _load();
+                        _setSelection(f, null);
                       },
                     ),
                   ],
@@ -237,11 +285,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
                       selected: _status == m.key,
                       onSelected: (bool selected) {
                         if (!selected) return;
-                        setState(() {
-                          _filter = ClaimsFilter.all;
-                          _status = m.key;
-                        });
-                        _load();
+                        _setSelection(ClaimsFilter.all, m.key);
                       },
                     ),
                   ],
@@ -249,6 +293,21 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
               ),
             ),
           ),
+          // Clear control, shown only while a selection is active: it resets
+          // the group filter and status chip back to "all claims" in one tap.
+          if (_filter != ClaimsFilter.all || _status != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 4, 2),
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  key: const Key('clear-filters'),
+                  onPressed: _clearFilters,
+                  icon: Icon(Icons.filter_alt_off, size: 18),
+                  label: Text(S.clearFilters),
+                ),
+              ),
+            ),
           if (_sort != ClaimsSort.smart)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),

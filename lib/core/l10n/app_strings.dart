@@ -68,6 +68,7 @@ abstract final class S {
   static String get dashClosedClaims => _l.dashClosedClaims;
   static String get dashDueToday => _l.dashDueToday;
   static String get dashOverdue => _l.dashOverdue;
+  static String get dashAwaitingApproval => _l.dashAwaitingApproval;
   static String get dashNeedsAttention => _l.dashNeedsAttention;
   static String get dashRecentlyUpdated => _l.dashRecentlyUpdated;
   static String get dashEmpty => _l.dashEmpty;
@@ -78,6 +79,7 @@ abstract final class S {
   static String get filterFollowUp => _l.filterFollowUp;
   static String get filterOverdue => _l.filterOverdue;
   static String get filterClosed => _l.filterClosed;
+  static String get clearFilters => _l.clearFilters;
   static String get searchHint => _l.searchHint;
   static String get claimsEmpty => _l.claimsEmpty;
 

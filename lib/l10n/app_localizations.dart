@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Overdue Follow-ups'**
   String get dashOverdue;
 
+  /// No description provided for @dashAwaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting Approval Claims'**
+  String get dashAwaitingApproval;
+
   /// No description provided for @dashNeedsAttention.
   ///
   /// In en, this message translates to:
@@ -301,6 +307,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get filterClosed;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get clearFilters;
 
   /// No description provided for @searchHint.
   ///

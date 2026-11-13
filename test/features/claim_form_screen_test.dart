@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:claim_tracker/core/constants/accident_types.dart';
 import 'package:claim_tracker/core/constants/insurers.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
@@ -85,6 +86,29 @@ Future<void> chooseInsurer(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// Opens the accident-type dropdown and picks [label] from it. The entry is
+/// addressed as an open-menu [DropdownMenuItem] so a label that also appears
+/// on another closed dropdown (e.g. "Not set" on liability) can't collide.
+Future<void> chooseAccidentType(WidgetTester tester, String label) async {
+  final Finder dropdown = field('accidentType');
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tappable(tester, dropdown);
+  await tester.tap(dropdown);
+  await tester.pumpAndSettle();
+  // The open menu renders last in the tree; `.last` picks its entry even when
+  // a closed sibling dropdown shows the same text (e.g. liability "Not set").
+  final Finder entry = find.text(label).last;
+  // The open menu is a scrolling list; bring the entry into view first.
+  await tester.scrollUntilVisible(
+    entry,
+    80,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() async {
     await TimeUtils.ensureInitialized();
@@ -112,6 +136,170 @@ void main() {
 
     expect(saved.single.customerInsuranceCompany, 'Buruj');
   });
+
+  test(
+    'stored accident types match the list in either language',
+    () {
+      expect(AccidentTypes.match('NAJEM')?.en, 'Najem');
+      expect(AccidentTypes.match('moroor')?.en, 'Moroor');
+      expect(AccidentTypes.match('POLICE')?.en, 'Police');
+      expect(AccidentTypes.match('زجاج أمامي')?.en, 'Glass');
+      expect(AccidentTypes.match('mtr')?.en, 'MTR');
+      expect(AccidentTypes.match('civil defense')?.en, 'Civil Defense');
+      expect(AccidentTypes.match('أخرى')?.en, 'Others');
+      // Anything outside the fixed list (legacy free-form) matches nothing.
+      expect(AccidentTypes.match('تصادم قديم'), isNull);
+      expect(AccidentTypes.match(null), isNull);
+    },
+  );
+
+  test(
+    'accident type display localizes listed values and passes through others',
+    () {
+      AppLocale.locale = const Locale('ar');
+      addTearDown(() => AppLocale.locale = const Locale('en'));
+      expect(AccidentTypes.display('Najem'), 'نجم');
+      expect(AccidentTypes.display('Civil Defense'), 'الدفاع المدني');
+      expect(AccidentTypes.display('MTR'), 'MTR'); // identical in both
+      expect(AccidentTypes.display('تصادم قديم'), 'تصادم قديم'); // legacy as typed
+
+      AppLocale.locale = const Locale('en');
+      expect(AccidentTypes.display('نجم'), 'Najem'); // Arabic spelling → EN name
+    },
+  );
+
+  testWidgets(
+    'accident type: fixed dropdown — the seven options store English names',
+    (WidgetTester tester) async {
+      AppLocale.locale = const Locale('ar'); // dropdown renders Arabic labels
+      addTearDown(() => AppLocale.locale = const Locale('en'));
+
+      final List<Claim> saved = [];
+      await tester.pumpWidget(_harness(saved: saved));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(field('customerName'), 'خالد');
+      await tester.enterText(field('plate'), '4051 VJD');
+      await tester.enterText(field('vehicleType'), 'Camry 2022');
+      await chooseInsurer(tester, Insurers.match('Tawuniya')!.label);
+
+      // The dropdown offers exactly the seven fixed types with their Arabic
+      // translations (plus "Not set" — the field is optional).
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tappable(tester, field('accidentType'));
+      await tester.tap(field('accidentType'));
+      await tester.pumpAndSettle();
+      // The optional "Not set" entry is offered too (it also labels the closed
+      // liability dropdown, so assert presence rather than an exact count).
+      expect(find.text(S.liabilityNotSet), findsWidgets);
+      for (final String arLabel in <String>[
+        'نجم',
+        'مرور',
+        'الشرطة',
+        'زجاج أمامي',
+        'MTR',
+        'الدفاع المدني',
+        'أخرى',
+      ]) {
+        expect(find.text(arLabel), findsOneWidget);
+      }
+
+      await tester.tap(find.text('نجم')); // choose Najem, menu closes
+      await pickDate(tester, 'accident');
+
+      await tester.tap(find.text(S.save));
+      await tester.pumpAndSettle();
+
+      expect(saved, hasLength(1));
+      expect(saved.single.accidentType, 'Najem'); // stored English name
+    },
+  );
+
+  testWidgets(
+    'accident type: "Not set" in edit mode clears a chosen value',
+    (WidgetTester tester) async {
+      AppLocale.locale = const Locale('ar');
+      addTearDown(() => AppLocale.locale = const Locale('en'));
+
+      final DateTime t = DateTime.utc(2026, 9, 1);
+      final Claim existing = Claim(
+        id: 31,
+        customerName: 'سعد',
+        customerMobile: '0501112233',
+        vehiclePlate: '7788 KLM',
+        vehicleType: 'Hilux',
+        accidentDateUtcMs: t,
+        accidentType: 'Glass',
+        claimNumber: 'CLM-31',
+        customerInsuranceCompany: 'GIG',
+        statusKey: 'new',
+        lastStatusUpdateUtcMs: t,
+        createdAtUtcMs: t,
+        updatedAtUtcMs: t,
+      );
+
+      final List<Claim> saved = [];
+      await tester.pumpWidget(_harness(claim: existing, saved: saved));
+      await tester.pumpAndSettle();
+
+      // Pre-selected from the stored value (shown in Arabic).
+      expect(find.text('زجاج أمامي'), findsOneWidget);
+
+      await chooseAccidentType(tester, S.liabilityNotSet);
+
+      await tester.tap(find.text(S.save));
+      await tester.pumpAndSettle();
+
+      expect(saved, hasLength(1));
+      expect(saved.single.accidentType, isNull); // cleared
+    },
+  );
+
+  testWidgets(
+    'editing a claim with a legacy free-form type keeps it until changed',
+    (WidgetTester tester) async {
+      AppLocale.locale = const Locale('ar');
+      addTearDown(() => AppLocale.locale = const Locale('en'));
+
+      final DateTime t = DateTime.utc(2026, 9, 1);
+      final Claim existing = Claim(
+        id: 32,
+        customerName: 'سعد',
+        customerMobile: '0501112233',
+        vehiclePlate: '7788 KLM',
+        vehicleType: 'Hilux',
+        accidentDateUtcMs: t,
+        accidentType: 'تصادم قديم', // free-form value from before the fixed list
+        claimNumber: 'CLM-32',
+        customerInsuranceCompany: 'GIG',
+        statusKey: 'new',
+        lastStatusUpdateUtcMs: t,
+        createdAtUtcMs: t,
+        updatedAtUtcMs: t,
+      );
+
+      final List<Claim> saved = [];
+      await tester.pumpWidget(_harness(claim: existing, saved: saved));
+      await tester.pumpAndSettle();
+
+      // Not one of the fixed options → this dropdown starts unset… (scoped to
+      // it, because the closed liability dropdown shows "Not set" too).
+      expect(
+        find.descendant(
+          of: field('accidentType'),
+          matching: find.text(S.liabilityNotSet),
+        ),
+        findsOneWidget,
+      );
+
+      // …and saving without touching it keeps the legacy value intact.
+      await tester.tap(find.text(S.save));
+      await tester.pumpAndSettle();
+
+      expect(saved, hasLength(1));
+      expect(saved.single.accidentType, 'تصادم قديم'); // preserved
+    },
+  );
 
   testWidgets('editing a claim with an unlisted insurer keeps it under Other', (
     WidgetTester tester,

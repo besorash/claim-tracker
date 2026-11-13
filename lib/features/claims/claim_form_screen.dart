@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/constants/accident_types.dart';
 import '../../core/constants/insurers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
@@ -44,7 +45,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'email',
     'vehicleType',
     'city',
-    'type',
     'plate',
     'claimNumber',
     'custInsurer',
@@ -57,6 +57,12 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
   /// [_otherInsurer] for a typed-in company, or null when nothing is chosen.
   String? _insurerChoice;
   static const String _otherInsurer = '__other__';
+
+  /// Selected accident type: one of [AccidentTypes]' stored English names,
+  /// or null when unset. A legacy free-form value (the field used to be free
+  /// text) starts unselected and stays in the model until the user picks an
+  /// entry — selecting "Not set" clears it.
+  String? _accidentTypeChoice;
 
   @override
   void initState() {
@@ -73,6 +79,10 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     } else if (stored.isNotEmpty) {
       _insurerChoice = _otherInsurer;
     }
+    // A stored accident type pre-selects its listed entry when it matches one
+    // of the fixed options; a legacy free-form value starts unselected and is
+    // kept in the model until the user chooses an entry.
+    _accidentTypeChoice = AccidentTypes.match(_model.accidentType)?.en;
     for (final String key in _textFields) {
       _controllers[key] = TextEditingController(text: _valueFor(key));
     }
@@ -93,7 +103,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'email' => _model.customerEmail,
     'vehicleType' => _model.vehicleType,
     'city' => _model.accidentCity,
-    'type' => _model.accidentType,
     'plate' => _model.vehiclePlate,
     'claimNumber' => _model.claimNumber,
     'custInsurer' => _model.customerInsuranceCompany,
@@ -117,8 +126,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         _model.vehicleType = value;
       case 'city':
         _model.accidentCity = value;
-      case 'type':
-        _model.accidentType = value;
       case 'plate':
         _model.vehiclePlate = value;
       case 'claimNumber':
@@ -226,7 +233,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                 required: true,
               ),
               _field('city', label: S.cityLabel),
-              _field('type', label: S.accidentTypeLabel),
+              _accidentTypeField(),
               _field('plate', label: S.vehiclePlateLabel, required: true),
               _field('vehicleType', label: S.vehicleTypeLabel, required: true),
               _liabilityField(),
@@ -475,6 +482,45 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Accident type as a fixed list (spec §7.2): one of [AccidentTypes], or
+  /// unset — same shape as the liability dropdown. The claim stores the listed
+  /// entry's English name; its label is shown in the app's language.
+  Widget _accidentTypeField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InputDecorator(
+        key: const Key('field-accidentType'),
+        decoration: InputDecoration(
+          labelText: S.accidentTypeLabel,
+          border: const OutlineInputBorder(),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            isExpanded: true,
+            value: _accidentTypeChoice,
+            items: <DropdownMenuItem<String?>>[
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text(S.liabilityNotSet),
+              ),
+              for (final AccidentType t in AccidentTypes.all)
+                DropdownMenuItem<String?>(
+                  value: t.en,
+                  child: Text(t.label, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: (String? v) => setState(() {
+              _accidentTypeChoice = v;
+              // Selecting an entry stores its English name; "Not set" clears
+              // the field (including any legacy free-form value).
+              _model.accidentType = v ?? '';
+            }),
+          ),
+        ),
       ),
     );
   }

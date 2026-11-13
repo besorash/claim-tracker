@@ -79,6 +79,12 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   ClaimsFilter _listFilter = ClaimsFilter.all;
 
+  /// Status-chip selection active in the claims list (null = the group filter
+  /// [_listFilter] applies). Remembered here alongside the group filter so a
+  /// remount — returning from details, any data refresh — restores exactly
+  /// what the user had selected instead of resetting to "all".
+  String? _listStatus;
+
   /// Bumped after every data mutation. IndexedStack keeps all destinations
   /// alive, so without a remount they would keep showing stale SQLite data —
   /// baking [gen] into each destination's key forces a fresh load (spec §5–§6).
@@ -137,11 +143,26 @@ class _HomeShellState extends State<HomeShell> {
     _bump();
   }
 
-  /// Dashboard metric tile → claims list pre-filtered to that metric (spec §5).
-  void _onMetricTapped(ClaimsFilter filter) {
+  /// Dashboard metric tile → claims list pre-filtered to that metric (spec §5):
+  /// group tiles pass their [ClaimsFilter]; the "Awaiting Approval" status
+  /// tile passes its status key as a selected status chip.
+  void _onMetricTapped(ClaimsFilter filter, String? status) {
     setState(() {
       _listFilter = filter;
+      _listStatus = status;
       _index = 1;
+    });
+  }
+
+  /// The claims list reports its active selection (group chip or status chip)
+  /// so the shell can restore it on every remount. Without this, returning
+  /// from the details screen — which bumps [_gen] and remounts the list —
+  /// silently reset a user-selected filter back to "all".
+  void _onListSelectionChanged(ClaimsFilter filter, String? status) {
+    if (_listFilter == filter && _listStatus == status) return;
+    setState(() {
+      _listFilter = filter;
+      _listStatus = status;
     });
   }
 
@@ -220,12 +241,16 @@ class _HomeShellState extends State<HomeShell> {
               onClaimTapped: _openClaim,
             ),
             ClaimsListScreen(
-              // Key includes the filter so a metric-tap re-inits this screen
-              // with the new initialFilter (IndexedStack would otherwise keep
-              // the old instance and its old filter).
-              key: ValueKey('claims-$_listFilter-$_gen'),
+              // Key carries only the generation counter: a data refresh (bump)
+              // remounts this screen for a fresh load, and initState restores
+              // the selection below. Chip taps must NOT change the key — that
+              // would remount and drop local state like the search box;
+              // external changes instead arrive through didUpdateWidget.
+              key: ValueKey('claims-$_gen'),
               repo: _claims,
               initialFilter: _listFilter,
+              initialStatus: _listStatus,
+              onSelectionChanged: _onListSelectionChanged,
               onClaimTapped: (Claim c) => _openClaim(c.id),
               onChangeStatus: _cardChangeStatus,
               onEdit: _cardEdit,

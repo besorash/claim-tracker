@@ -20,6 +20,8 @@ import 'package:claim_tracker/shared/widgets/status_chip.dart';
 Widget _harness(
   ClaimsRepository repo, {
   ClaimsFilter initial = ClaimsFilter.all,
+  String? status,
+  void Function(ClaimsFilter filter, String? status)? onSelectionChanged,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -30,7 +32,12 @@ Widget _harness(
   ],
   theme: AppTheme.light(),
   darkTheme: AppTheme.dark(),
-  home: ClaimsListScreen(repo: repo, initialFilter: initial),
+  home: ClaimsListScreen(
+    repo: repo,
+    initialFilter: initial,
+    initialStatus: status,
+    onSelectionChanged: onSelectionChanged,
+  ),
 );
 
 void main() {
@@ -392,6 +399,82 @@ void main() {
           await tester.pump();
         }
         expect(calls, <String>['status-$id', 'edit-$id', 'delete-$id']);
+      });
+    },
+  );
+
+  testWidgets(
+    'clear-filters control: hidden by default, appears with an active '
+    'selection, and resets group filter or status chip back to all',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final List<String> reports = <String>[];
+        void record(ClaimsFilter f, String? s) =>
+            reports.add('${f.name}|${s ?? '-'}');
+
+        await seedStandard();
+        await tester.pumpWidget(_harness(claims, onSelectionChanged: record));
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 4);
+
+        // Nothing selected — no clear control, nothing reported.
+        expect(find.byKey(const Key('clear-filters')), findsNothing);
+        expect(reports, isEmpty);
+
+        // Group filter "Finished" (closed): one card; the control appears and
+        // reports the selection to the owner.
+        await tester.tap(find.widgetWithText(ChoiceChip, S.filterClosed));
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+        expect(find.byKey(const Key('clear-filters')), findsOneWidget);
+        expect(reports, <String>['closed|-']);
+
+        // Tapping it clears back to all claims and hides again.
+        await tester.tap(find.byKey(const Key('clear-filters')));
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 4);
+        expect(find.byKey(const Key('clear-filters')), findsNothing);
+        expect(reports, <String>['closed|-', 'all|-']);
+
+        // Status chips are cleared by the same control.
+        final Finder statusChip = find.byKey(const Key('filter-status-new'));
+        await tester.ensureVisible(statusChip);
+        await tester.tap(statusChip);
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2, // A and D
+        );
+        expect(find.byKey(const Key('clear-filters')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('clear-filters')));
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 4);
+        expect(reports, <String>['closed|-', 'all|-', 'all|new', 'all|-']);
+
+        // The "All" chip is selected again after clearing.
+        final ChoiceChip all = tester.widget<ChoiceChip>(
+          find.byKey(const Key('filter-all')),
+        );
+        expect(all.selected, isTrue);
+      });
+    },
+  );
+
+  testWidgets(
+    'initialFilter/initialStatus restore a remembered selection on mount',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        await seedStandard();
+
+        // A remount with the owner's remembered group filter applies it.
+        await tester.pumpWidget(_harness(claims, initial: ClaimsFilter.open));
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 3);
+        expect(find.text('Ø¹Ù…ÙŠÙ„ Ø¨'), findsNothing); // closed B hidden
+
+        // …and a remembered status chip applies it instead.
+        await tester.pumpWidget(
+          _harness(claims, initial: ClaimsFilter.all, status: 'new'),
+        );
+        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 2);
+        final ChoiceChip newStatus = tester.widget<ChoiceChip>(
+          find.byKey(const Key('filter-status-new')),
+        );
+        expect(newStatus.selected, isTrue);
       });
     },
   );

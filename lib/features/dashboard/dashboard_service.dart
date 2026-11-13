@@ -3,6 +3,7 @@ library;
 
 import 'package:claim_tracker/core/database/claims_repository.dart';
 import 'package:claim_tracker/core/models/claim.dart';
+import 'package:claim_tracker/core/models/claim_status.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 
 class DashboardMetrics {
@@ -10,6 +11,7 @@ class DashboardMetrics {
     required this.total,
     required this.open,
     required this.closed,
+    required this.awaitingApproval,
     required this.dueToday,
     required this.overdue,
   });
@@ -17,6 +19,9 @@ class DashboardMetrics {
   final int total;
   final int open;
   final int closed;
+
+  /// Claims whose status is exactly "Awaiting Approval".
+  final int awaitingApproval;
   final int dueToday;
   final int overdue;
 }
@@ -42,6 +47,9 @@ class DashboardService {
       total: await _claims.countAll(),
       open: await _claims.countOpen(),
       closed: await _claims.countClosed(),
+      awaitingApproval: await _claims.countWithStatus(
+        ClaimStatus.awaitingApprovalKey,
+      ),
       dueToday: await _claims.countDueBetween(start, end),
       overdue: await _claims.countOverdue(nowUtc),
     );
