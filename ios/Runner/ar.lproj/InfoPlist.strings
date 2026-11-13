@@ -1,0 +1,4 @@
+/* اسم التطبيق — مطابق لـ android/app/src/main/res/values-ar/strings.xml */
+"CFBundleDisplayName" = "متتبع المطالبات";
+"CFBundleName" = "متتبع المطالبات";
+"NSPhotoLibraryUsageDescription" = "يرفق التطبيق الصور التي تختارها بالمطالبة. تبقى الصور على هذا الجهاز فقط.";

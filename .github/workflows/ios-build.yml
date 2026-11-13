@@ -86,6 +86,9 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          # Arabic/English home-screen names (mirror Android's values-ar/values).
+          plutil -lint "$APP/ar.lproj/InfoPlist.strings" "$APP/en.lproj/InfoPlist.strings"
+          plutil -p "$APP/ar.lproj/InfoPlist.strings"
 
       - uses: actions/upload-artifact@v4
         with:
