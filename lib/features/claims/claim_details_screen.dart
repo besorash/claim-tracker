@@ -1096,28 +1096,38 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
   Widget _phoneRow(ThemeData theme, String label, String value, String id) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        key: Key('call-$id'),
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => _tapCall(value),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(child: Text(label, style: theme.textTheme.bodyMedium)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+      child: Semantics(
+        // Screen readers announce the row as a button (review F4) — this
+        // Flutter version's InkWell does not set the flag on its own.
+        button: true,
+        child: InkWell(
+          key: Key('call-$id'),
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => _tapCall(value),
+          child: Padding(
+            // Real touch target (review F4): the tap area must comfortably
+            // exceed the text line height (~20 dp) — WCAG 2.5.8 floor is 44 px.
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(child: Text(label, style: theme.textTheme.bodyMedium)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 4),
+                Icon(Icons.call, size: 18, color: AppTheme.muted(context)),
+              ],
             ),
-            const SizedBox(width: 4),
-            Icon(Icons.call, size: 18, color: AppTheme.muted(context)),
-          ],
+          ),
         ),
       ),
     );

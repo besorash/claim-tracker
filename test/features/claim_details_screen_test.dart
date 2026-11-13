@@ -429,9 +429,12 @@ void main() {
       );
 
       // Insurer row first (below the fold on the test surface), then customer.
+      // Each row is scrolled into the safe band before its tap: after scrolling
+      // to one, the other can sit under the app bar.
       await scrollTo(tester, find.byKey(const Key('call-insuranceMobile')));
       await tester.tap(find.byKey(const Key('call-insuranceMobile')));
       await tester.pump();
+      await scrollTo(tester, find.byKey(const Key('call-customerMobile')));
       await tester.tap(find.byKey(const Key('call-customerMobile')));
       await tester.pump();
 
@@ -480,6 +483,39 @@ void main() {
       expect(tester.takeException(), isNull); // a throw must never crash
     });
   });
+
+  testWidgets(
+    'phone rows are accessible buttons with real touch targets (review F4)',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        await tester.pumpWidget(_harness(db, id));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text('0559876543').evaluate().isNotEmpty,
+        );
+
+        // Screen readers must hear a button affordance on the call row…
+        final SemanticsHandle handle = tester.ensureSemantics();
+        try {
+          expect(
+            tester.getSemantics(find.byKey(const Key('call-customerMobile'))),
+            isSemantics(isButton: true, hasTapAction: true),
+          );
+        } finally {
+          handle.dispose();
+        }
+
+        // …and it needs a real touch target: comfortably above the text line
+        // height (WCAG 2.5.8's floor is 44 CSS px; this was ~20 dp before).
+        final Size size = tester.getSize(
+          find.byKey(const Key('call-customerMobile')),
+        );
+        expect(size.height, greaterThanOrEqualTo(40));
+      });
+    },
+  );
 
   testWidgets('delete: confirm removes the claim from the DB and pops', (
     WidgetTester tester,

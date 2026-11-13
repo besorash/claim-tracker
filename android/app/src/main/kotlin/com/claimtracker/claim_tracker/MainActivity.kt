@@ -1,5 +1,6 @@
 package com.claimtracker.claim_tracker
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -96,9 +97,10 @@ class MainActivity : FlutterActivity() {
                             REQUEST_CONTACT_PICK
                         )
                     } catch (e: Exception) {
-                        // No contacts app can handle the intent — read as cancel.
+                        // No contacts app can handle the intent — a platform FAILURE,
+                        // not a cancel: report it so Dart shows S.contactPickFailed.
                         pendingPickResult = null
-                        result.success(null)
+                        result.error("picker_unavailable", e.message, null)
                     }
                 }
                 else -> result.notImplemented()
@@ -107,26 +109,49 @@ class MainActivity : FlutterActivity() {
     }
 
     /// Returns the contact-picker outcome to Dart — contract (Task 1 tests):
-    /// {"phone": String} for the chosen number, null on cancel / no number.
-    /// Any other request code is left to Flutter's embedding and its plugins.
+    /// {"phone": String} for the chosen number, null on cancel / no number; a
+    /// genuine read failure is an ERROR reply so Dart can surface it. Any other
+    /// request code is left to Flutter's embedding and its plugins.
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQUEST_CONTACT_PICK) return
         val callback = pendingPickResult ?: return
         pendingPickResult = null
+        // User cancelled, or the returned row carries no number → silent null.
+        if (resultCode != Activity.RESULT_OK || data?.data == null) {
+            callback.success(null)
+            return
+        }
         var phone: String? = null
         try {
             // The pick flow grants a one-off read on this row — no manifest permission.
-            data?.data?.let { uri ->
-                contentResolver.query(
-                    uri,
-                    arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                    null, null, null
-                )?.use { c -> if (c.moveToFirst()) phone = c.getString(0) }
-            }
+            contentResolver.query(
+                data.data!!,
+                arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                null, null, null
+            )?.use { c -> if (c.moveToFirst()) phone = c.getString(0) }
         } catch (e: Exception) {
-            phone = null // never crash from here — read as "no number"
+            // A real read failure is NOT "no number" — surface it as an error.
+            callback.error("contact_read_failed", e.message, null)
+            return
         }
         callback.success(phone?.let { mapOf("phone" to it) })
+    }
+
+    /// If the activity dies while a pick is in flight (low-memory kill, config
+    /// change with a picker on screen), the result will never arrive — complete
+    /// the pending pick as an error instead of leaving Dart's future hanging.
+    override fun onDestroy() {
+        super.onDestroy()
+        pendingPickResult?.let { callback ->
+            pendingPickResult = null
+            runCatching {
+                callback.error(
+                    "picker_unavailable",
+                    "Activity was destroyed while the contact picker was open",
+                    null,
+                )
+            } // never crash from a lifecycle callback if the engine is already gone
+        }
     }
 }

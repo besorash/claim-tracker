@@ -1,4 +1,5 @@
 import Contacts
+import ContactsUI
 import Flutter
 import QuickLook
 import UIKit
@@ -120,7 +121,7 @@ final class AttachmentPreviewer: NSObject, QLPreviewControllerDataSource {
 /// the chosen number, or nil on cancel / no phone. Picker-only — presenting
 /// CNContactPickerViewController does not require NSContactsUsageDescription
 /// or any contacts-access authorization (Apple's Contacts docs).
-final class ContactPickerHandler: NSObject, CNContactPickerDelegate {
+final class ContactPickerHandler: NSObject, CNContactPickerDelegate, UIAdaptivePresentationControllerDelegate {
   private var pendingResult: FlutterResult?
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -133,24 +134,54 @@ final class ContactPickerHandler: NSObject, CNContactPickerDelegate {
       result(nil)
       return
     }
+    // Failing to host the picker is a platform failure, not a cancel: report it
+    // so Dart can surface S.contactPickFailed instead of hanging silently.
+    guard let presenter = Self.topViewController() else {
+      result(FlutterError(
+        code: "picker_unavailable",
+        message: "No view controller available to present the contact picker"))
+      return
+    }
     pendingResult = result
     let picker = CNContactPickerViewController()
     picker.delegate = self
-    Self.topViewController()?.present(picker, animated: true, completion: nil)
+    // Full-screen presentation keeps dismissal deterministic (the picker's
+    // delegate always reports cancel or select); the adaptive-dismiss delegate
+    // below is a second safety net so no dismiss path can orphan `pendingResult`
+    // and block every later pick until an app restart.
+    picker.modalPresentationStyle = .fullScreen
+    picker.presentationController?.delegate = self
+    presenter.present(picker, animated: true, completion: nil)
   }
 
   func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
-    pendingResult?(nil) // cancel is a silent no-op on the Dart side
-    pendingResult = nil
+    replyAndClear(nil) // cancel is a silent no-op on the Dart side
   }
 
   @objc func contactPicker(
     _ picker: CNContactPickerViewController,
     didSelect contact: CNContact
   ) {
-    let phone = (contact.phoneNumbers.first?.value as String?) ?? ""
-    pendingResult?(phone.isEmpty ? nil : ["phone": phone])
+    // `.value` is an ID<CNContactProperty> — read it through `stringValue`.
+    let phone = contact.phoneNumbers.first?.value.stringValue ?? ""
+    replyAndClear(phone.isEmpty ? nil : ["phone": phone])
+  }
+
+  /// Safety net for any dismissal that does not route through the picker's
+  /// delegate (system-driven dismissal of a non-full-screen presentation):
+  /// resolve the pending pick as cancel-equivalent so Dart never hangs and the
+  /// next pick is not blocked by an orphaned callback.
+  func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+    replyAndClear(nil)
+  }
+
+  /// The single place a pending pick is resolved — idempotent, so whichever of
+  /// cancel / select / dismiss arrives first wins and the rest are no-ops (a
+  /// FlutterResult must never be called twice).
+  private func replyAndClear(_ reply: Any?) {
+    let callback = pendingResult
     pendingResult = nil
+    callback?(reply)
   }
 
   /// Same window walk as AttachmentPreviewer — the picker must be presented
