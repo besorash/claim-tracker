@@ -45,6 +45,7 @@ class ClaimDetailsScreen extends StatefulWidget {
     this.picker,
     this.files,
     this.openExternal,
+    this.callNumber,
   });
 
   final AppDatabase db;
@@ -67,6 +68,11 @@ class ClaimDetailsScreen extends StatefulWidget {
   /// Opens non-image attachments in an external app (spec §12). Defaults to
   /// url_launcher; widget tests inject a stub reporting success/failure.
   final Future<bool> Function(Uri)? openExternal;
+
+  /// Tap-to-call seam for the two phone rows: receives the number, returns
+  /// success. Defaults to `tel:` via url_launcher (same channel family as
+  /// attachment opens); widget tests inject a recorder — never a real call.
+  final Future<bool> Function(String phoneNumber)? callNumber;
 
   @override
   State<ClaimDetailsScreen> createState() => _ClaimDetailsScreenState();
@@ -476,6 +482,33 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     'com.claimtracker/files',
   );
 
+  /// Default dialer: hands the number to the OS via `tel:` (url_launcher —
+  /// already a dependency, same channel family as attachment opens).
+  Future<bool> _dial(String number) async {
+    try {
+      return await launchUrl(Uri(scheme: 'tel', path: number.trim()));
+    } on Object catch (_) {
+      return false;
+    }
+  }
+
+  /// Taps a phone row (customer or insurer mobile): launches the dialer, and
+  /// reports any failure — including a throwing caller — as S.callFailed.
+  Future<void> _tapCall(String number) async {
+    final Future<bool> Function(String) call = widget.callNumber ?? _dial;
+    bool ok;
+    try {
+      ok = await call(number);
+    } on Object catch (_) {
+      ok = false; // a throwing dialer must never crash the screen
+    }
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(S.callFailed)));
+    }
+  }
+
   Future<bool> _launchExternal(Uri uri) async {
     // iOS cannot hand a sandboxed file:// URL to another app, so local
     // attachments are previewed in-app with the system QuickLook viewer.
@@ -639,7 +672,12 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                     (c) => [
                       _row(theme, S.customerNameLabel, c.customerName),
                       if (c.customerMobile.isNotEmpty)
-                        _row(theme, S.mobileLabel, c.customerMobile),
+                        _phoneRow(
+                          theme,
+                          S.mobileLabel,
+                          c.customerMobile,
+                          'customerMobile',
+                        ),
                       if (c.customerNationalId != null)
                         _row(theme, S.nationalIdLabel, c.customerNationalId!),
                       if (c.customerEmail != null)
@@ -687,7 +725,12 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         Insurers.display(c.customerInsuranceCompany),
                       ),
                       if (c.insuranceMobile != null && c.insuranceMobile!.isNotEmpty)
-                        _row(theme, S.insuranceMobileLabel, c.insuranceMobile!),
+                        _phoneRow(
+                          theme,
+                          S.insuranceMobileLabel,
+                          c.insuranceMobile!,
+                          'insuranceMobile',
+                        ),
                       if (c.submissionDateUtcMs != null)
                         _row(
                           theme,
@@ -1043,6 +1086,39 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tappable phone-number row — same label/value layout as [_row] so it reads
+  /// naturally in RTL, plus a trailing call affordance; tapping launches the
+  /// dialer for [value] (see [_tapCall]). Stable key per field for tests.
+  Widget _phoneRow(ThemeData theme, String label, String value, String id) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        key: Key('call-$id'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => _tapCall(value),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(child: Text(label, style: theme.textTheme.bodyMedium)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.call, size: 18, color: AppTheme.muted(context)),
+          ],
+        ),
       ),
     );
   }

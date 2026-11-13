@@ -44,6 +44,7 @@ Widget _harness(
   AttachmentPicker? picker,
   AttachmentFileService? files,
   Future<bool> Function(Uri)? openExternal,
+  Future<bool> Function(String)? callNumber,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -69,6 +70,7 @@ Widget _harness(
                   picker: picker,
                   files: files,
                   openExternal: openExternal,
+                  callNumber: callNumber,
                 ),
               ),
             );
@@ -198,6 +200,19 @@ class _FakePicker implements AttachmentPicker {
 
   @override
   Future<List<PlatformFile>> pick({required FileType type}) async => next;
+}
+
+/// Recording dialer for widget tests — no url_launcher channel touched.
+class FakeDialer {
+  final List<String> called = [];
+  bool result = true; // false → snackbar path
+  bool shouldThrow = false;
+
+  Future<bool> call(String phone) async {
+    if (shouldThrow) throw StateError('dialer unavailable');
+    called.add(phone);
+    return result;
+  }
 }
 
 Future<void> openDetails(WidgetTester tester) async {
@@ -377,6 +392,92 @@ void main() {
       await openDetails(tester);
       await settle(tester, () => find.text('خالد').evaluate().isNotEmpty);
       expect(find.text(S.insuranceMobileLabel), findsNothing);
+    });
+  });
+
+  testWidgets('tapping the customer mobile row dials it', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull(); // customerMobile '0559876543'
+      final FakeDialer dialer = FakeDialer();
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('0559876543').evaluate().isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(dialer.called, <String>['0559876543']); // exact number passed
+    });
+  });
+
+  testWidgets('both phone rows dial their own numbers', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer(
+        '0561234567',
+      ); // customer '0501234567'
+      final FakeDialer dialer = FakeDialer();
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('0561234567').evaluate().isNotEmpty,
+      );
+
+      // Insurer row first (below the fold on the test surface), then customer.
+      await scrollTo(tester, find.byKey(const Key('call-insuranceMobile')));
+      await tester.tap(find.byKey(const Key('call-insuranceMobile')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      // Each row dials ITS OWN number, in tap order — no cross-wiring.
+      expect(dialer.called, <String>['0561234567', '0501234567']);
+    });
+  });
+
+  testWidgets('a failed dial shows callFailed', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final FakeDialer dialer = FakeDialer()..result = false;
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('0559876543').evaluate().isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(dialer.called, <String>['0559876543']); // attempt was made…
+      expect(find.text(S.callFailed), findsOneWidget); // …and reported.
+      expect(tester.takeException(), isNull); // …without crashing.
+    });
+  });
+
+  testWidgets('a throwing dialer is caught and reported', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final FakeDialer dialer = FakeDialer()..shouldThrow = true;
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('0559876543').evaluate().isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(find.text(S.callFailed), findsOneWidget);
+      expect(tester.takeException(), isNull); // a throw must never crash
     });
   });
 
