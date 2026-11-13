@@ -84,11 +84,14 @@ class MainActivity : FlutterActivity() {
                     }
                     pendingPickResult = result
                     try {
-                        // ACTION_PICK with the phone item type opens a picker of
-                        // phone numbers (person → number) — no permission prompt.
+                        // Classic documented pattern for "pick a phone number":
+                        // ACTION_PICK with the phones dir URI + its MIME type.
+                        // (Verified on API 37: this combination resolves to the
+                        // system picker; no READ_CONTACTS permission is needed.)
                         startActivityForResult(
                             Intent(Intent.ACTION_PICK).apply {
-                                type = ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE
+                                data = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+                                type = ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE
                             },
                             REQUEST_CONTACT_PICK
                         )
