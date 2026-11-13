@@ -67,6 +67,7 @@ class ClaimsRepository {
     'claim_number',
     'customer_name',
     'customer_mobile',
+    'insurance_mobile',
     'customer_national_id',
     'customer_email',
     'accident_number',

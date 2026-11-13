@@ -686,6 +686,8 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         S.customerInsurerLabel,
                         Insurers.display(c.customerInsuranceCompany),
                       ),
+                      if (c.insuranceMobile != null && c.insuranceMobile!.isNotEmpty)
+                        _row(theme, S.insuranceMobileLabel, c.insuranceMobile!),
                       if (c.submissionDateUtcMs != null)
                         _row(
                           theme,

@@ -73,6 +73,7 @@
   "insurerOtherLabel": "اسم شركة التأمين",
   "vehiclePlateLabel": "رقم اللوحة",
   "customerInsurerLabel": "شركة تأمين العميل",
+  "insuranceMobileLabel": "جوال شركة التأمين",
   "liabilityPercentLabel": "نسبة المسؤولية",
   "liabilityNotSet": "غير محدد",
   "csvCardTitle": "ملف إكسل (CSV)",

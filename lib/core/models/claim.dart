@@ -19,6 +19,7 @@ class Claim {
     this.vehicleType,
     required this.claimNumber,
     required this.customerInsuranceCompany,
+    this.insuranceMobile,
     this.liabilityPercent,
     this.submissionDateUtcMs,
     this.insurerReferenceNumber,
@@ -55,6 +56,10 @@ class Claim {
   // Claim (spec §7.3).
   final String claimNumber;
   final String customerInsuranceCompany;
+
+  /// The insurance company's contact mobile for this claim (null = none).
+  /// Same Saudi-number rule as the customer mobile when entered.
+  final String? insuranceMobile;
 
   /// Liability share of the claim: 0, 25, 50, 75 or 100 (percent). Null = not set.
   final double? liabilityPercent;
@@ -96,6 +101,7 @@ class Claim {
     String? vehicleType,
     String? claimNumber,
     String? customerInsuranceCompany,
+    String? insuranceMobile,
     double? liabilityPercent,
     DateTime? submissionDateUtcMs,
     String? insurerReferenceNumber,
@@ -125,6 +131,7 @@ class Claim {
       claimNumber: claimNumber ?? this.claimNumber,
       customerInsuranceCompany:
           customerInsuranceCompany ?? this.customerInsuranceCompany,
+      insuranceMobile: insuranceMobile ?? this.insuranceMobile,
       liabilityPercent: liabilityPercent ?? this.liabilityPercent,
       submissionDateUtcMs: submissionDateUtcMs ?? this.submissionDateUtcMs,
       insurerReferenceNumber:
@@ -157,6 +164,7 @@ class Claim {
     'vehicle_type': vehicleType,
     'claim_number': claimNumber,
     'customer_insurance_company': customerInsuranceCompany,
+    'insurance_mobile': insuranceMobile,
     'liability_percent': liabilityPercent,
     'submission_date_utc_ms': submissionDateUtcMs?.millisecondsSinceEpoch,
     'insurer_reference_number': insurerReferenceNumber,
@@ -189,6 +197,7 @@ class Claim {
     vehicleType: row['vehicle_type'] as String?,
     claimNumber: row['claim_number']! as String,
     customerInsuranceCompany: row['customer_insurance_company']! as String,
+    insuranceMobile: row['insurance_mobile'] as String?,
     liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),
     submissionDateUtcMs: (row['submission_date_utc_ms'] as int?) == null
         ? null

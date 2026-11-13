@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 6;
+const int kDatabaseVersion = 7;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -89,10 +89,18 @@ class AppDatabase {
             await _migrateToV5(txn);
           case 6:
             await _migrateToV6(txn);
+          case 7:
+            await _migrateToV7(txn);
           // Future versions add cases here.
         }
       }
     });
+  }
+
+  /// v7: the insurance company's contact mobile for a claim (optional). Same
+  /// ADD COLUMN pattern as v3–v5 — works on every SQLite version Android ships.
+  static Future<void> _migrateToV7(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN insurance_mobile TEXT');
   }
 
   /// v2: the "submitted to insurer" column is replaced by the liability

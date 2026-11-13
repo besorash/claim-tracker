@@ -335,6 +335,51 @@ void main() {
     },
   );
 
+  /// One claim in the insurer area; [insuranceMobile] optional.
+  Future<int> seedInsurer(String? insuranceMobile) {
+    final DateTime now = DateTime.utc(2026, 10, 6);
+    return claims.create(Claim(
+      id: 0,
+      customerName: 'خالد',
+      customerMobile: '0501234567',
+      accidentDateUtcMs: DateTime.utc(2026, 10, 1),
+      claimNumber: 'CLM-INS',
+      customerInsuranceCompany: 'تعاونية',
+      insuranceMobile: insuranceMobile,
+      statusKey: 'new',
+      lastStatusUpdateUtcMs: now,
+      createdAtUtcMs: now,
+      updatedAtUtcMs: now,
+    ));
+  }
+
+  testWidgets('insurer mobile is shown in the claim section when set', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer('0561234567');
+      await tester.pumpWidget(_harness(db, id));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text(S.insuranceMobileLabel).evaluate().isNotEmpty,
+      );
+      expect(find.text('0561234567'), findsOneWidget);
+    });
+  });
+
+  testWidgets('insurer mobile: no row when the claim has none', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer(null);
+      await tester.pumpWidget(_harness(db, id));
+      await openDetails(tester);
+      await settle(tester, () => find.text('خالد').evaluate().isNotEmpty);
+      expect(find.text(S.insuranceMobileLabel), findsNothing);
+    });
+  });
+
   testWidgets('delete: confirm removes the claim from the DB and pops', (
     WidgetTester tester,
   ) async {

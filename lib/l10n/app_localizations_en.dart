@@ -196,6 +196,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customerInsurerLabel => 'Customer\'s Insurance Company';
 
   @override
+  String get insuranceMobileLabel => 'Insurance Company Mobile';
+
+  @override
   String get liabilityPercentLabel => 'Liability %';
 
   @override

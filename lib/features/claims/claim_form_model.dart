@@ -28,6 +28,10 @@ class ClaimFormModel {
   // Claim (spec §7.3) — number, both insurers and submission date are required.
   String claimNumber = '';
   String customerInsuranceCompany = '';
+
+  /// The insurer's contact mobile: optional; when entered it must be a valid
+  /// Saudi number (same rule as the customer mobile).
+  String insuranceMobile = '';
   double? liabilityPercent; // null = not set; otherwise 0, 25, 50, 75 or 100
   DateTime? submissionDateUtcMs;
   String insurerReferenceNumber = '';
@@ -56,6 +60,7 @@ class ClaimFormModel {
     vehicleType = claim.vehicleType ?? '';
     claimNumber = claim.claimNumber;
     customerInsuranceCompany = claim.customerInsuranceCompany;
+    insuranceMobile = claim.insuranceMobile ?? '';
     liabilityPercent = claim.liabilityPercent;
     submissionDateUtcMs = claim.submissionDateUtcMs;
     insurerReferenceNumber = claim.insurerReferenceNumber ?? '';
@@ -100,15 +105,23 @@ class ClaimFormModel {
     return s;
   }
 
-  /// Mobile is optional; when entered it must be a valid Saudi number.
-  String? validateMobile() {
-    final String raw = customerMobile.trim();
-    if (raw.isEmpty) return null;
-    if (!RegExp(r'^\d{9}$').hasMatch(normalizeMobile(raw))) {
+  /// Shared Saudi-number rule: optional, but when entered it must be exactly
+  /// 9 digits after [normalizeMobile].
+  static String? _validateMobileText(String raw) {
+    final String value = raw.trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^\d{9}$').hasMatch(normalizeMobile(value))) {
       return S.invalidNumber;
     }
     return null;
   }
+
+  /// Mobile is optional; when entered it must be a valid Saudi number.
+  String? validateMobile() => _validateMobileText(customerMobile);
+
+  /// The insurer's contact mobile: same rule as the customer mobile —
+  /// optional, but a valid Saudi number when entered (spec §7.3).
+  String? validateInsuranceMobile() => _validateMobileText(insuranceMobile);
 
   /// Required: vehicle plate, accident date, vehicle type, customer name and
   /// insurer. Everything else is optional (an entered mobile must be valid).
@@ -118,6 +131,7 @@ class ClaimFormModel {
       validateCustomerName() == null &&
       validateCustomerInsurer() == null &&
       validateMobile() == null &&
+      validateInsuranceMobile() == null &&
       accidentDateUtcMs != null;
 
   // ---------------------------------------------------------------------------
@@ -145,6 +159,7 @@ class ClaimFormModel {
       vehicleType: _opt(vehicleType),
       claimNumber: claimNumber.trim(),
       customerInsuranceCompany: customerInsuranceCompany.trim(),
+      insuranceMobile: _opt(insuranceMobile),
       liabilityPercent: liabilityPercent,
       submissionDateUtcMs: submissionDateUtcMs,
       insurerReferenceNumber: _opt(insurerReferenceNumber),

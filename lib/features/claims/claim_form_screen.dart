@@ -48,6 +48,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'plate',
     'claimNumber',
     'custInsurer',
+    'insMobile',
     'insurerRef',
     'amount',
     'notes',
@@ -106,6 +107,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'plate' => _model.vehiclePlate,
     'claimNumber' => _model.claimNumber,
     'custInsurer' => _model.customerInsuranceCompany,
+    'insMobile' => _model.insuranceMobile,
     'insurerRef' => _model.insurerReferenceNumber,
     'amount' => _model.claimAmount,
     'notes' => _model.notes,
@@ -132,6 +134,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         _model.claimNumber = value;
       case 'custInsurer':
         _model.customerInsuranceCompany = value;
+      case 'insMobile':
+        _model.insuranceMobile = value;
       case 'insurerRef':
         _model.insurerReferenceNumber = value;
       case 'amount':
@@ -181,6 +185,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
       'customerName': _model.validateCustomerName(),
       'mobile': _model.validateMobile(),
       'custInsurer': _model.validateCustomerInsurer(),
+      'insMobile': _model.validateInsuranceMobile(),
       'plate': _model.validateVehiclePlate(),
       'vehicleType': _model.validateVehicleType(),
       'accident': _model.accidentDateUtcMs == null ? S.requiredField : null,
@@ -241,6 +246,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
             _section(S.sectionClaimInfo, [
               _field('claimNumber', label: S.claimNumberLabel),
               _insurerField(),
+              _field('insMobile', label: S.insuranceMobileLabel, number: true),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,

@@ -73,6 +73,7 @@
   "insurerOtherLabel": "Insurance company name",
   "vehiclePlateLabel": "Vehicle Plate",
   "customerInsurerLabel": "Customer's Insurance Company",
+  "insuranceMobileLabel": "Insurance Company Mobile",
   "liabilityPercentLabel": "Liability %",
   "liabilityNotSet": "Not set",
   "csvCardTitle": "Spreadsheet (CSV)",

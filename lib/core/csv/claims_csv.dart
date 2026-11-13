@@ -45,6 +45,7 @@ const List<String> kClaimsCsvColumns = <String>[
   'vehicle_type',
   'claim_number',
   'customer_insurance_company',
+  'insurance_mobile',
   'submission_date',
   'insurer_reference_number',
   'claim_amount_sar',
@@ -192,6 +193,7 @@ abstract final class ClaimsCsv {
     'vehicle_type': c.vehicleType ?? '',
     'claim_number': c.claimNumber,
     'customer_insurance_company': c.customerInsuranceCompany,
+    'insurance_mobile': c.insuranceMobile ?? '',
     'submission_date': c.submissionDateUtcMs == null
         ? ''
         : _formatDate(c.submissionDateUtcMs!),
@@ -332,6 +334,7 @@ abstract final class ClaimsCsv {
       ..vehicleType = text('vehicle_type')
       ..claimNumber = text('claim_number')
       ..customerInsuranceCompany = _insurer(text('customer_insurance_company'))
+      ..insuranceMobile = _mobile(number('insurance_mobile'))
       ..insurerReferenceNumber = text('insurer_reference_number')
       ..notes = text('notes');
 
@@ -391,6 +394,8 @@ abstract final class ClaimsCsv {
     if (insurerError != null) fail('customer_insurance_company', insurerError);
     final String? mobileError = m.validateMobile();
     if (mobileError != null) fail('customer_mobile', mobileError);
+    final String? insMobileError = m.validateInsuranceMobile();
+    if (insMobileError != null) fail('insurance_mobile', insMobileError);
 
     return CsvRowResult(
       id: id,

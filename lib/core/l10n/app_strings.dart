@@ -137,6 +137,7 @@ abstract final class S {
       _l.csvExtraColumnsSaved(columns);
   static String get extraFieldsLabel => _l.extraFieldsLabel;
   static String get submissionDateLabel => _l.submissionDateLabel;
+  static String get insuranceMobileLabel => _l.insuranceMobileLabel;
   static String get insurerRefLabel => _l.insurerRefLabel;
   static String get claimAmountLabel => _l.claimAmountLabel;
   static String get notesLabel => _l.notesLabel;

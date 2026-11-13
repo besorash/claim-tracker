@@ -464,6 +464,12 @@ abstract class AppLocalizations {
   /// **'Customer\'s Insurance Company'**
   String get customerInsurerLabel;
 
+  /// No description provided for @insuranceMobileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance Company Mobile'**
+  String get insuranceMobileLabel;
+
   /// No description provided for @liabilityPercentLabel.
   ///
   /// In en, this message translates to:

@@ -98,6 +98,36 @@ void main() {
     });
   });
 
+  group('insurance company mobile (spec §7.3)', () {
+    test('blank is allowed (optional) and does not block saving', () {
+      final ClaimFormModel m = _validModel();
+      expect(m.validateInsuranceMobile(), isNull);
+      expect(m.isValid, isTrue);
+    });
+
+    test('"abc" → S.invalidNumber and blocks saving', () {
+      final ClaimFormModel m = _validModel()..insuranceMobile = 'abc';
+      expect(m.validateInsuranceMobile(), S.invalidNumber);
+      expect(m.isValid, isFalse);
+    });
+
+    test('"0559876543" (leading 0) and "+966 55 987 6543" are valid', () {
+      final ClaimFormModel a = _validModel()..insuranceMobile = '0559876543';
+      expect(a.validateInsuranceMobile(), isNull);
+      final ClaimFormModel b =
+          _validModel()..insuranceMobile = '+966 55 987 6543';
+      expect(b.validateInsuranceMobile(), isNull);
+    });
+
+    test('toClaim trims the value; an empty one stays null', () {
+      final DateTime t0 = DateTime.utc(2026, 1, 1);
+      final ClaimFormModel m = _validModel()..insuranceMobile = ' 0559876543 ';
+      expect(m.toClaim(id: 1, createdAtUtcMs: t0).insuranceMobile, '0559876543');
+      final ClaimFormModel empty = _validModel();
+      expect(empty.toClaim(id: 1, createdAtUtcMs: t0).insuranceMobile, isNull);
+    });
+  });
+
   group('buildNew / applyTo (spec §7)', () {
     test(
       'toClaim receives the provided id and createdAt; fields are trimmed',

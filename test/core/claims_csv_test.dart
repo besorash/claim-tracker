@@ -15,12 +15,14 @@ Claim _claim({
   double? liability = 50,
   String status = 'submitted',
   DateTime? followUp,
+  String? insuranceMobile,
 }) {
   final DateTime t = DateTime.utc(2026, 9, 1, 8);
   return Claim(
     id: id,
     customerName: name,
     customerMobile: '0559876543',
+    insuranceMobile: insuranceMobile,
     vehiclePlate: '4051 VJD',
     vehicleType: 'Camry 2022',
     accidentDateUtcMs: DateTime(2026, 10, 1).toUtc(),
@@ -76,6 +78,23 @@ void main() {
       final CsvRowResult row = ClaimsCsv.toForm(_firstRecord(csv));
       expect(row.errors, isEmpty);
       expect(row.model!.liabilityPercent, isNull);
+    });
+
+    test('the insurer mobile survives export → import', () {
+      final String csv = ClaimsCsv.encode(
+        <Claim>[_claim(insuranceMobile: '0561234567')],
+      );
+      expect(csv.split('\r\n').first, contains('insurance_mobile'));
+      final CsvRowResult row = ClaimsCsv.toForm(_firstRecord(csv));
+      expect(row.errors, isEmpty);
+      expect(row.model!.insuranceMobile, '0561234567');
+    });
+
+    test('an empty insurer mobile stays absent on import', () {
+      final String csv = ClaimsCsv.encode(<Claim>[_claim()]);
+      final CsvRowResult row = ClaimsCsv.toForm(_firstRecord(csv));
+      expect(row.errors, isEmpty);
+      expect(row.model!.insuranceMobile, isEmpty);
     });
 
     test('the file starts with the header in the documented order', () {
@@ -216,6 +235,23 @@ void main() {
       );
       expect(row.errors, isEmpty);
       expect(row.id, isNull);
+    });
+
+    test('an invalid insurer mobile is a row error', () {
+      final CsvRowResult row = ClaimsCsv.toForm(
+        _firstRecord(rowWith(<String, String>{'insurance_mobile': 'abc'})),
+      );
+      expect(row.errors.single, contains('insurance_mobile'));
+    });
+
+    test('a valid insurer mobile passes the same Saudi rules', () {
+      final CsvRowResult row = ClaimsCsv.toForm(
+        _firstRecord(
+          rowWith(<String, String>{'insurance_mobile': '0561234567'}),
+        ),
+      );
+      expect(row.errors, isEmpty);
+      expect(row.model!.insuranceMobile, '0561234567');
     });
   });
 
