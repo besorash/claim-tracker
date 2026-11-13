@@ -353,19 +353,21 @@ void main() {
   /// One claim in the insurer area; [insuranceMobile] optional.
   Future<int> seedInsurer(String? insuranceMobile) {
     final DateTime now = DateTime.utc(2026, 10, 6);
-    return claims.create(Claim(
-      id: 0,
-      customerName: 'خالد',
-      customerMobile: '0501234567',
-      accidentDateUtcMs: DateTime.utc(2026, 10, 1),
-      claimNumber: 'CLM-INS',
-      customerInsuranceCompany: 'تعاونية',
-      insuranceMobile: insuranceMobile,
-      statusKey: 'new',
-      lastStatusUpdateUtcMs: now,
-      createdAtUtcMs: now,
-      updatedAtUtcMs: now,
-    ));
+    return claims.create(
+      Claim(
+        id: 0,
+        customerName: 'خالد',
+        customerMobile: '0501234567',
+        accidentDateUtcMs: DateTime.utc(2026, 10, 1),
+        claimNumber: 'CLM-INS',
+        customerInsuranceCompany: 'تعاونية',
+        insuranceMobile: insuranceMobile,
+        statusKey: 'new',
+        lastStatusUpdateUtcMs: now,
+        createdAtUtcMs: now,
+        updatedAtUtcMs: now,
+      ),
+    );
   }
 
   testWidgets('insurer mobile is shown in the claim section when set', (
@@ -395,6 +397,58 @@ void main() {
     });
   });
 
+  testWidgets(
+    'phone values sit flush with their call affordance in both rows',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedInsurer(
+          '0561234567',
+        ); // customer mobile '0501234567'
+        await tester.pumpWidget(_harness(db, id));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text(S.insuranceMobileLabel).evaluate().isNotEmpty,
+        );
+
+        // The harness is RTL (ar): each call icon sits at the row's start
+        // edge and both numbers must end their value box against it — i.e.
+        // share one left edge regardless of label length. Regression guard
+        // for the flexible-label/spaceBetween drift that used to push the
+        // shorter-label row's number away from its own call icon.
+        final Rect customerRect = tester.getRect(find.text('0501234567').first);
+        final Rect insurerRect = tester.getRect(find.text('0561234567'));
+        expect(customerRect.left, insurerRect.left);
+
+        Finder iconIn(Finder row) =>
+            find.descendant(of: row, matching: find.byIcon(Icons.call));
+        final Rect customerIcon = tester.getRect(
+          iconIn(
+            find
+                .ancestor(
+                  of: find.text('0501234567').first,
+                  matching: find.byType(Row),
+                )
+                .first,
+          ),
+        );
+        expect(customerRect.left - customerIcon.right, closeTo(4.0, 0.5));
+
+        final Rect insurerIcon = tester.getRect(
+          iconIn(
+            find
+                .ancestor(
+                  of: find.text('0561234567'),
+                  matching: find.byType(Row),
+                )
+                .first,
+          ),
+        );
+        expect(insurerRect.left - insurerIcon.right, closeTo(4.0, 0.5));
+      });
+    },
+  );
+
   testWidgets('tapping the customer mobile row dials it', (
     WidgetTester tester,
   ) async {
@@ -403,10 +457,7 @@ void main() {
       final FakeDialer dialer = FakeDialer();
       await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
       await openDetails(tester);
-      await settle(
-        tester,
-        () => find.text('0559876543').evaluate().isNotEmpty,
-      );
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
 
       await tester.tap(find.byKey(const Key('call-customerMobile')));
       await tester.pump();
@@ -415,18 +466,15 @@ void main() {
     });
   });
 
-  testWidgets('both phone rows dial their own numbers', (WidgetTester tester) async {
+  testWidgets('both phone rows dial their own numbers', (
+    WidgetTester tester,
+  ) async {
     await tester.runAsync(() async {
-      final int id = await seedInsurer(
-        '0561234567',
-      ); // customer '0501234567'
+      final int id = await seedInsurer('0561234567'); // customer '0501234567'
       final FakeDialer dialer = FakeDialer();
       await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
       await openDetails(tester);
-      await settle(
-        tester,
-        () => find.text('0561234567').evaluate().isNotEmpty,
-      );
+      await settle(tester, () => find.text('0561234567').evaluate().isNotEmpty);
 
       // Insurer row first (below the fold on the test surface), then customer.
       // Each row is scrolled into the safe band before its tap: after scrolling
@@ -449,10 +497,7 @@ void main() {
       final FakeDialer dialer = FakeDialer()..result = false;
       await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
       await openDetails(tester);
-      await settle(
-        tester,
-        () => find.text('0559876543').evaluate().isNotEmpty,
-      );
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
 
       await tester.tap(find.byKey(const Key('call-customerMobile')));
       await tester.pump();
@@ -471,10 +516,7 @@ void main() {
       final FakeDialer dialer = FakeDialer()..shouldThrow = true;
       await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
       await openDetails(tester);
-      await settle(
-        tester,
-        () => find.text('0559876543').evaluate().isNotEmpty,
-      );
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
 
       await tester.tap(find.byKey(const Key('call-customerMobile')));
       await tester.pump();

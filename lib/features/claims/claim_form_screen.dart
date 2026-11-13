@@ -167,9 +167,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     } on Object catch (_) {
       // Platform failure — distinct from a cancel (null): surface it.
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.contactPickFailed)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(S.contactPickFailed)));
       return;
     }
     if (phone == null || !mounted) return; // user cancelled — field untouched
@@ -280,7 +279,13 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               ),
               _field('city', label: S.cityLabel),
               _accidentTypeField(),
-              _field('plate', label: S.vehiclePlateLabel, required: true),
+              // Plate input is always LTR (see `_field`'s `ltr`).
+              _field(
+                'plate',
+                label: S.vehiclePlateLabel,
+                required: true,
+                ltr: true,
+              ),
               _field('vehicleType', label: S.vehicleTypeLabel, required: true),
               _liabilityField(),
             ]),
@@ -454,8 +459,12 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     bool number = false,
     bool multiline = false,
     VoidCallback? onPickSuffix,
+    // The vehicle plate is always displayed LTR (both EN and AR UIs): the
+    // whole field — label position included — renders in an explicit LTR
+    // context so input order matches a real license plate.
+    bool ltr = false,
   }) {
-    return Padding(
+    final Widget field = Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         key: Key('field-$key'),
@@ -479,6 +488,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         ),
       ),
     );
+    if (!ltr) return field;
+    return Directionality(textDirection: TextDirection.ltr, child: field);
   }
 
   /// Insurer list in the app's language, plus "Other" to type a company that

@@ -592,3 +592,59 @@ After `restoreFrom` swapped the DB, pre-restore pending alarms could still fire 
 | Crashes during the flow | none — app process alive throughout, no FATAL/Exception lines in its logcat |
 
 **Note**: one imported test claim (5835 XJR / LINXON) was deleted on the emulator as part of the end-to-end proof.
+
+---
+
+## 2026-11-13 — Vehicle plate always displayed LTR in EN and AR interfaces (owner request)
+
+**Scope**: the vehicle plate field must always render left-to-right, identically in both the English and Arabic interfaces. Before: plate widgets inherited the ambient directionality, so under the AR UI they rendered right-aligned with an RTL base direction (mixed-letter plates like `5782 RLR` at risk of reordering).
+
+### Changes
+
+- `lib/features/claims/claim_form_screen.dart` — `_field()` gained an optional `ltr:` flag; when set the whole field (label + input) renders inside `Directionality(textDirection: TextDirection.ltr)` so typing/caret behavior is deterministic LTR. The plate field passes it.
+- `lib/features/claims/claim_card.dart` — card plate text wrapped in explicit LTR direction + `TextAlign.left`.
+- `lib/features/dashboard/dashboard_screen.dart` — needs-attention row plate: same LTR wrap + left alignment.
+- `lib/features/claims/claim_details_screen.dart` — `_row()` gained an optional `ltr:` flag; the plate value renders in an explicit LTR context aligned left (label/value layout per language otherwise unchanged).
+- New regression file `test/features/plate_ltr_test.dart`: 6 tests (AR + EN) asserting the NEAREST `Directionality` ancestor of each plate widget (and the form's editable region) is LTR — fails if any site regresses to inheriting ambient direction.
+
+### Verification (actually run)
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `dart format` (touched files) | clean |
+| `flutter test` full suite | **260/260 passed** (incl. the 6 new plate-LTR tests; run 3× in a row for stability) |
+| `flutter build apk --release` | ✓ Built — `build/app/outputs/flutter-apk/app-release.apk` (59,082,524 bytes), installed on emulator-5554 → Success (data preserved: ~1725 imported claims intact) |
+| On-device AR flow (accessibility-tree dumps) | launch clean; claims-list cards show plates `5527 HRA` / `5782 RLR` / `3870 LJB` / `8763 DZA` in correct order inside the RTL layout; details screen plate carries an explicit LTR embedding (U+202A…U+202C — Flutter marks only parts with an explicit direction, i.e. our wrapper) while unwrapped values on the same screen carry none |
+| On-device EN flow (accessibility-tree dumps) | switched UI to English via Settings → claims list + details render LTR with plates unchanged (`Vehicle Plate \| 5782 RLR`) |
+| Crashes during the flows | none — app process alive throughout, no FATAL/Exception lines in logcat |
+
+**Note**: TalkBack accessibility was enabled on the emulator to expose Flutter's semantics tree for verification and disabled again afterwards (global `accessibility_enabled` = 0). App UI language was left on English (the spec default); switch back anytime from Settings → Language.
+
+---
+
+## 2026-11-13 (QA session) — Claim details: phone-number alignment + label renames (owner feedback)
+
+**Scope**: Owner-reported issues on the claim details page: (1) customer mobile not aligned like the insurer's number, (2) "Customer's Insurance Company" → "Insurance Company", (3) "Insurance Company Mobile" → "Insurance Mobile".
+
+### Root cause of issue 1 — measured, not guessed
+- `_phoneRow` used `Flexible(label)` + `Expanded(value)`: equal flex factors split the remaining width in half; the label only consumes its natural width, and **its unused share becomes free space that `mainAxisAlignment: spaceBetween` spreads as extra gaps between all children**. The trailing call icon (last child) stays pinned at the row edge — so a shorter-label row ends up with its value box, and thus its number, shifted away from the icon.
+- On-device pixel proof (semantics tree + PNG glyph analysis): `0500000005` ended x=860 with its call icon at 962–1030; `0553454360` ended x=945 with the same icon position → Δ≈85 px. Non-phone rows (`_row`) are unaffected because their value box IS the last flex child and stays pinned (all measured values end within ≤5 px of each other).
+- Reproduced in a controlled widget test against the real screen; the model fit both rows with zero residual (value share 353 px, icon 18 px) before fixing.
+
+### Changes
+- `lib/features/claims/claim_details_screen.dart` — `_phoneRow`: removed the `Flexible` wrapper on the label so only the value box flexes → no free space to distribute; every phone row's number now ends flush against its own call icon, EN and AR alike (one-line change + doc comment documenting the invariant).
+- l10n renames (shared keys — details AND form screens stay in sync): `app_en.arb`: "Customer's Insurance Company" → **"Insurance Company"**, "Insurance Company Mobile" → **"Insurance Mobile"**; mirrored in `app_ar.arb`: "شركة تأمين العميل" → "شركة التأمين", "جوال شركة التأمين" → "جوال الشركة". Regenerated via `flutter gen-l10n`.
+- `lib/core/csv/claims_csv.dart` — legacy import aliases for the two old wordings (EN+AR) so spreadsheets made under the previous UI still import; without this, real user files AND the existing test (`claims_csv_test.dart`: "headers may be the Arabic field names") would break.
+
+### Verification (actually run)
+| Check | Result |
+|---|---|
+| New regression test `phone values sit flush with their call affordance in both rows` (AR harness): equal value-box start edges across both phone rows + 4 px adjacency to each row's own call icon | **Fails without the fix** (left edges 133.875 vs 112.5); passes with it |
+| `flutter analyze` | No issues found |
+| `flutter test` full suite | **262/262 passed** (incl. the new regression test) |
+| `flutter build apk --release` | √ Built (56.3 MB), installed on emulator-5554 → Success, data intact (1725 claims) |
+| On-device pixel measurement post-install (EN UI, claim 5527 HRA / FRAIKIN DAYIM) | Both numbers now end at **x=945** with both call icons at [966..999] — Δ between rows = 0 px; labels render "Insurance Company" (Orient) and "Insurance Mobile" (0553454360) |
+| Crashes during the flows | none — process alive throughout, no FATAL/AndroidRuntime lines in logcat |
+
+**Note**: TalkBack was temporarily enabled for semantics-tree + pixel measurement, then disabled again (`accessibility_enabled` = 0). UI language left on English. Pre-existing Dart 3.13 formatter drift exists in a few contact-picker files (since that feature landed) — left untouched to keep this diff surgical; `dart format lib test` cleans them if desired.

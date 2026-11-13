@@ -702,7 +702,13 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                           AccidentTypes.display(c.accidentType!),
                         ),
                       if (c.vehiclePlate != null)
-                        _row(theme, S.vehiclePlateLabel, c.vehiclePlate!),
+                        // Plate value is always LTR — see [_row]'s `ltr` parameter.
+                        _row(
+                          theme,
+                          S.vehiclePlateLabel,
+                          c.vehiclePlate!,
+                          ltr: true,
+                        ),
                       if (c.vehicleType != null)
                         _row(theme, S.vehicleTypeLabel, c.vehicleType!),
                       _row(
@@ -724,7 +730,8 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         S.customerInsurerLabel,
                         Insurers.display(c.customerInsuranceCompany),
                       ),
-                      if (c.insuranceMobile != null && c.insuranceMobile!.isNotEmpty)
+                      if (c.insuranceMobile != null &&
+                          c.insuranceMobile!.isNotEmpty)
                         _phoneRow(
                           theme,
                           S.insuranceMobileLabel,
@@ -1066,8 +1073,20 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
   }
 
   /// Label/value row — label on the start side, value on the end side so it
-  /// reads naturally in RTL (spec §3.4).
-  Widget _row(ThemeData theme, String label, String value) {
+  /// reads naturally in RTL (spec §3.4). With [ltr] the value renders in an
+  /// explicit LTR context (the vehicle plate: always readable like a real
+  /// license plate) while keeping that language's native row alignment — EN
+  /// flush-right, AR on the left — so it stays in line with sibling rows.
+  Widget _row(ThemeData theme, String label, String value, {bool ltr = false}) {
+    // Inside our LTR wrapper `TextAlign.end` is always visually right; to keep
+    // each language's row convention (AR places values on the left) pin left
+    // only when the ambient UI is RTL.
+    final bool ambientRtl = Directionality.of(context) == TextDirection.rtl;
+    final Widget valueWidget = Text(
+      value,
+      textAlign: ltr && ambientRtl ? TextAlign.left : TextAlign.end,
+      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1077,21 +1096,25 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
           Flexible(child: Text(label, style: theme.textTheme.bodyMedium)),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: ltr
+                ? Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: valueWidget,
+                  )
+                : valueWidget,
           ),
         ],
       ),
     );
   }
 
-  /// Tappable phone-number row — same label/value layout as [_row] so it reads
-  /// naturally in RTL, plus a trailing call affordance; tapping launches the
+  /// Tappable phone-number row — label takes its natural width at the start
+  /// edge, and the value box is pinned against the trailing call affordance
+  /// (so every phone row's number ends flush with that icon, in both EN and
+  /// AR). The label must NOT be a flex child here: with `Flexible` on it, its
+  /// unused share becomes free space that `spaceBetween` spreads between all
+  /// children, which shifts the value (and only short-label rows) away from
+  /// the icon — misaligning sibling phone numbers. Tapping launches the
   /// dialer for [value] (see [_tapCall]). Stable key per field for tests.
   Widget _phoneRow(ThemeData theme, String label, String value, String id) {
     return Padding(
@@ -1112,7 +1135,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Flexible(child: Text(label, style: theme.textTheme.bodyMedium)),
+                Text(label, style: theme.textTheme.bodyMedium),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(

@@ -298,13 +298,19 @@ class _AttentionSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(
-                              item.claim.vehiclePlate ?? S.noPlate,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: item.claim.vehiclePlate == null
-                                    ? AppTheme.muted(context)
-                                    : null,
+                            // Plate always renders LTR (both EN and AR UIs):
+                            // explicit base direction + left alignment.
+                            Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Text(
+                                item.claim.vehiclePlate ?? S.noPlate,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: item.claim.vehiclePlate == null
+                                      ? AppTheme.muted(context)
+                                      : null,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 2),

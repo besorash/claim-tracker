@@ -87,12 +87,21 @@ class ClaimCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        plate ?? S.noPlate,
-                        key: const Key('card-plate'),
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: plate == null ? AppTheme.muted(context) : null,
+                      // Plate always renders LTR (both EN and AR UIs): the
+                      // explicit base direction keeps a mixed-letter plate in
+                      // its input order no matter which language is active.
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          plate ?? S.noPlate,
+                          key: const Key('card-plate'),
+                          textAlign: TextAlign.left,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: plate == null
+                                ? AppTheme.muted(context)
+                                : null,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),

@@ -193,10 +193,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vehiclePlateLabel => 'Vehicle Plate';
 
   @override
-  String get customerInsurerLabel => 'Customer\'s Insurance Company';
+  String get customerInsurerLabel => 'Insurance Company';
 
   @override
-  String get insuranceMobileLabel => 'Insurance Company Mobile';
+  String get insuranceMobileLabel => 'Insurance Mobile';
 
   @override
   String get liabilityPercentLabel => 'Liability %';

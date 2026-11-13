@@ -445,6 +445,10 @@ abstract final class ClaimsCsv {
     add('status', 'status_key');
     add('الحالة', 'status_key');
     add('amount', 'claim_amount_sar');
+    // Legacy display names from earlier UI wordings (renamed in EN/AR l10n)
+    // keep working as import headers for spreadsheets made with old builds.
+    add("Customer's Insurance Company", 'customer_insurance_company');
+    add('شركة تأمين العميل', 'customer_insurance_company');
     return map;
   }
 
