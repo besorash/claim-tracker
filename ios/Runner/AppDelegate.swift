@@ -137,9 +137,12 @@ final class ContactPickerHandler: NSObject, CNContactPickerDelegate, UIAdaptiveP
     // Failing to host the picker is a platform failure, not a cancel: report it
     // so Dart can surface S.contactPickFailed instead of hanging silently.
     guard let presenter = Self.topViewController() else {
+      // FlutterError's ObjC initializer requires all three parameters — pass an
+      // empty details object (CI: Swift error "Missing argument for parameter 'details'").
       result(FlutterError(
         code: "picker_unavailable",
-        message: "No view controller available to present the contact picker"))
+        message: "No view controller available to present the contact picker",
+        details: nil))
       return
     }
     pendingResult = result
