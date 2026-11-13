@@ -564,3 +564,31 @@ After `restoreFrom` swapped the DB, pre-restore pending alarms could still fire 
 | `flutter test` full, final (after `dart format lib test`) | 151/151 passed |
 | `flutter build ios` / IPA | **not run** — needs macOS; first real check is the CI run |
 | Swift code (`AppDelegate.swift`) | **not compiled locally** — compiled for the first time by CI |
+
+---
+
+## 2026-11-13 — Multi-select + bulk delete on the claims list (owner request)
+
+**Scope**: select multiple claims in the claims list and delete them at once, without breaking existing behavior.
+
+### Changes
+
+- `lib/features/claims/claims_list_screen.dart` — selection mode: app-bar entry ("Select claims"), close control, live "N selected" title, select-all/deselect-all toggle (covers exactly the visible, filtered list), bulk-delete action disabled until ≥1 is checked. Card taps check instead of navigating; checked ids are pruned on every reload so a claim can never be deleted while invisible.
+- `lib/features/claims/claim_card.dart` — optional `selection`/`onSelectionChanged`: leading checkbox per card (`card-check-<id>`), single-claim action row hidden in selection mode, normal mode unchanged.
+- `lib/features/claims/claim_dialogs.dart` — `confirmDeleteClaims(context, count)`: same style as the single-delete dialog, names the exact number of claims.
+- `lib/features/claims/claim_actions.dart` — `ClaimActions.deleteClaims(ids)`: one pass over enabled reminders (cancel selected alarms first), attachment files removed best-effort per file, claim rows deleted last in one transaction (FK cascade removes history + attachment rows). Single-delete path untouched.
+- `lib/app/home_shell.dart` — `_bulkDelete` runs the same flow as `_cardDelete` (attachment-store resolution included) and bumps every destination; wired via the new optional `onBulkDelete`.
+- l10n: EN/AR strings incl. ICU plurals for the dialog title (`=1{Delete this claim?}` / proper Arabic zero-one-two-few-many forms); regenerated via `flutter gen-l10n`.
+
+### Verification (actually run)
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `dart format --set-exit-if-changed lib test` | clean (2 pre-existing files also reflowed by Dart 3.13's formatter — style only, no semantic change) |
+| `flutter test` full suite | **227/227 passed** (incl. new: bulk-delete orchestration ×3, selection-mode UI ×2) |
+| `flutter build apk --release` | √ Built (56.3 MB), installed on emulator-5554 — Success |
+| On-device flow (uiautomator-driven) | entered selection mode → checked 1 of 1726 claims ("1 selected" title, others unchecked) → dialog "Delete this claim?" (singular form correct) → confirmed → list back to normal mode, claim gone, dashboard totals 1726→1725 / open 136→135 / awaiting-approval 3→2 |
+| Crashes during the flow | none — app process alive throughout, no FATAL/Exception lines in its logcat |
+
+**Note**: one imported test claim (5835 XJR / LINXON) was deleted on the emulator as part of the end-to-end proof.

@@ -103,16 +103,17 @@ void main() {
         await AppDatabase.migrate(raw, from: 0, to: kDatabaseVersion);
         final AppDatabase db = AppDatabase.fromExisting(raw);
 
-        final int openId = await ClaimsRepository(db).create(
-          _seed('OPEN-1', 'new'),
-        );
-        final int closedId = await ClaimsRepository(db).create(
-          _seed('CLOSED-1', 'closed'),
-        );
+        final int openId = await ClaimsRepository(db)
+            .create(_seed('OPEN-1', 'new'));
+        final int closedId = await ClaimsRepository(db)
+            .create(_seed('CLOSED-1', 'closed'));
 
         // ---- Arrive on the claims tab (both claims visible). --------------
         await tester.pumpWidget(_harness(db));
-        await settle(tester, () => find.text(S.navClaims).evaluate().isNotEmpty);
+        await settle(
+          tester,
+          () => find.text(S.navClaims).evaluate().isNotEmpty,
+        );
         await tester.tap(find.text(S.navClaims));
         await settle(
           tester,
@@ -123,7 +124,10 @@ void main() {
 
         // ---- Filter to "Finished": only the closed claim remains. ---------
         await tester.tap(find.byKey(const Key('filter-closed')));
-        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 1,
+        );
         final ChoiceChip closedChip = tester.widget<ChoiceChip>(
           find.byKey(const Key('filter-closed')),
         );
@@ -141,12 +145,14 @@ void main() {
         expect(find.text(S.sectionCustomerInfo), findsOneWidget);
 
         // ---- Go back: the shell remounts every destination on return. -----
-        final NavigatorState navigator =
-            tester.state<NavigatorState>(find.byType(Navigator));
+        final NavigatorState navigator = tester.state<NavigatorState>(
+          find.byType(Navigator),
+        );
         navigator.pop();
         await settle(
           tester,
-          () => find.byType(ClaimDetailsScreen).evaluate().isEmpty &&
+          () =>
+              find.byType(ClaimDetailsScreen).evaluate().isEmpty &&
               find.byType(ClaimCard).evaluate().length == 1,
         );
 
@@ -183,7 +189,10 @@ void main() {
           () => find.text(S.sectionCustomerInfo).evaluate().isNotEmpty,
         );
         navigator.pop();
-        await settle(tester, () => find.byType(ClaimCard).evaluate().length == 2);
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
         final ChoiceChip stillAll = tester.widget<ChoiceChip>(
           find.byKey(const Key('filter-all')),
         );

@@ -4,6 +4,11 @@
 /// details screen (spec §11). When action callbacks are given, the card shows
 /// change-status / edit / delete buttons so the claim can be handled without
 /// opening it.
+///
+/// Selection mode: when [selection] is non-null the card renders a leading
+/// checkbox driven by [onSelectionChanged], and the single-claim action row
+/// is hidden — bulk actions own that state then. Null = normal mode, exactly
+/// as before.
 library;
 
 import 'package:flutter/material.dart';
@@ -23,6 +28,8 @@ class ClaimCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.dateNote,
+    this.selection,
+    this.onSelectionChanged,
   });
 
   final Claim claim;
@@ -32,6 +39,14 @@ class ClaimCard extends StatelessWidget {
 
   /// Optional date line (e.g. the date the list is sorted by).
   final String? dateNote;
+
+  /// Selection mode: `true`/`false` = this claim's checked state, `null` =
+  /// not in selection mode (no checkbox at all — the default for every other
+  /// use of this card).
+  final bool? selection;
+
+  /// Toggles [claim]'s selection when in selection mode.
+  final VoidCallback? onSelectionChanged;
 
   bool get _hasActions =>
       onChangeStatus != null || onEdit != null || onDelete != null;
@@ -56,6 +71,18 @@ class ClaimCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (selection != null) ...[
+                  // Selection-mode checkbox; the card tap also toggles it.
+                  Checkbox(
+                    key: Key('card-check-${claim.id}'),
+                    value: selection ?? false,
+                    onChanged: onSelectionChanged == null
+                        ? null
+                        : (_) => onSelectionChanged!(),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +183,9 @@ class ClaimCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (_hasActions) ...[
+            // Single-claim actions are hidden in selection mode — the bulk
+            // controls own that state then.
+            if (selection == null && _hasActions) ...[
               const SizedBox(height: 6),
               const Divider(height: 12),
               Wrap(

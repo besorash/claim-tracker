@@ -43,6 +43,18 @@
   "claimsEmpty": "No matching claims.",
   "loadFailed": "Couldn't load the data right now. Please try again.",
 
+  "selectClaims": "Select claims",
+  "selectAll": "Select all",
+  "deselectAll": "Deselect all",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
   "claimNumberLabel": "Claim Number",
   "customerNameLabel": "Customer Name",
   "mobileLabel": "Mobile Number",
@@ -162,6 +174,8 @@
 
   "deleteClaimTitle": "Delete claim?",
   "deleteClaimBody": "The claim, its status history, reminders and attachments will be permanently deleted.",
+  "deleteClaimsTitle": "{count,plural, =1{Delete this claim?} other{Delete # claims?}}",
+  "deleteClaimsBody": "These claims and their status histories, reminders and attachments will be permanently deleted.",
   "closeClaimTitle": "Close claim?",
   "closeClaimBody": "Status will change to “Closed” and upcoming scheduled reminders will be cancelled.",
 

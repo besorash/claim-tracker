@@ -206,6 +206,29 @@ class _HomeShellState extends State<HomeShell> {
     if (mounted) _bump();
   }
 
+  /// Bulk delete of the claims list's selection-mode selection: the list
+  /// screen already showed its count-aware confirmation, so this only runs the
+  /// deletion (same per-claim guarantees as [_cardDelete] — alarms cancelled,
+  /// attachment files removed best-effort, rows deleted last) and refreshes.
+  Future<void> _bulkDelete(List<Claim> claims) async {
+    if (claims.isEmpty) return;
+    AttachmentFileService? files;
+    try {
+      files = AttachmentFileService(
+        baseDir: await const AttachmentFileService().storeDir(),
+      );
+    } on Object catch (_) {
+      files = null;
+    }
+    final List<int> ids = <int>[for (final Claim c in claims) c.id];
+    await ClaimActions(
+      widget.db,
+      NotificationService.instance,
+      files: files,
+    ).deleteClaims(ids);
+    if (mounted) _bump();
+  }
+
   Future<void> _cardDelete(Claim claim) async {
     if (!await confirmDeleteClaim(context)) return;
     // Resolve the attachment store so the claim's files are removed too; if
@@ -255,6 +278,7 @@ class _HomeShellState extends State<HomeShell> {
               onChangeStatus: _cardChangeStatus,
               onEdit: _cardEdit,
               onDelete: _cardDelete,
+              onBulkDelete: _bulkDelete,
             ),
             SettingsScreen(
               settingsRepo: widget.settingsRepo,

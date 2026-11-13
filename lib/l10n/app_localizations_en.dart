@@ -128,6 +128,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load the data right now. Please try again.';
 
   @override
+  String get selectClaims => 'Select claims';
+
+  @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get deselectAll => 'Deselect all';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
   String get claimNumberLabel => 'Claim Number';
 
   @override
@@ -432,6 +446,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteClaimBody =>
       'The claim, its status history, reminders and attachments will be permanently deleted.';
+
+  @override
+  String deleteClaimsTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete # claims?',
+      one: 'Delete this claim?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteClaimsBody =>
+      'These claims and their status histories, reminders and attachments will be permanently deleted.';
 
   @override
   String get closeClaimTitle => 'Close claim?';

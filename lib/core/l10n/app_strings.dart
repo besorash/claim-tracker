@@ -83,6 +83,12 @@ abstract final class S {
   static String get searchHint => _l.searchHint;
   static String get claimsEmpty => _l.claimsEmpty;
 
+  // Selection mode / bulk delete (claims list).
+  static String get selectClaims => _l.selectClaims;
+  static String get selectAll => _l.selectAll;
+  static String get deselectAll => _l.deselectAll;
+  static String selectedCount(int count) => _l.selectedCount(count);
+
   /// Shown when a screen's initial load fails (e.g. the database handle was
   /// closed mid-load during a restore swap) — with a retry affordance.
   static String get loadFailed => _l.loadFailed;
@@ -185,6 +191,8 @@ abstract final class S {
   // Delete / close confirmations (spec §11).
   static String get deleteClaimTitle => _l.deleteClaimTitle;
   static String get deleteClaimBody => _l.deleteClaimBody;
+  static String deleteClaimsTitle(int count) => _l.deleteClaimsTitle(count);
+  static String get deleteClaimsBody => _l.deleteClaimsBody;
   static String get closeClaimTitle => _l.closeClaimTitle;
   static String get closeClaimBody => _l.closeClaimBody;
 

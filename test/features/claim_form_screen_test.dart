@@ -137,21 +137,18 @@ void main() {
     expect(saved.single.customerInsuranceCompany, 'Buruj');
   });
 
-  test(
-    'stored accident types match the list in either language',
-    () {
-      expect(AccidentTypes.match('NAJEM')?.en, 'Najem');
-      expect(AccidentTypes.match('moroor')?.en, 'Moroor');
-      expect(AccidentTypes.match('POLICE')?.en, 'Police');
-      expect(AccidentTypes.match('زجاج أمامي')?.en, 'Glass');
-      expect(AccidentTypes.match('mtr')?.en, 'MTR');
-      expect(AccidentTypes.match('civil defense')?.en, 'Civil Defense');
-      expect(AccidentTypes.match('أخرى')?.en, 'Others');
-      // Anything outside the fixed list (legacy free-form) matches nothing.
-      expect(AccidentTypes.match('تصادم قديم'), isNull);
-      expect(AccidentTypes.match(null), isNull);
-    },
-  );
+  test('stored accident types match the list in either language', () {
+    expect(AccidentTypes.match('NAJEM')?.en, 'Najem');
+    expect(AccidentTypes.match('moroor')?.en, 'Moroor');
+    expect(AccidentTypes.match('POLICE')?.en, 'Police');
+    expect(AccidentTypes.match('زجاج أمامي')?.en, 'Glass');
+    expect(AccidentTypes.match('mtr')?.en, 'MTR');
+    expect(AccidentTypes.match('civil defense')?.en, 'Civil Defense');
+    expect(AccidentTypes.match('أخرى')?.en, 'Others');
+    // Anything outside the fixed list (legacy free-form) matches nothing.
+    expect(AccidentTypes.match('تصادم قديم'), isNull);
+    expect(AccidentTypes.match(null), isNull);
+  });
 
   test(
     'accident type display localizes listed values and passes through others',
@@ -161,10 +158,16 @@ void main() {
       expect(AccidentTypes.display('Najem'), 'نجم');
       expect(AccidentTypes.display('Civil Defense'), 'الدفاع المدني');
       expect(AccidentTypes.display('MTR'), 'MTR'); // identical in both
-      expect(AccidentTypes.display('تصادم قديم'), 'تصادم قديم'); // legacy as typed
+      expect(
+        AccidentTypes.display('تصادم قديم'),
+        'تصادم قديم',
+      ); // legacy as typed
 
       AppLocale.locale = const Locale('en');
-      expect(AccidentTypes.display('نجم'), 'Najem'); // Arabic spelling → EN name
+      expect(
+        AccidentTypes.display('نجم'),
+        'Najem',
+      ); // Arabic spelling → EN name
     },
   );
 
@@ -215,45 +218,44 @@ void main() {
     },
   );
 
-  testWidgets(
-    'accident type: "Not set" in edit mode clears a chosen value',
-    (WidgetTester tester) async {
-      AppLocale.locale = const Locale('ar');
-      addTearDown(() => AppLocale.locale = const Locale('en'));
+  testWidgets('accident type: "Not set" in edit mode clears a chosen value', (
+    WidgetTester tester,
+  ) async {
+    AppLocale.locale = const Locale('ar');
+    addTearDown(() => AppLocale.locale = const Locale('en'));
 
-      final DateTime t = DateTime.utc(2026, 9, 1);
-      final Claim existing = Claim(
-        id: 31,
-        customerName: 'سعد',
-        customerMobile: '0501112233',
-        vehiclePlate: '7788 KLM',
-        vehicleType: 'Hilux',
-        accidentDateUtcMs: t,
-        accidentType: 'Glass',
-        claimNumber: 'CLM-31',
-        customerInsuranceCompany: 'GIG',
-        statusKey: 'new',
-        lastStatusUpdateUtcMs: t,
-        createdAtUtcMs: t,
-        updatedAtUtcMs: t,
-      );
+    final DateTime t = DateTime.utc(2026, 9, 1);
+    final Claim existing = Claim(
+      id: 31,
+      customerName: 'سعد',
+      customerMobile: '0501112233',
+      vehiclePlate: '7788 KLM',
+      vehicleType: 'Hilux',
+      accidentDateUtcMs: t,
+      accidentType: 'Glass',
+      claimNumber: 'CLM-31',
+      customerInsuranceCompany: 'GIG',
+      statusKey: 'new',
+      lastStatusUpdateUtcMs: t,
+      createdAtUtcMs: t,
+      updatedAtUtcMs: t,
+    );
 
-      final List<Claim> saved = [];
-      await tester.pumpWidget(_harness(claim: existing, saved: saved));
-      await tester.pumpAndSettle();
+    final List<Claim> saved = [];
+    await tester.pumpWidget(_harness(claim: existing, saved: saved));
+    await tester.pumpAndSettle();
 
-      // Pre-selected from the stored value (shown in Arabic).
-      expect(find.text('زجاج أمامي'), findsOneWidget);
+    // Pre-selected from the stored value (shown in Arabic).
+    expect(find.text('زجاج أمامي'), findsOneWidget);
 
-      await chooseAccidentType(tester, S.liabilityNotSet);
+    await chooseAccidentType(tester, S.liabilityNotSet);
 
-      await tester.tap(find.text(S.save));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(S.save));
+    await tester.pumpAndSettle();
 
-      expect(saved, hasLength(1));
-      expect(saved.single.accidentType, isNull); // cleared
-    },
-  );
+    expect(saved, hasLength(1));
+    expect(saved.single.accidentType, isNull); // cleared
+  });
 
   testWidgets(
     'editing a claim with a legacy free-form type keeps it until changed',
@@ -269,7 +271,8 @@ void main() {
         vehiclePlate: '7788 KLM',
         vehicleType: 'Hilux',
         accidentDateUtcMs: t,
-        accidentType: 'تصادم قديم', // free-form value from before the fixed list
+        accidentType:
+            'تصادم قديم', // free-form value from before the fixed list
         claimNumber: 'CLM-32',
         customerInsuranceCompany: 'GIG',
         statusKey: 'new',

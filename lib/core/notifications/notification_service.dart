@@ -279,9 +279,7 @@ class NotificationService implements ReminderScheduler {
         // XML on API 26+, which cannot be decoded as a bitmap.
         icon: 'drawable/ic_stat_reminder',
         color: _accentColor,
-        largeIcon: const DrawableResourceAndroidBitmap(
-          'ic_notification_large',
-        ),
+        largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
         ongoing: true,
         autoCancel: false,
         visibility: NotificationVisibility.public,

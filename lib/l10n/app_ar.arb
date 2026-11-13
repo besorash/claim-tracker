@@ -43,6 +43,18 @@
   "claimsEmpty": "لا توجد مطالبات مطابقة.",
   "loadFailed": "تعذّر تحميل البيانات الآن. يرجى المحاولة مرة أخرى.",
 
+  "selectClaims": "تحديد المطالبات",
+  "selectAll": "تحديد الكل",
+  "deselectAll": "إلغاء تحديد الكل",
+  "selectedCount": "المحددة: {count}",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
   "claimNumberLabel": "رقم المطالبة",
   "customerNameLabel": "اسم العميل",
   "mobileLabel": "رقم الجوال",
@@ -145,6 +157,8 @@
 
   "deleteClaimTitle": "حذف المطالبة؟",
   "deleteClaimBody": "سيتم حذف المطالبة وسجل حالاتها وتذكيراتها ومرفقاتها نهائيًا.",
+  "deleteClaimsTitle": "{count,plural, zero{حذف جميع المطالبات؟} one{حذف المطالبة؟} two{حذف المادتين؟} few{حذف {count} مطالبات؟} many{حذف {count} من المطالبات؟} other{حذف {count} من المطالبات؟}}",
+  "deleteClaimsBody": "سيتم حذف هذه المطالبات وسجلات حالاتها وتذكيراتها ومرفقاتها نهائيًا.",
   "closeClaimTitle": "إغلاق المطالبة؟",
   "closeClaimBody": "ستُغيَّر الحالة إلى «مغلقة» وستُلغى التذكيرات المجدولة القادمة.",
 

@@ -16,6 +16,7 @@ import '../../core/models/claim_status.dart';
 import '../../core/utils/time_utils.dart';
 import '../../shared/widgets/load_error_view.dart';
 import 'claim_card.dart';
+import 'claim_dialogs.dart';
 import 'claims_filter.dart';
 
 class ClaimsListScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class ClaimsListScreen extends StatefulWidget {
     this.onChangeStatus,
     this.onEdit,
     this.onDelete,
+    this.onBulkDelete,
   });
 
   final ClaimsRepository repo;
@@ -56,6 +58,10 @@ class ClaimsListScreen extends StatefulWidget {
   final Future<void> Function(Claim claim)? onEdit;
   final Future<void> Function(Claim claim)? onDelete;
 
+  /// Bulk delete of the selection-mode selection (already confirmed by this
+  /// screen's dialog before it is called). Null hides the bulk-delete control.
+  final Future<void> Function(List<Claim> claims)? onBulkDelete;
+
   @override
   State<ClaimsListScreen> createState() => _ClaimsListScreenState();
 }
@@ -71,6 +77,63 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   ClaimsSort _sort = ClaimsSort.smart;
   List<Claim> _claims = const [];
   bool _loaded = false;
+
+  /// Selection mode (bulk delete): while active, tapping a card toggles its
+  /// selection instead of opening the details screen. Entering it always
+  /// starts from an empty selection — no stale checks can survive a remount or
+  /// re-entry.
+  bool _selectionMode = false;
+
+  /// Claim ids currently checked in selection mode. Pruned on every reload so
+  /// a claim is never bulk-deleted while invisible (filtered out, searched
+  /// away, ...) — what you see selected is exactly what gets deleted.
+  Set<int> _selectedIds = <int>{};
+
+  void _enterSelectionMode() {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds = <int>{};
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds = <int>{};
+    });
+  }
+
+  void _toggleSelected(int id) {
+    setState(() {
+      if (!_selectedIds.remove(id)) _selectedIds.add(id);
+    });
+  }
+
+  /// Checks exactly the claims visible under the current search/filter
+  /// (caller wraps it in its own [setState] when needed).
+  void _selectAllVisible() =>
+      _selectedIds = <int>{for (final Claim c in _claims) c.id};
+
+  /// Confirms, then delegates the bulk delete to the owner (the shell runs the
+  /// same per-claim guarantees as a single delete — alarms cancelled, files
+  /// removed best-effort, rows deleted last). Exits selection mode and reloads.
+  Future<void> _bulkDeleteSelected() async {
+    final List<Claim> selected = <Claim>[
+      for (final Claim c in _claims)
+        if (_selectedIds.contains(c.id)) c,
+    ];
+    if (selected.isEmpty || widget.onBulkDelete == null) return;
+
+    final bool confirmed = await confirmDeleteClaims(context, selected.length);
+    if (!confirmed || !mounted) return;
+
+    // Persist first (the shell refreshes every destination on success), then
+    // exit selection mode and reload this list.
+    await widget.onBulkDelete!(selected);
+    if (!mounted) return;
+    _exitSelectionMode();
+    await _load();
+  }
 
   /// True when a load threw (e.g. DB closed mid-load during a restore swap) —
   /// shown as an honest error state with retry, never a red screen (spec §3.3).
@@ -166,8 +229,14 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       }
 
       if (!mounted || gen != _loadGen) return;
+      final Set<int> visibleIds = claims.map((Claim c) => c.id).toSet();
       setState(() {
         _claims = _sort.apply(claims);
+        // Selection mode: drop any checked claim that is no longer visible, so
+        // the bulk delete can never reach a filtered-out or searched-away row.
+        if (_selectionMode) {
+          _selectedIds.removeWhere((int id) => !visibleIds.contains(id));
+        }
         _loadFailed = false;
         _loaded = true;
       });
@@ -203,37 +272,91 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
 
+    // Selection mode (bulk delete) owns the app bar while active: close it on
+    // the leading edge, live count in the title, select/deselect-all + the
+    // bulk-delete action on the trailing edge. Normal mode keeps sort and adds
+    // the entry point to selection mode.
+    final bool selecting = _selectionMode;
+    final int selectedCount = _selectedIds.length;
+    final bool allVisibleSelected =
+        _claims.isNotEmpty && selectedCount == _claims.length;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(S.navClaims),
+        leading: selecting
+            ? IconButton(
+                key: const Key('exit-selection'),
+                tooltip: S.cancel,
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelectionMode,
+              )
+            : null,
+        title: selecting && selectedCount > 0
+            ? Text(S.selectedCount(selectedCount))
+            : Text(S.navClaims),
         actions: <Widget>[
-          PopupMenuButton<ClaimsSort>(
-            key: const Key('claims-sort'),
-            tooltip: S.sortTooltip,
-            icon: Icon(
-              Icons.sort,
-              color: _sort == ClaimsSort.smart
+          if (selecting) ...<Widget>[
+            IconButton(
+              key: const Key('selection-all'),
+              tooltip: allVisibleSelected ? S.deselectAll : S.selectAll,
+              icon: Icon(
+                allVisibleSelected ? Icons.deselect : Icons.select_all,
+              ),
+              onPressed: _claims.isEmpty
                   ? null
-                  : theme.colorScheme.primary,
+                  : () => setState(() {
+                      if (allVisibleSelected) {
+                        _selectedIds = <int>{};
+                      } else {
+                        _selectAllVisible();
+                      }
+                    }),
             ),
-            initialValue: _sort,
-            onSelected: (ClaimsSort s) {
-              setState(() {
-                _sort = s;
-                _claims = s.apply(_claims);
-              });
-              // Smart order comes from the repository; reload to restore it.
-              if (s == ClaimsSort.smart) _load();
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<ClaimsSort>>[
-              for (final ClaimsSort s in ClaimsSort.values)
-                CheckedPopupMenuItem<ClaimsSort>(
-                  value: s,
-                  checked: s == _sort,
-                  child: Text(s.label),
-                ),
-            ],
-          ),
+            IconButton(
+              key: const Key('bulk-delete'),
+              tooltip: S.delete,
+              icon: const Icon(Icons.delete_outline),
+              style: IconButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
+              onPressed: selectedCount == 0 ? null : _bulkDeleteSelected,
+            ),
+          ] else ...<Widget>[
+            PopupMenuButton<ClaimsSort>(
+              key: const Key('claims-sort'),
+              tooltip: S.sortTooltip,
+              icon: Icon(
+                Icons.sort,
+                color: _sort == ClaimsSort.smart
+                    ? null
+                    : theme.colorScheme.primary,
+              ),
+              initialValue: _sort,
+              onSelected: (ClaimsSort s) {
+                setState(() {
+                  _sort = s;
+                  _claims = s.apply(_claims);
+                });
+                // Smart order comes from the repository; reload to restore it.
+                if (s == ClaimsSort.smart) _load();
+              },
+              itemBuilder: (BuildContext context) =>
+                  <PopupMenuEntry<ClaimsSort>>[
+                    for (final ClaimsSort s in ClaimsSort.values)
+                      CheckedPopupMenuItem<ClaimsSort>(
+                        value: s,
+                        checked: s == _sort,
+                        child: Text(s.label),
+                      ),
+                  ],
+            ),
+            IconButton(
+              key: const Key('enter-selection'),
+              tooltip: S.selectClaims,
+              icon: const Icon(Icons.checklist),
+              onPressed: _claims.isEmpty ? null : _enterSelectionMode,
+            ),
+          ],
         ],
       ),
       body: Column(
@@ -379,6 +502,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
 
     // Lazy list: only the cards on screen are built. Building every card up
     // front froze the app (ANR) with ~1,700 imported claims.
+    final bool selecting = _selectionMode;
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: _claims.length,
@@ -388,12 +512,18 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
         return InkWell(
           key: Key('card-${c.id}'),
           borderRadius: BorderRadius.circular(12),
-          onTap: widget.onClaimTapped == null
-              ? null
-              : () => widget.onClaimTapped!(c),
+          // In selection mode a card tap toggles the check instead of opening
+          // details — no accidental navigation out of bulk delete.
+          onTap: selecting
+              ? () => _toggleSelected(c.id)
+              : (widget.onClaimTapped == null
+                    ? null
+                    : () => widget.onClaimTapped!(c)),
           child: ClaimCard(
             claim: c,
             dateNote: _dateNote(c),
+            selection: selecting ? _selectedIds.contains(c.id) : null,
+            onSelectionChanged: selecting ? () => _toggleSelected(c.id) : null,
             onChangeStatus: _action(widget.onChangeStatus, c),
             onEdit: _action(widget.onEdit, c),
             onDelete: _action(widget.onDelete, c),

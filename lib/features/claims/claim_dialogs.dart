@@ -170,3 +170,32 @@ Future<bool> confirmDeleteClaim(BuildContext context) async {
   );
   return confirmed == true;
 }
+
+/// Bulk-delete confirmation for the claims list's selection mode. Like
+/// [confirmDeleteClaim] it returns true only when confirmed — but names the
+/// exact number of claims about to be removed so a large accidental selection
+/// is visible before it is gone.
+Future<bool> confirmDeleteClaims(BuildContext context, int count) async {
+  final bool? confirmed = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext ctx) => AlertDialog(
+      title: Text(S.deleteClaimsTitle(count)),
+      content: Text(S.deleteClaimsBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(S.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            foregroundColor: Theme.of(ctx).colorScheme.error,
+            backgroundColor: Theme.of(ctx).colorScheme.errorContainer,
+          ),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(S.confirm),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}

@@ -332,6 +332,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the data right now. Please try again.'**
   String get loadFailed;
 
+  /// No description provided for @selectClaims.
+  ///
+  /// In en, this message translates to:
+  /// **'Select claims'**
+  String get selectClaims;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
   /// No description provided for @claimNumberLabel.
   ///
   /// In en, this message translates to:
@@ -883,6 +907,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The claim, its status history, reminders and attachments will be permanently deleted.'**
   String get deleteClaimBody;
+
+  /// No description provided for @deleteClaimsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural, =1{Delete this claim?} other{Delete # claims?}}'**
+  String deleteClaimsTitle(num count);
+
+  /// No description provided for @deleteClaimsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These claims and their status histories, reminders and attachments will be permanently deleted.'**
+  String get deleteClaimsBody;
 
   /// No description provided for @closeClaimTitle.
   ///

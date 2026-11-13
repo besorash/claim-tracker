@@ -127,6 +127,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loadFailed => 'تعذّر تحميل البيانات الآن. يرجى المحاولة مرة أخرى.';
 
   @override
+  String get selectClaims => 'تحديد المطالبات';
+
+  @override
+  String get selectAll => 'تحديد الكل';
+
+  @override
+  String get deselectAll => 'إلغاء تحديد الكل';
+
+  @override
+  String selectedCount(int count) {
+    return 'المحددة: $count';
+  }
+
+  @override
   String get claimNumberLabel => 'رقم المطالبة';
 
   @override
@@ -427,6 +441,25 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deleteClaimBody =>
       'سيتم حذف المطالبة وسجل حالاتها وتذكيراتها ومرفقاتها نهائيًا.';
+
+  @override
+  String deleteClaimsTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'حذف $count من المطالبات؟',
+      many: 'حذف $count من المطالبات؟',
+      few: 'حذف $count مطالبات؟',
+      two: 'حذف المادتين؟',
+      one: 'حذف المطالبة؟',
+      zero: 'حذف جميع المطالبات؟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteClaimsBody =>
+      'سيتم حذف هذه المطالبات وسجلات حالاتها وتذكيراتها ومرفقاتها نهائيًا.';
 
   @override
   String get closeClaimTitle => 'إغلاق المطالبة؟';
