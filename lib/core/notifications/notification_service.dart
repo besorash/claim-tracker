@@ -262,6 +262,9 @@ class NotificationService implements ReminderScheduler {
   /// ([autoCancel] off), and its full text shows on the lock screen
   /// ([NotificationVisibility.public]). It is removed when the reminder is
   /// cleared, rescheduled, or the claim is closed or deleted.
+  /// The orange of the app logo's shield.
+  static const Color _accentColor = Color(0xFFFD8A00);
+
   static AndroidNotificationDetails _details(String? bigText) =>
       AndroidNotificationDetails(
         AppConstants.reminderChannelId,
@@ -269,7 +272,16 @@ class NotificationService implements ReminderScheduler {
         channelDescription: S.reminderChannelDescription,
         importance: Importance.high,
         priority: Priority.high,
+        // Status-bar icon: the logo's shield in white, tinted with the logo's
+        // orange in the notification drawer. The full-color app logo shows
+        // as the large icon inside the notification itself. It is a plain PNG
+        // in drawable-nodpi because the launcher's mipmap is an adaptive-icon
+        // XML on API 26+, which cannot be decoded as a bitmap.
         icon: 'drawable/ic_stat_reminder',
+        color: _accentColor,
+        largeIcon: const DrawableResourceAndroidBitmap(
+          'ic_notification_large',
+        ),
         ongoing: true,
         autoCancel: false,
         visibility: NotificationVisibility.public,
