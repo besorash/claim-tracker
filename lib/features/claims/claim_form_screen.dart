@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/accident_types.dart';
 import '../../core/constants/insurers.dart';
+import '../../core/contacts/contact_phone_picker.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
@@ -17,10 +18,19 @@ import '../../core/utils/time_utils.dart';
 import 'claim_form_model.dart';
 
 class ClaimFormScreen extends StatefulWidget {
-  const ClaimFormScreen({super.key, this.claim, required this.onSaved});
+  const ClaimFormScreen({
+    super.key,
+    this.claim,
+    required this.onSaved,
+    this.picker,
+  });
 
   /// `null` → add mode; otherwise edit mode for this claim.
   final Claim? claim;
+
+  /// OS contact-picker seam (both phone fields). Defaults to the production
+  /// channel — widget tests inject a fake so no method channels are touched.
+  final ContactPhonePicker? picker;
 
   /// Called exactly once with the built [Claim] when validation passes, and
   /// awaited before the form closes — so a failed persist keeps the user in
@@ -145,6 +155,32 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     }
   }
 
+  /// Opens the OS contact picker and fills [key]'s field with the chosen
+  /// number (manual typing remains fully possible — this only replaces it).
+  /// A cancel is a silent no-op; a platform failure shows S.contactPickFailed.
+  Future<void> _pickFromContacts(String key) async {
+    final ContactPhonePicker picker =
+        widget.picker ?? const PlatformContactPhonePicker();
+    String? phone;
+    try {
+      phone = await picker.pickContactPhone();
+    } on Object catch (_) {
+      // Platform failure — distinct from a cancel (null): surface it.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.contactPickFailed)),
+      );
+      return;
+    }
+    if (phone == null || !mounted) return; // user cancelled — field untouched
+    final String number = phone; // final local: safe inside the closure below
+    setState(() {
+      _controllers[key]!.text = number;
+      _onChanged(key, number);
+      _errors[key] = null; // a fresh picked value clears any prior error
+    });
+  }
+
   Future<void> _pickDate(String which) async {
     final DateTime? current = which == 'accident'
         ? _model.accidentDateUtcMs
@@ -226,7 +262,12 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                 label: S.customerNameLabel,
                 required: true,
               ),
-              _field('mobile', label: S.mobileLabel, number: true),
+              _field(
+                'mobile',
+                label: S.mobileLabel,
+                number: true,
+                onPickSuffix: () => _pickFromContacts('mobile'),
+              ),
               _field('nationalId', label: S.nationalIdLabel),
               _field('email', label: S.emailLabel),
             ]),
@@ -246,7 +287,12 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
             _section(S.sectionClaimInfo, [
               _field('claimNumber', label: S.claimNumberLabel),
               _insurerField(),
-              _field('insMobile', label: S.insuranceMobileLabel, number: true),
+              _field(
+                'insMobile',
+                label: S.insuranceMobileLabel,
+                number: true,
+                onPickSuffix: () => _pickFromContacts('insMobile'),
+              ),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,
@@ -407,6 +453,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     bool required = false,
     bool number = false,
     bool multiline = false,
+    VoidCallback? onPickSuffix,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -420,6 +467,15 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
           labelText: label,
           errorText: _errors[key],
           border: const OutlineInputBorder(),
+          suffixIcon: onPickSuffix == null
+              ? null
+              // "Add from contacts" — opens the OS picker for this field.
+              : IconButton(
+                  key: Key('pick-$key'),
+                  tooltip: S.pickFromContacts,
+                  icon: const Icon(Icons.person_add_outlined),
+                  onPressed: onPickSuffix,
+                ),
         ),
       ),
     );

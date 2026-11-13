@@ -4,10 +4,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claim_tracker/core/constants/accident_types.dart';
+import 'package:claim_tracker/core/contacts/contact_phone_picker.dart';
 import 'package:claim_tracker/core/constants/insurers.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
@@ -16,23 +18,39 @@ import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/claims/claim_form_model.dart';
 import 'package:claim_tracker/features/claims/claim_form_screen.dart';
 
-Widget _harness({Claim? claim, List<Claim>? saved}) => MaterialApp(
-  locale: const Locale('ar'),
-  supportedLocales: const [Locale('ar')],
-  localizationsDelegates: const [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  theme: AppTheme.light(),
-  darkTheme: AppTheme.dark(),
-  home: ClaimFormScreen(
-    claim: claim,
-    onSaved: (Claim c) {
-      saved?.add(c);
-    },
-  ),
-);
+/// Recording [ContactPhonePicker] for widget tests (no method channels).
+class FakeContacts implements ContactPhonePicker {
+  String? returnValue = '0559876543'; // null simulates cancel / no number
+  bool shouldThrow = false;
+  int calls = 0;
+
+  @override
+  Future<String?> pickContactPhone() async {
+    calls++;
+    if (shouldThrow) throw PlatformException(code: 'picker_unavailable');
+    return returnValue;
+  }
+}
+
+Widget _harness({Claim? claim, List<Claim>? saved, ContactPhonePicker? picker}) =>
+    MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      home: ClaimFormScreen(
+        claim: claim,
+        picker: picker,
+        onSaved: (Claim c) {
+          saved?.add(c);
+        },
+      ),
+    );
 
 Finder field(String name) => find.byKey(Key('field-$name'));
 
@@ -479,4 +497,121 @@ void main() {
       expect(c.customerName, 'سعد'); // untouched field kept
     },
   );
+
+  testWidgets('picking from contacts fills the customer mobile field', (
+    WidgetTester tester,
+  ) async {
+    final FakeContacts fake = FakeContacts();
+    await tester.pumpWidget(_harness(picker: fake));
+    await tester.pumpAndSettle();
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-mobile')));
+    await tester.tap(find.byKey(const Key('pick-mobile')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(field('mobile')).controller!.text,
+      '0559876543',
+    );
+    expect(fake.calls, 1); // exactly one picker round-trip
+  });
+
+  testWidgets('picking fills customer and insurer mobiles independently', (
+    WidgetTester tester,
+  ) async {
+    final FakeContacts fake = FakeContacts();
+    await tester.pumpWidget(_harness(picker: fake));
+    await tester.pumpAndSettle();
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-mobile')));
+    await tester.tap(find.byKey(const Key('pick-mobile')));
+    await tester.pumpAndSettle();
+
+    // A different number for the insurer field — proves each suffix writes to
+    // its own key (through _onChanged), not a shared target.
+    fake.returnValue = '0561234567';
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-insMobile')));
+    await tester.tap(find.byKey(const Key('pick-insMobile')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(field('mobile')).controller!.text,
+      '0559876543', // first pick intact
+    );
+    expect(find.text('0561234567'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the picker leaves the field untouched', (
+    WidgetTester tester,
+  ) async {
+    final FakeContacts fake = FakeContacts()..returnValue = null;
+    await tester.pumpWidget(_harness(picker: fake));
+    await tester.pumpAndSettle();
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-mobile')));
+    await tester.tap(find.byKey(const Key('pick-mobile')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(field('mobile')).controller!.text,
+      isEmpty, // cancel is a silent no-op…
+    );
+    expect(find.byType(SnackBar), findsNothing); // …with no error UI either
+  });
+
+  testWidgets('a failed picker shows contactPickFailed and keeps the field', (
+    WidgetTester tester,
+  ) async {
+    final FakeContacts fake = FakeContacts()..shouldThrow = true;
+    await tester.pumpWidget(_harness(picker: fake));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(field('mobile'), 'abc');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-mobile')));
+    await tester.tap(find.byKey(const Key('pick-mobile')));
+    await tester.pumpAndSettle();
+
+    // A platform failure is surfaced (it is NOT a cancel) — and typed input
+    // stays intact.
+    expect(find.text(S.contactPickFailed), findsOneWidget);
+    expect(
+      tester.widget<TextField>(field('mobile')).controller!.text,
+      'abc',
+    );
+  });
+
+  testWidgets('an international picked number passes validation and saves', (
+    WidgetTester tester,
+  ) async {
+    final FakeContacts fake = FakeContacts()..returnValue = '+966551234567';
+    final List<Claim> saved = [];
+    await tester.pumpWidget(_harness(picker: fake, saved: saved));
+    await tester.pumpAndSettle();
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tappable(tester, find.byKey(const Key('pick-mobile')));
+    await tester.tap(find.byKey(const Key('pick-mobile')));
+    await tester.pumpAndSettle();
+
+    // The rest of the required fields — same flow as "valid add".
+    await tester.enterText(field('customerName'), 'خالد');
+    await tester.enterText(field('plate'), '4051 VJD');
+    await tester.enterText(field('vehicleType'), 'Camry 2022');
+    await chooseInsurer(tester, Insurers.match('Tawuniya')!.label);
+    await pickDate(tester, 'accident');
+
+    await tester.tap(find.text(S.save));
+    await tester.pumpAndSettle();
+
+    // The +966-prefixed number is a valid Saudi mobile (normalizeMobile strips
+    // the prefix) — it saves instead of tripping S.invalidNumber.
+    expect(saved, hasLength(1));
+    expect(saved.single.customerMobile, '+966551234567');
+    expect(find.text(S.invalidNumber), findsNothing);
+  });
 }
