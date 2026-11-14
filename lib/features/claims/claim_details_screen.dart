@@ -49,6 +49,7 @@ class ClaimDetailsScreen extends StatefulWidget {
     this.openExternal,
     this.playVideo,
     this.callNumber,
+    this.openEmail,
   });
 
   final AppDatabase db;
@@ -82,6 +83,12 @@ class ClaimDetailsScreen extends StatefulWidget {
   /// success. Defaults to `tel:` via url_launcher (same channel family as
   /// attachment opens); widget tests inject a recorder — never a real call.
   final Future<bool> Function(String phoneNumber)? callNumber;
+
+  /// Email-share seam for the share button: receives the built mailto URI,
+  /// returns success. Defaults to the OS email composer (on Android: native
+  /// ACTION_SENDTO with plain subject/body extras — no generic share sheet);
+  /// widget tests inject a recorder — never a real email app.
+  final Future<bool> Function(Uri)? openEmail;
 
   @override
   State<ClaimDetailsScreen> createState() => _ClaimDetailsScreenState();
@@ -586,6 +593,64 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     }
   }
 
+  /// Share button (email only): builds this claim's summary as a mailto URI —
+  /// customer name, vehicle plate, vehicle type, claim number, current status
+  /// and notes when present — and hands it to the OS email app. A failing or
+  /// throwing opener is reported with S.shareEmailFailed; never crashes.
+  Future<void> _shareByEmail() async {
+    final Claim claim = _claim!;
+    final Uri uri = buildClaimShareEmail(claim);
+    final Future<bool> Function(Uri) open = widget.openEmail ?? _launchMailTo;
+    bool ok;
+    try {
+      ok = await open(uri);
+    } on Object catch (_) {
+      ok = false; // a throwing opener must never crash the screen
+    }
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(S.shareEmailFailed)));
+    }
+  }
+
+  /// OS email-composer channel on Android (MainActivity.kt): the subject and
+  /// body travel as PLAIN intent extras — never through a mailto: query
+  /// string, because routing them through URI encoding made some clients
+  /// mangle the text (spaces arriving as literal '+').
+  static const MethodChannel _emailChannel = MethodChannel(
+    'com.claimtracker/email',
+  );
+
+  /// Default opener for [ClaimDetailsScreen.openEmail]. On Android it asks
+  /// the native side to open the OS email composer directly — ACTION_SENDTO
+  /// with plain subject/body extras: strictly email apps, zero text encoding.
+  /// On other platforms (or when that channel is unavailable or fails) it
+  /// falls back to a `mailto:` URI via url_launcher. Returns false only when
+  /// no email app could be reached — the caller reports S.shareEmailFailed.
+  Future<bool> _launchMailTo(Uri uri) async {
+    final String? subject = uri.queryParameters['subject'];
+    final String? body = uri.queryParameters['body'];
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        subject != null &&
+        body != null) {
+      try {
+        final bool? opened = await _emailChannel.invokeMethod<bool>(
+          'openCompose',
+          <String, String>{'subject': subject, 'body': body},
+        );
+        if (opened ?? false) return true;
+      } on Object catch (_) {
+        // No native side / channel failed — fall through to the mailto URI.
+      }
+    }
+    try {
+      return await launchUrl(uri);
+    } on Object catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> _launchExternal(Uri uri) async {
     // iOS cannot hand a sandboxed file:// URL to another app, so local
     // attachments are previewed in-app with the system QuickLook viewer.
@@ -1058,15 +1123,6 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                             ),
                           ),
                         ),
-                      FilledButton.icon(
-                        key: const Key('attach-add'),
-                        onPressed: _addAttachment,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(64, 48),
-                        ),
-                        icon: const Icon(Icons.attach_file),
-                        label: Text(S.attachmentAdd),
-                      ),
                       // Gallery entry points (spec §12 extension): half-width
                       // buttons so both fit one line in EN and AR.
                       Row(
@@ -1104,45 +1160,65 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
       bottomNavigationBar: claim != null
           ? SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                // All three actions stay visible on one line (spec §3.3);
-                // the labels are short enough for a single Row at any width.
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                // All five actions stay on one line as icon-only buttons; each
+                // keeps its label as a tooltip for discoverability and screen
+                // readers while the visible UI shows icons only.
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 4,
-                      child: FilledButton.icon(
+                      child: IconButton(
+                        key: const Key('change-status'),
                         onPressed: _changeStatus,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(64, 48),
-                        ),
                         icon: const Icon(Icons.swap_vert_outlined),
-                        label: Text(S.changeStatus),
+                        tooltip: S.changeStatus,
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(
+                            theme.colorScheme.primary,
+                          ),
+                          iconColor: WidgetStatePropertyAll(
+                            theme.colorScheme.onPrimary,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
                     Expanded(
-                      flex: 3,
-                      child: OutlinedButton.icon(
+                      child: IconButton(
+                        key: const Key('edit-claim'),
                         onPressed: _edit,
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(64, 48),
-                        ),
                         icon: const Icon(Icons.edit_outlined),
-                        label: Text(S.edit),
+                        tooltip: S.edit,
                       ),
                     ),
-                    const SizedBox(width: 12),
                     Expanded(
-                      flex: 3,
-                      child: OutlinedButton.icon(
+                      child: IconButton(
+                        key: const Key('delete-claim'),
                         onPressed: _delete,
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(64, 48),
-                          foregroundColor: theme.colorScheme.error,
-                        ),
                         icon: const Icon(Icons.delete_outline),
-                        label: Text(S.delete),
+                        tooltip: S.delete,
+                        style: ButtonStyle(
+                          iconColor: WidgetStatePropertyAll(
+                            theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        key: const Key('attach-add'),
+                        onPressed: _addAttachment,
+                        icon: const Icon(Icons.attach_file),
+                        tooltip: S.attachmentAdd,
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        key: const Key('share-claim'),
+                        onPressed: _shareByEmail,
+                        // Email-only action — the envelope (not a generic share
+                        // arrow) tells the user exactly what will happen.
+                        icon: const Icon(Icons.email_outlined),
+                        tooltip: S.share,
                       ),
                     ),
                   ],
@@ -1323,4 +1399,52 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
       ),
     );
   }
+}
+
+/// Builds the mailto URI used by the details screen's share button to email
+/// this claim's summary. The subject is "Vehicle Plate - Claim Number" (only
+/// whichever part exists when one of them was not recorded); the body lists
+/// one field per line, in order — customer name, vehicle plate, vehicle type,
+/// claim number, current status — then a blank line and the notes (only when
+/// present). Each entry is a "Label: Value" line so it reads cleanly as plain
+/// text in any email app. Empty optional fields show '—', the same convention
+/// as the on-screen rows; labels resolve against the active UI language via [S].
+Uri buildClaimShareEmail(Claim claim) {
+  String value(String? v) => (v == null || v.trim().isEmpty) ? '—' : v;
+
+  // Subject: "plate - claim number", omitting whichever part was not recorded
+  // so it never shows a dangling dash.
+  final String plate = claim.vehiclePlate?.trim() ?? '';
+  final bool hasPlate = plate.isNotEmpty;
+  final bool hasNumber = claim.claimNumber.trim().isNotEmpty;
+  final String subject;
+  if (hasPlate && hasNumber) {
+    subject = '$plate - ${claim.claimNumber}';
+  } else if (hasPlate) {
+    subject = plate; // no number recorded — the plate alone is still useful.
+  } else {
+    subject = claim.claimNumberDisplay; // the number, or '—' when none.
+  }
+
+  final List<String> body = <String>[
+    '${S.customerNameLabel}: ${claim.customerName}',
+    '${S.vehiclePlateLabel}: ${value(claim.vehiclePlate)}',
+    '${S.vehicleTypeLabel}: ${value(claim.vehicleType)}',
+    '${S.claimNumberLabel}: ${claim.claimNumberDisplay}',
+    '${S.statusLabel}: ${ClaimStatus.byKey(claim.statusKey).label}',
+  ];
+
+  final String? notes = claim.notes?.trim();
+  if (notes != null && notes.isNotEmpty) {
+    body.add(''); // blank line so the notes stand apart from the field list.
+    body.add('${S.notesLabel}: ${claim.notes}');
+  }
+
+  return Uri(
+    scheme: 'mailto',
+    queryParameters: <String, String>{
+      'subject': subject,
+      'body': body.join('\n'),
+    },
+  );
 }

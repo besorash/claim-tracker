@@ -16,6 +16,9 @@
   "search": "بحث",
   "retry": "إعادة المحاولة",
 
+  "share": "مشاركة",
+  "shareEmailFailed": "تعذّر فتح تطبيق البريد الإلكتروني للمشاركة.",
+
   "dashTotalClaims": "إجمالي المطالبات",
   "dashOpenClaims": "مطالبات مفتوحة",
   "dashClosedClaims": "مطالبات منتهية",

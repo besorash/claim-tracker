@@ -182,6 +182,18 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retry;
 
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @shareEmailFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open an email app to share this claim.'**
+  String get shareEmailFailed;
+
   /// No description provided for @dashTotalClaims.
   ///
   /// In en, this message translates to:

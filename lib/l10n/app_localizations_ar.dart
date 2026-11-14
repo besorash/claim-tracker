@@ -52,6 +52,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get retry => 'إعادة المحاولة';
 
   @override
+  String get share => 'مشاركة';
+
+  @override
+  String get shareEmailFailed => 'تعذّر فتح تطبيق البريد الإلكتروني للمشاركة.';
+
+  @override
   String get dashTotalClaims => 'إجمالي المطالبات';
 
   @override

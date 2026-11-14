@@ -16,6 +16,9 @@
   "search": "Search",
   "retry": "Retry",
 
+  "share": "Share",
+  "shareEmailFailed": "Couldn't open an email app to share this claim.",
+
   "dashTotalClaims": "Total Claims",
   "dashOpenClaims": "Open Claims",
   "dashClosedClaims": "Finished Claims",

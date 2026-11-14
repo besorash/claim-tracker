@@ -106,6 +106,42 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // Email-share seam (claim details screen share button): method
+        // `openCompose` opens the OS email composer with the given subject and
+        // body. The text travels as PLAIN INTENT EXTRAS — never through a
+        // mailto: query string — because routing it through URI encoding made
+        // some clients mangle it (spaces arriving as literal '+').
+        // ACTION_SENDTO + an empty mailto: URI keeps the share strictly to
+        // email-capable apps. Replies true when the composer was opened, false
+        // when no app can handle the intent so Dart reports the failure.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.claimtracker/email"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openCompose" -> {
+                    val args = call.arguments as? Map<*, *>
+                    val subject = (args?.get("subject") as? String).orEmpty()
+                    val body = (args?.get("body") as? String).orEmpty()
+                    try {
+                        startActivity(
+                            Intent(Intent.ACTION_SENDTO).apply {
+                                data = android.net.Uri.parse("mailto:")
+                                putExtra(Intent.EXTRA_SUBJECT, subject)
+                                putExtra(Intent.EXTRA_TEXT, body)
+                            }
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        // No email app can handle the intent — a platform
+                        // FAILURE, reported so Dart shows S.shareEmailFailed.
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     /// Returns the contact-picker outcome to Dart — contract (Task 1 tests):

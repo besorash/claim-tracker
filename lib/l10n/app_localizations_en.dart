@@ -52,6 +52,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Retry';
 
   @override
+  String get share => 'Share';
+
+  @override
+  String get shareEmailFailed =>
+      'Couldn\'t open an email app to share this claim.';
+
+  @override
   String get dashTotalClaims => 'Total Claims';
 
   @override

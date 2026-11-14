@@ -6,11 +6,11 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
@@ -46,6 +46,7 @@ Widget _harness(
   Future<bool> Function(Uri)? openExternal,
   Future<bool> Function(File)? playVideo,
   Future<bool> Function(String)? callNumber,
+  Future<bool> Function(Uri)? openEmail,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -73,6 +74,7 @@ Widget _harness(
                   openExternal: openExternal,
                   playVideo: playVideo,
                   callNumber: callNumber,
+                  openEmail: openEmail,
                 ),
               ),
             );
@@ -217,6 +219,20 @@ class FakeDialer {
   }
 }
 
+/// Recording mailto opener for the share button — no url_launcher channel
+/// touched, never a real email app.
+class FakeMailer {
+  final List<Uri> opened = [];
+  bool result = true; // false → snackbar path
+  bool shouldThrow = false;
+
+  Future<bool> call(Uri uri) async {
+    if (shouldThrow) throw StateError('email app unavailable');
+    opened.add(uri);
+    return result;
+  }
+}
+
 /// Recording in-app video player — no platform channels on host.
 class FakeVideoPlayer {
   final List<File> played = [];
@@ -319,6 +335,26 @@ void main() {
       claimAmountSar: 12500.5,
       notes: 'ملاحظة تجريبية',
       statusKey: 'new',
+      lastStatusUpdateUtcMs: DateTime.utc(2026, 10, 6),
+      createdAtUtcMs: DateTime.utc(2026, 10, 1),
+      updatedAtUtcMs: DateTime.utc(2026, 10, 6),
+    ),
+  );
+
+  /// One claim with every share-relevant field populated (plate, vehicle type,
+  /// notes) — exercises the full mailto body of the share button.
+  Future<int> seedShare() => claims.create(
+    Claim(
+      id: 0,
+      customerName: 'خالد العتيبي',
+      customerMobile: '0559876543',
+      accidentDateUtcMs: DateTime.utc(2026, 10, 1),
+      vehiclePlate: 'ABC-1234',
+      vehicleType: 'كامري 2022',
+      claimNumber: 'CLM-500',
+      customerInsuranceCompany: 'تعاونية',
+      notes: 'ملاحظة تجريبية',
+      statusKey: 'submitted',
       lastStatusUpdateUtcMs: DateTime.utc(2026, 10, 6),
       createdAtUtcMs: DateTime.utc(2026, 10, 1),
       updatedAtUtcMs: DateTime.utc(2026, 10, 6),
@@ -540,6 +576,258 @@ void main() {
   });
 
   testWidgets(
+    'the share button emails the claim summary in the requested order',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedShare();
+        final FakeMailer mailer = FakeMailer();
+        await tester.pumpWidget(_harness(db, id, openEmail: mailer.call));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text('خالد العتيبي').evaluate().isNotEmpty,
+        );
+
+        // The new action sits in the bottom bar next to its siblings…
+        expect(find.byKey(const Key('share-claim')), findsOneWidget);
+        // …as an icon-only button (no visible label), like the others.
+        final IconButton shareButton = tester.widget(
+          find.byKey(const Key('share-claim')),
+        );
+        expect(shareButton.icon, isA<Icon>());
+
+        await tester.tap(find.byKey(const Key('share-claim')));
+        await tester.pump();
+
+        expect(mailer.opened, hasLength(1)); // an email app was opened…
+        final Uri uri = mailer.opened.single;
+        expect(uri.scheme, 'mailto'); // …as an email (email-only share).
+
+        // The subject is exactly "Vehicle Plate - Claim Number".
+        expect(uri.queryParameters['subject'], 'ABC-1234 - CLM-500');
+
+        final Claim c = (await db.claimById(id))!;
+        final String body = uri.queryParameters['body']!;
+
+        // Every required field is present, each on a readable "Label: Value"
+        // line…
+        expect(body, contains('${S.customerNameLabel}: ${c.customerName}'));
+        expect(body, contains('${S.vehiclePlateLabel}: ABC-1234'));
+        expect(body, contains('${S.vehicleTypeLabel}: كامري 2022'));
+        expect(body, contains('${S.claimNumberLabel}: CLM-500'));
+        expect(
+          body,
+          contains('${S.statusLabel}: ${ClaimStatus.byKey(c.statusKey).label}'),
+        );
+
+        // …in exactly the requested order — customer name, plate, vehicle
+        // type, claim number, status…
+        final int iName = body.indexOf(c.customerName);
+        final int iPlate = body.indexOf('ABC-1234');
+        final int iType = body.indexOf('كامري 2022');
+        final int iNumber = body.indexOf('CLM-500');
+        final int iStatus = body.indexOf(ClaimStatus.byKey(c.statusKey).label);
+        expect(iName, lessThan(iPlate));
+        expect(iPlate, lessThan(iType));
+        expect(iType, lessThan(iNumber));
+        expect(iNumber, lessThan(iStatus));
+
+        // …then the notes (present here), set apart by a blank line.
+        final int iNotes = body.indexOf(c.notes!);
+        expect(iStatus, lessThan(iNotes));
+        expect(body, contains('\n\n${S.notesLabel}: ${c.notes}'));
+      });
+    },
+  );
+
+  testWidgets('a claim without notes shares its summary without a Notes line', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer(null); // no notes, no plate or type
+      final FakeMailer mailer = FakeMailer();
+      await tester.pumpWidget(_harness(db, id, openEmail: mailer.call));
+      await openDetails(tester);
+      await settle(tester, () => find.text('CLM-INS').evaluate().isNotEmpty);
+
+      await tester.tap(find.byKey(const Key('share-claim')));
+      await tester.pump();
+
+      // No plate recorded → the subject is just the claim number.
+      final Uri uri = mailer.opened.single;
+      expect(uri.queryParameters['subject'], 'CLM-INS');
+
+      final String body = uri.queryParameters['body']!;
+      expect(body, isNot(contains(S.notesLabel))); // no notes → omitted…
+      // …while the empty optional fields keep a readable '—' placeholder.
+      expect(body, contains('${S.vehiclePlateLabel}: —'));
+      expect(body, contains('${S.vehicleTypeLabel}: —'));
+    });
+  });
+
+  testWidgets('a failed email share reports shareEmailFailed', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedShare();
+      final FakeMailer mailer = FakeMailer()..result = false;
+      await tester.pumpWidget(_harness(db, id, openEmail: mailer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('خالد العتيبي').evaluate().isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(const Key('share-claim')));
+      await tester.pump();
+
+      expect(mailer.opened, hasLength(1)); // the attempt was made…
+      expect(find.text(S.shareEmailFailed), findsOneWidget); // …and reported.
+      expect(tester.takeException(), isNull); // …without crashing.
+    });
+  });
+
+  testWidgets('a throwing email opener is caught and reported', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedShare();
+      final FakeMailer mailer = FakeMailer()..shouldThrow = true;
+      await tester.pumpWidget(_harness(db, id, openEmail: mailer.call));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text('خالد العتيبي').evaluate().isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(const Key('share-claim')));
+      await tester.pump();
+
+      expect(mailer.opened, isEmpty); // nothing reached the OS…
+      expect(
+        find.text(S.shareEmailFailed),
+        findsOneWidget,
+      ); // …but it is reported.
+      expect(tester.takeException(), isNull); // …without crashing.
+    });
+  });
+
+  testWidgets('on Android the share hands PLAIN text to the native composer', (
+    WidgetTester tester,
+  ) async {
+    Map<Object?, Object?>? sent;
+    await tester.runAsync(() async {
+      final TestDefaultBinaryMessengerBinding binding =
+          TestDefaultBinaryMessengerBinding.instance;
+      const MethodChannel emailChannel = MethodChannel(
+        'com.claimtracker/email',
+      );
+      try {
+        binding.defaultBinaryMessenger.setMockMethodCallHandler(emailChannel, (
+          MethodCall call,
+        ) async {
+          expect(call.method, 'openCompose');
+          sent = Map<Object?, Object?>.from(call.arguments as Map);
+          return true; // the composer opened — plain extras, no encoding.
+        });
+
+        final int id = await seedShare();
+        await tester.pumpWidget(_harness(db, id)); // NO seam → default opener
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text('خالد العتيبي').evaluate().isNotEmpty,
+        );
+
+        await tester.tap(find.byKey(const Key('share-claim')));
+        await tester.pump();
+
+        // The native side received PLAIN subject and body — no URL-encoding
+        // artifacts (the original bug: spaces arriving as literal '+')…
+        expect(sent, isNotNull);
+        final String subject = sent!['subject'] as String;
+        final String body = sent!['body'] as String;
+        // The native side received the exact "plate - claim number" subject.
+        expect(subject, 'ABC-1234 - CLM-500');
+        expect(body, isNot(contains('+')));
+        expect(body, isNot(contains('%20')));
+
+        // …and every field is still present, in the requested order.
+        final Claim c = (await db.claimById(id))!;
+        expect(body, contains('${S.customerNameLabel}: ${c.customerName}'));
+        expect(
+          body.indexOf(c.customerName),
+          lessThan(body.indexOf('ABC-1234')),
+        );
+        expect(body.indexOf('ABC-1234'), lessThan(body.indexOf('كامري 2022')));
+
+        expect(find.text(S.shareEmailFailed), findsNothing); // success…
+      } finally {
+        binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          emailChannel,
+          null,
+        );
+      }
+    });
+  });
+
+  testWidgets(
+    'a missing native composer degrades to the mailto fallback and reports',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final TestDefaultBinaryMessengerBinding binding =
+            TestDefaultBinaryMessengerBinding.instance;
+        const MethodChannel emailChannel = MethodChannel(
+          'com.claimtracker/email',
+        );
+        // url_launcher's channel too — left unmocked it would simply never
+        // complete under the test binding, hanging the fallback path.
+        const MethodChannel launcherChannel = MethodChannel(
+          'plugins.flutter.io/url_launcher',
+        );
+        final MissingPluginException unavailable = MissingPluginException(
+          'no native side / no mail app in this environment',
+        );
+        try {
+          binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            emailChannel,
+            (MethodCall call) async => throw unavailable,
+          );
+          binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            launcherChannel,
+            (MethodCall call) async => throw unavailable, // fallback too.
+          );
+
+          final int id = await seedShare();
+          await tester.pumpWidget(_harness(db, id)); // NO seam → default opener
+          await openDetails(tester);
+          await settle(
+            tester,
+            () => find.text('خالد العتيبي').evaluate().isNotEmpty,
+          );
+
+          await tester.tap(find.byKey(const Key('share-claim')));
+          await tester.pump();
+
+          // Native side missing AND no mail app in the test env → reported…
+          expect(find.text(S.shareEmailFailed), findsOneWidget);
+          // …without crashing.
+          expect(tester.takeException(), isNull);
+        } finally {
+          binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            emailChannel,
+            null,
+          );
+          binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            launcherChannel,
+            null,
+          );
+        }
+      });
+    },
+  );
+
+  testWidgets(
     'phone rows are accessible buttons with real touch targets (review F4)',
     (WidgetTester tester) async {
       await tester.runAsync(() async {
@@ -579,9 +867,12 @@ void main() {
       final int id = await seedFull();
       await tester.pumpWidget(_harness(db, id));
       await openDetails(tester);
-      await settle(tester, () => find.text(S.delete).evaluate().isNotEmpty);
+      await settle(
+        tester,
+        () => find.byKey(const Key('delete-claim')).evaluate().isNotEmpty,
+      );
 
-      await tester.tap(find.text(S.delete));
+      await tester.tap(find.byKey(const Key('delete-claim')));
       await settle(
         tester,
         () => find.text(S.deleteClaimTitle).evaluate().isNotEmpty,
@@ -606,9 +897,12 @@ void main() {
       final int id = await seedFull();
       await tester.pumpWidget(_harness(db, id));
       await openDetails(tester);
-      await settle(tester, () => find.text(S.delete).evaluate().isNotEmpty);
+      await settle(
+        tester,
+        () => find.byKey(const Key('delete-claim')).evaluate().isNotEmpty,
+      );
 
-      await tester.tap(find.text(S.delete));
+      await tester.tap(find.byKey(const Key('delete-claim')));
       await settle(
         tester,
         () => find.text(S.deleteClaimTitle).evaluate().isNotEmpty,
@@ -627,9 +921,12 @@ void main() {
       final int id = await seedFull();
       await tester.pumpWidget(_harness(db, id));
       await openDetails(tester);
-      await settle(tester, () => find.text(S.edit).evaluate().isNotEmpty);
+      await settle(
+        tester,
+        () => find.byKey(const Key('edit-claim')).evaluate().isNotEmpty,
+      );
 
-      await tester.tap(find.text(S.edit));
+      await tester.tap(find.byKey(const Key('edit-claim')));
       await settle(
         tester,
         () => find.byType(ClaimFormScreen).evaluate().isNotEmpty,
@@ -663,11 +960,11 @@ void main() {
         await openDetails(tester);
         await settle(
           tester,
-          () => find.text(S.changeStatus).evaluate().isNotEmpty,
+          () => find.byKey(const Key('change-status')).evaluate().isNotEmpty,
         );
 
         // Open the dialog.
-        await tester.tap(find.text(S.changeStatus));
+        await tester.tap(find.byKey(const Key('change-status')));
         await settle(
           tester,
           () => find.text(S.changeStatusTitle).evaluate().isNotEmpty,
@@ -756,10 +1053,10 @@ void main() {
       await openDetails(tester);
       await settle(
         tester,
-        () => find.text(S.changeStatus).evaluate().isNotEmpty,
+        () => find.byKey(const Key('change-status')).evaluate().isNotEmpty,
       );
 
-      await tester.tap(find.text(S.changeStatus));
+      await tester.tap(find.byKey(const Key('change-status')));
       await settle(
         tester,
         () => find.text(S.changeStatusTitle).evaluate().isNotEmpty,
@@ -1285,7 +1582,8 @@ void main() {
         () => find.text(S.attachmentsLabel).evaluate().isNotEmpty,
       );
 
-      await scrollTo(tester, find.byKey(const Key('attach-add')));
+      // The add button now lives in the always-visible bottom action bar —
+      // no scrolling needed before tapping it.
       await tester.tap(find.byKey(const Key('attach-add')));
       await settle(
         tester,
@@ -1734,8 +2032,7 @@ void main() {
         // The missing file is flagged next to the name.
         expect(find.text(S.attachmentMissing), findsOneWidget);
 
-        // Adding still works alongside the broken row.
-        await scrollTo(tester, find.byKey(const Key('attach-add')));
+        // Adding still works alongside the broken row (bottom-bar button).
         await tester.tap(find.byKey(const Key('attach-add')));
         await settle(tester, () => find.text('new.txt').evaluate().isNotEmpty);
         expect(await AttachmentsRepository(db).listForClaim(id), hasLength(2));

@@ -62,6 +62,10 @@ abstract final class S {
   static String get search => _l.search;
   static String get retry => _l.retry;
 
+  // Share by email (claim details screen).
+  static String get share => _l.share;
+  static String get shareEmailFailed => _l.shareEmailFailed;
+
   // Dashboard (spec §5).
   static String get dashTotalClaims => _l.dashTotalClaims;
   static String get dashOpenClaims => _l.dashOpenClaims;
