@@ -1,0 +1,109 @@
+# Builds an UNSIGNED iOS .ipa on a GitHub-hosted macOS runner.
+#
+# The IPA is not signed: install it with your own signing/sideloading tool
+# (AltStore, Sideloadly, a signing service, ...), which re-signs it with your
+# Apple ID or certificate.
+#
+# Download: GitHub → Actions → "iOS build" → the latest run → Artifacts →
+# "ClaimTracker-unsigned-ipa".
+
+name: iOS build
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.9"
+
+jobs:
+  test:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # The widget/database tests use sqflite_common_ffi → needs libsqlite3.
+      - name: Install SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build-ios:
+    name: Build unsigned IPA
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build iOS app (no code signing)
+        run: >
+          flutter build ios --release --no-codesign
+          --build-number=${{ github.run_number }}
+
+      - name: Package Runner.app into an .ipa
+        run: |
+          set -euo pipefail
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry ClaimTracker-unsigned.ipa Payload
+          ls -lh ClaimTracker-unsigned.ipa
+
+      - name: Verify the .ipa contents
+        run: |
+          set -euo pipefail
+          APP=Payload/Runner.app
+          test -x "$APP/Runner"
+          test -f "$APP/Info.plist"
+          test -d "$APP/Frameworks/Flutter.framework"
+          test -d "$APP/Frameworks/App.framework"
+          lipo -info "$APP/Runner" | grep -q arm64
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          # Arabic/English home-screen names (mirror Android's values-ar/values).
+          plutil -lint "$APP/ar.lproj/InfoPlist.strings" "$APP/en.lproj/InfoPlist.strings"
+          plutil -p "$APP/ar.lproj/InfoPlist.strings"
+          # App icon (home screen + notification banners): the AppIcon set must
+          # be compiled into the bundle, otherwise iOS falls back to a blank /
+          # cached icon in notifications.
+          test -f "$APP/Assets.car"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$APP/Info.plist" | grep -qx AppIcon
+          ls "$APP"/AppIcon60x60@2x.png
+          xcrun --sdk iphoneos assetutil --info "$APP/Assets.car" | grep -q '"Name" : "AppIcon"'
+          # The 60x60@2x icon must be our logo, not Flutter's default
+          # (Flutter's default icon file is under 1 KB).
+          test "$(stat -f%z "$APP/AppIcon60x60@2x.png")" -gt 5000
+          echo "App icon OK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClaimTracker-unsigned-ipa
+          path: ClaimTracker-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
