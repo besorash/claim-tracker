@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 220">
+  <defs>
+    <linearGradient id="carA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5EEAD4"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="carB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDE047"/><stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="burst" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF7AE"/><stop offset="1" stop-color="#FB923C"/>
+    </linearGradient>
+    <linearGradient id="doc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E0E7FF"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="70" cy="34" rx="34" ry="11" fill="#FFFFFF" opacity="0.16"/>
+  <ellipse cx="92" cy="27" rx="20" ry="11" fill="#FFFFFF" opacity="0.16"/>
+  <ellipse cx="210" cy="22" rx="26" ry="8" fill="#FFFFFF" opacity="0.12"/>
+  <ellipse cx="180" cy="186" rx="176" ry="24" fill="#FFFFFF" opacity="0.13"/>
+  <rect x="20" y="183" width="26" height="4" rx="2" fill="#FFFFFF" opacity="0.5"/>
+  <rect x="70" y="183" width="26" height="4" rx="2" fill="#FFFFFF" opacity="0.5"/>
+  <rect x="264" y="183" width="26" height="4" rx="2" fill="#FFFFFF" opacity="0.5"/>
+  <rect x="314" y="183" width="26" height="4" rx="2" fill="#FFFFFF" opacity="0.5"/>
+  <rect x="0" y="138" width="20" height="4" rx="2" fill="#FFFFFF" opacity="0.55"/>
+  <rect x="6" y="150" width="14" height="4" rx="2" fill="#FFFFFF" opacity="0.4"/>
+  <rect x="340" y="132" width="20" height="4" rx="2" fill="#FFFFFF" opacity="0.55"/>
+  <rect x="342" y="144" width="14" height="4" rx="2" fill="#FFFFFF" opacity="0.4"/>
+  <g transform="translate(22,118)">
+    <path d="M10,40 Q10,30 20,28 L42,26 L58,10 Q62,6 70,6 L98,6 Q106,6 110,12 L122,26 Q132,28 132,38 L132,46 Q132,50 128,50 L14,50 Q10,50 10,46 Z" fill="url(#carA)"/>
+    <path d="M78,12 L97,12 Q101,12 103,15 L112,26 L78,26 Z" fill="#E0F2FE" opacity="0.92"/>
+    <path d="M73,12 L73,26 L48,26 L59,15 Q61,12 65,12 Z" fill="#E0F2FE" opacity="0.92"/>
+    <rect x="124" y="33" width="8" height="6" rx="2" fill="#FEF9C3"/>
+    <rect x="10" y="33" width="6" height="6" rx="2" fill="#FB7185"/>
+    <rect x="60" y="31" width="10" height="3" rx="1.5" fill="#047857"/>
+    <circle cx="36" cy="50" r="12" fill="#1E1B4B"/><circle cx="36" cy="50" r="5" fill="#C7D2FE"/>
+    <circle cx="106" cy="50" r="12" fill="#1E1B4B"/><circle cx="106" cy="50" r="5" fill="#C7D2FE"/>
+  </g>
+  <g transform="rotate(-7 272 150)">
+    <g transform="translate(338,118) scale(-1,1)">
+      <path d="M10,40 Q10,30 20,28 L42,26 L58,10 Q62,6 70,6 L98,6 Q106,6 110,12 L122,26 Q132,28 132,38 L132,46 Q132,50 128,50 L14,50 Q10,50 10,46 Z" fill="url(#carB)"/>
+      <path d="M78,12 L97,12 Q101,12 103,15 L112,26 L78,26 Z" fill="#E0F2FE" opacity="0.92"/>
+      <path d="M73,12 L73,26 L48,26 L59,15 Q61,12 65,12 Z" fill="#E0F2FE" opacity="0.92"/>
+      <path d="M126,28 L132,34 L127,38 L132,44" stroke="#9A3412" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <rect x="10" y="33" width="6" height="6" rx="2" fill="#FB7185"/>
+      <circle cx="36" cy="50" r="12" fill="#1E1B4B"/><circle cx="36" cy="50" r="5" fill="#C7D2FE"/>
+      <circle cx="106" cy="50" r="12" fill="#1E1B4B"/><circle cx="106" cy="50" r="5" fill="#C7D2FE"/>
+    </g>
+  </g>
+  <polygon fill="url(#burst)" points="180,108 184,127.6 197.6,115.7 190.5,132.4 208.5,130.7 193,140 208.5,149.3 190.5,147.6 197.6,164.3 184,152.4 180,172 176,152.4 162.4,164.3 169.5,147.6 151.5,149.3 167,140 151.5,130.7 169.5,132.4 162.4,115.7 176,127.6"/>
+  <circle cx="180" cy="140" r="7" fill="#FFFFFF"/>
+  <path d="M150,104 L160,114 M212,102 L203,113 M214,176 L204,166" stroke="#FFF7AE" stroke-width="3" stroke-linecap="round"/>
+  <g transform="translate(36,58)">
+    <path d="M14,0 C6.3,0 0,6.3 0,14 C0,24.5 14,37 14,37 C14,37 28,24.5 28,14 C28,6.3 21.7,0 14,0 Z" fill="#FB7185"/>
+    <circle cx="14" cy="14" r="5.5" fill="#FFFFFF"/>
+  </g>
+  <g transform="rotate(8 300 62) translate(266,16)">
+    <rect x="0" y="0" width="64" height="80" rx="11" fill="url(#doc)"/>
+    <rect x="10" y="12" width="30" height="6" rx="3" fill="#6366F1"/>
+    <rect x="10" y="26" width="44" height="4" rx="2" fill="#C7D2FE"/>
+    <rect x="10" y="35" width="38" height="4" rx="2" fill="#C7D2FE"/>
+    <rect x="10" y="44" width="28" height="4" rx="2" fill="#C7D2FE"/>
+    <path d="M48,50 L62,55 L62,64 Q62,74 48,80 Q34,74 34,64 L34,55 Z" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5"/>
+    <path d="M41,64 L46.5,69.5 L55,60" stroke="#FFFFFF" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M240,60 L243,69 L252,72 L243,75 L240,84 L237,75 L228,72 L237,69 Z" fill="#FFFFFF" opacity="0.85"/>
+  <path d="M120,70 L122,76 L128,78 L122,80 L120,86 L118,80 L112,78 L118,76 Z" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="150" cy="40" r="3" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="330" cy="110" r="2.5" fill="#FFFFFF" opacity="0.6"/>
+</svg>

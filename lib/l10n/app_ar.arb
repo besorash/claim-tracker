@@ -1,11 +1,10 @@
 {
   "@@locale": "ar",
-  "appName": "متتبع المطالبات",
+  "appName": "متتبع المطالبات Pro",
   "navDashboard": "لوحة التحكم",
   "navClaims": "المطالبات",
   "navReminders": "المتابعات",
   "navSettings": "الإعدادات",
-
   "addClaim": "إضافة مطالبة",
   "edit": "تعديل",
   "save": "حفظ",
@@ -15,10 +14,8 @@
   "confirm": "تأكيد",
   "search": "بحث",
   "retry": "إعادة المحاولة",
-
   "share": "مشاركة",
   "shareEmailFailed": "تعذّر فتح تطبيق البريد الإلكتروني للمشاركة.",
-
   "dashTotalClaims": "إجمالي المطالبات",
   "dashOpenClaims": "مطالبات مفتوحة",
   "dashClosedClaims": "مطالبات منتهية",
@@ -28,7 +25,6 @@
   "dashNeedsAttention": "تحتاج إلى انتباهك",
   "dashRecentlyUpdated": "آخر المطالبات المحدثة",
   "dashEmpty": "لا توجد مطالبات بعد. ابدأ بإضافة أول مطالبة.",
-
   "filterAll": "الكل",
   "filterOpen": "المفتوحة",
   "filterFollowUp": "تحتاج متابعة",
@@ -45,7 +41,6 @@
   "searchHint": "ابحث باللوحة، الاسم، رقم المطالبة، المركبة…",
   "claimsEmpty": "لا توجد مطالبات مطابقة.",
   "loadFailed": "تعذّر تحميل البيانات الآن. يرجى المحاولة مرة أخرى.",
-
   "selectClaims": "تحديد المطالبات",
   "selectAll": "تحديد الكل",
   "deselectAll": "إلغاء تحديد الكل",
@@ -57,7 +52,6 @@
       }
     }
   },
-
   "claimNumberLabel": "رقم المطالبة",
   "customerNameLabel": "اسم العميل",
   "mobileLabel": "رقم الجوال",
@@ -87,8 +81,12 @@
   "csvImportedOk": "تم الاستيراد: {created} جديدة، و{updated} محدّثة.",
   "@csvImportedOk": {
     "placeholders": {
-      "created": {"type": "int"},
-      "updated": {"type": "int"}
+      "created": {
+        "type": "int"
+      },
+      "updated": {
+        "type": "int"
+      }
     }
   },
   "csvImportRejected": "لم يُحفظ شيء. صحّح هذه الصفوف في الملف ثم أعد الاستيراد:",
@@ -137,14 +135,12 @@
   "claimNotFound": "لم يتم العثور على المطالبة. ربما حُذفت من مكان آخر.",
   "statusHistoryLabel": "سجل تغييرات الحالة",
   "historyEmpty": "لا توجد تغييرات مسجلة بعد.",
-
   "changeStatus": "تغيير الحالة",
   "changeStatusTitle": "تغيير حالة المطالبة",
   "statusNoteHint": "ملاحظة اختيارية على التغيير",
   "setNextFollowUp": "تحديد موعد المتابعة القادمة",
   "keepExistingFollowUp": "إبقاء الموعد الحالي",
   "clearFollowUp": "إلغاء الموعد",
-
   "reminderTitle": "تذكير المطالبة",
   "reminderWhenLabel": "موعد التذكير",
   "reminderSet": "تحديد موعد التذكير",
@@ -157,23 +153,19 @@
   "notificationsPermissionBody": "نحتاج إذن الإشعارات لتذكيرك بمواعيد متابعة المطالبات في الوقت المحدد.",
   "notificationsDeniedTitle": "الإشعارات موقوفة",
   "notificationsDeniedBody": "فعّل إشعارات التطبيق من إعدادات الجهاز ليصلك تذكير المتابعة في وقته.",
-
   "requiredField": "هذا الحقل مطلوب",
   "invalidNumber": "أدخل رقمًا صحيحًا",
   "invalidDate": "أدخل تاريخًا صالحًا",
   "futureFollowUpRequired": "موعد المتابعة يجب أن يكون في المستقبل",
-
   "pickFromContacts": "إضافة من جهات الاتصال",
   "contactPickFailed": "تعذّر فتح جهات الاتصال",
   "callFailed": "تعذّر فتح الهاتف",
-
   "deleteClaimTitle": "حذف المطالبة؟",
   "deleteClaimBody": "سيتم حذف المطالبة وسجل حالاتها وتذكيراتها ومرفقاتها نهائيًا.",
   "deleteClaimsTitle": "{count,plural, zero{حذف جميع المطالبات؟} one{حذف المطالبة؟} two{حذف المادتين؟} few{حذف {count} مطالبات؟} many{حذف {count} من المطالبات؟} other{حذف {count} من المطالبات؟}}",
   "deleteClaimsBody": "سيتم حذف هذه المطالبات وسجلات حالاتها وتذكيراتها ومرفقاتها نهائيًا.",
   "closeClaimTitle": "إغلاق المطالبة؟",
   "closeClaimBody": "ستُغيَّر الحالة إلى «مغلقة» وستُلغى التذكيرات المجدولة القادمة.",
-
   "settingsTheme": "المظهر",
   "themeLight": "فاتح",
   "themeDark": "داكن",
@@ -187,24 +179,20 @@
   "exactAlarmHint": "قد لا تصل التذكيرات في وقتها الدقيق إذا كانت أوقات التنبيه الدقيقة (Exact Alarms) مقيّدة على جهازك.",
   "notificationsRequestAction": "طلب إذن الإشعارات",
   "notificationsOpenSettingsAction": "فتح إعدادات الإشعارات",
-
   "exactAlarmsStatusGranted": "أوقات التنبيه الدقيقة مسموح بها — التذكيرات تصل في وقتها.",
   "exactAlarmsStatusDenied": "أوقات التنبيه الدقيقة غير مسموحة — قد تتأخر التذكيرات عن موعدها.",
   "exactAlarmsRequestAction": "السماح بالتنبيهات الدقيقة",
   "exactAlarmExplainTitle": "التنبيهات الدقيقة",
   "exactAlarmExplainBody": "نحتاج إذن أوقات التنبيه الدقيقة حتى تصلك تذكيرات المتابعة في وقتها المحدد، خاصة عندما يكون التطبيق مغلقًا.",
-
   "batteryStatusExempt": "التطبيق مستثنى من تحسين البطارية — التذكيرات تعمل حتى مع إغلاق التطبيق.",
   "batteryStatusNotExempt": "التطبيق غير مستثنى من تحسين البطارية — قد تمنع سياسة البطارية وصول التذكيرات عند إغلاق التطبيق.",
   "batteryRequestAction": "طلب الاستثناء",
   "batteryExplainBody": "تقوم بعض أجهزة Android بإيقاف تطبيقات الخلفية لتوفير البطارية، مما يمنع وصول التذكيرات في وقتها. السماح بالاستثناء يضمن وصول تذكيرك حتى عندما يكون التطبيق مغلقًا.",
-
   "reminderScheduleFailed": "تم حفظ الموعد، لكن تعذّر جدولة التذكير على النظام. حاول مجددًا أو تحقق من أذونات الإشعارات.",
   "reminderInexactWarning": "لم يُسمح بالتنبيهات الدقيقة — قد يتأخر هذا التذكير عن موعده. فعّل الإذن من الإعدادات ليصل في وقته.",
   "settingsBackupRestore": "النسخ الاحتياطي والاستعادة",
   "settingsAbout": "حول التطبيق",
   "appVersion": "إصدار {version} (بناء {build})",
-
   "backupExportTitle": "نسخ احتياطي",
   "backupRestoreTitle": "استعادة نسخة احتياطية",
   "backupPassphraseHint": "عبارة مرور تشفير النسخة",
@@ -224,7 +212,6 @@
   "backupRestoreFailed": "تعذّرت الاستعادة. لم تُعدَّل بياناتك الحالية.",
   "securityInfoTitle": "الخصوصية والأمان",
   "securityInfoBody": "تُخزَّن جميع البيانات محليًا على جهازك فقط، دون أي إرسال عبر الشبكة أو تحليلات. النسخ الاحتياطي مشفَّر بعبارة مرورك (PBKDF2 + AES-256). تأكد قبل إدخال بيانات حقيقية من توافق التخزين المحلي مع سياسات جهة عملك ومتطلبات الخصوصية السعودية (PDPL) حيث ينطبق.",
-
   "statusNew": "جديدة",
   "statusSubmitted": "تم تقديم المطالبة",
   "statusAwaitingReview": "بانتظار المراجعة",
@@ -235,13 +222,15 @@
   "statusCompensated": "تم التعويض",
   "statusRejected": "مرفوضة",
   "statusClosed": "مغلقة",
-
   "followUpOverdue": "متأخرة",
   "followUpToday": "اليوم",
   "currencySar": "ر.س",
-
   "reminderChannelName": "تذكيرات المطالبات",
   "reminderChannelDescription": "تنبيهات متابعة مطالبات التأمين على الحوادث المرورية",
   "genericReminderTitle": "تذكير متابعة مطالبة",
-  "genericReminderBody": "لديك مطالبة تستحق المتابعة الآن."
+  "genericReminderBody": "لديك مطالبة تستحق المتابعة الآن.",
+  "dashGreeting": "أهلاً بك 👋",
+  "dashHeroSubtitle": "كل مطالبات الحوادث منظّمة في مكان واحد",
+  "dashProgress": "نسبة الإنجاز",
+  "dashStatusOverview": "نظرة على الحالات"
 }

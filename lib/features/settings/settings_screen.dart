@@ -21,6 +21,7 @@ import 'package:claim_tracker/core/security/backup_crypto.dart';
 import 'package:claim_tracker/core/security/backup_service.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/features/settings/restore_source_seam.dart';
+import 'package:claim_tracker/shared/widgets/modern.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -452,6 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else if (report.created + report.updated == 0) {
       message = S.csvNothingChanged;
     } else {
+      widget.onDataRestored?.call(); // claims changed: refresh other tabs
       message = <String>[
         S.csvImportedOk(report.created, report.updated),
         if (report.unchanged > 0) S.csvImportUnchanged(report.unchanged),
@@ -542,7 +544,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(S.navSettings)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -714,6 +716,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ], cardKey: const Key('security-info')),
             const SizedBox(height: 12),
             _card(theme, S.settingsAbout, <Widget>[
+              // Brand illustration at the foot of the page (not at the top:
+              // it would push the actionable cards below the fold).
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: GradientHero(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Center(
+                    child: Illustration('claim_shield', height: 110),
+                  ),
+                ),
+              ),
               Text(S.appName, style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
@@ -738,21 +751,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     List<Widget> children, {
     Key? cardKey,
   }) {
+    final (IconData icon, Color color) = switch (title) {
+      _ when title == S.settingsTheme => (
+        Icons.palette_rounded,
+        AppColors.violet,
+      ),
+      _ when title == S.settingsLanguage => (
+        Icons.translate_rounded,
+        AppColors.sky,
+      ),
+      _ when title == S.settingsNotifications => (
+        Icons.notifications_rounded,
+        AppColors.amber,
+      ),
+      _ when title == S.settingsBackupRestore => (
+        Icons.cloud_sync_rounded,
+        AppColors.indigo,
+      ),
+      _ when title == S.csvCardTitle => (
+        Icons.table_view_rounded,
+        AppColors.mint,
+      ),
+      _ when title == S.securityInfoTitle => (
+        Icons.lock_rounded,
+        AppColors.rose,
+      ),
+      _ => (Icons.info_rounded, AppColors.magenta),
+    };
     return Card(
       key: cardKey,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            SectionTitle(icon: icon, color: color, title: title),
+            const SizedBox(height: 10),
             ...children,
           ],
         ),
@@ -777,9 +812,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(child: Text(label)),
             if (selected)
               Icon(
-                Icons.check_circle,
+                Icons.check_circle_rounded,
                 key: Key('lang-$code-selected'),
-                color: AppColors.teal,
+                color: theme.colorScheme.primary,
               ),
           ],
         ),
@@ -799,9 +834,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(child: Text(label)),
             if (selected)
               Icon(
-                Icons.check_circle,
+                Icons.check_circle_rounded,
                 key: Key('theme-$mode-selected'),
-                color: AppColors.teal,
+                color: theme.colorScheme.primary,
               ),
           ],
         ),

@@ -49,6 +49,7 @@ dependencies:
   intl: ^0.20.3
   url_launcher: ^6.3.3
   video_player: ^2.14.1
+  flutter_svg: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -114,6 +115,9 @@ flutter:
 
   # Cairo — SIL Open Font License (see assets/fonts/OFL.txt).
   # Static instances generated from the official variable font.
+  assets:
+    - assets/illustrations/
+
   fonts:
     - family: Cairo
       fonts:

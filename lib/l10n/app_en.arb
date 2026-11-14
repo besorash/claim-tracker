@@ -1,11 +1,10 @@
 {
   "@@locale": "en",
-  "appName": "Claim Tracker",
+  "appName": "Claim Tracker Pro",
   "navDashboard": "Dashboard",
   "navClaims": "Claims",
   "navReminders": "Follow-ups",
   "navSettings": "Settings",
-
   "addClaim": "Add Claim",
   "edit": "Edit",
   "save": "Save",
@@ -15,10 +14,8 @@
   "confirm": "Confirm",
   "search": "Search",
   "retry": "Retry",
-
   "share": "Share",
   "shareEmailFailed": "Couldn't open an email app to share this claim.",
-
   "dashTotalClaims": "Total Claims",
   "dashOpenClaims": "Open Claims",
   "dashClosedClaims": "Finished Claims",
@@ -28,7 +25,6 @@
   "dashNeedsAttention": "Needs Your Attention",
   "dashRecentlyUpdated": "Recently Updated Claims",
   "dashEmpty": "No claims yet. Start by adding your first claim.",
-
   "filterAll": "All",
   "filterOpen": "Open",
   "filterFollowUp": "Needs Follow-up",
@@ -45,7 +41,6 @@
   "searchHint": "Search plate, name, claim number, vehicle…",
   "claimsEmpty": "No matching claims.",
   "loadFailed": "Couldn't load the data right now. Please try again.",
-
   "selectClaims": "Select claims",
   "selectAll": "Select all",
   "deselectAll": "Deselect all",
@@ -57,7 +52,6 @@
       }
     }
   },
-
   "claimNumberLabel": "Claim Number",
   "customerNameLabel": "Customer Name",
   "mobileLabel": "Mobile Number",
@@ -87,8 +81,12 @@
   "csvImportedOk": "Imported: {created} new, {updated} updated.",
   "@csvImportedOk": {
     "placeholders": {
-      "created": {"type": "int"},
-      "updated": {"type": "int"}
+      "created": {
+        "type": "int"
+      },
+      "updated": {
+        "type": "int"
+      }
     }
   },
   "csvImportRejected": "Nothing was saved. Fix these rows in the file and import again:",
@@ -106,14 +104,32 @@
   "csvErrorDate": "Unrecognized date. Use e.g. 2026-03-31 or 31/03/2026 (add 14:30 for a follow-up time).",
   "csvErrorStatus": "Unknown status. Use the status name shown in the app or its key.",
   "csvImportUnchanged": "{count} unchanged.",
-  "@csvImportUnchanged": {"placeholders": {"count": {"type": "int"}}},
+  "@csvImportUnchanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "csvNothingChanged": "Nothing changed: the file matches what is already in the app. If you edited it in WPS or Excel, make sure you saved the file before importing it.",
   "csvUnknownIdsAdded": "{count} row(s) had an id not found in the app and were added as new claims.",
-  "@csvUnknownIdsAdded": {"placeholders": {"count": {"type": "int"}}},
+  "@csvUnknownIdsAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "csvNoRows": "The file has no claims in it.",
   "csvDatesMonthFirst": "Dates were read as month/day/year (11/4/2026 = 4 November 2026).",
   "csvExtraColumnsSaved": "Extra columns saved with the claims: {columns}",
-  "@csvExtraColumnsSaved": {"placeholders": {"columns": {"type": "String"}}},
+  "@csvExtraColumnsSaved": {
+    "placeholders": {
+      "columns": {
+        "type": "String"
+      }
+    }
+  },
   "extraFieldsLabel": "Additional Fields",
   "submissionDateLabel": "Submission Date",
   "insurerRefLabel": "Insurer Reference Number",
@@ -140,14 +156,12 @@
   "claimNotFound": "Claim not found. It may have been deleted elsewhere.",
   "statusHistoryLabel": "Status Change History",
   "historyEmpty": "No changes recorded yet.",
-
   "changeStatus": "Change Status",
   "changeStatusTitle": "Change Claim Status",
   "statusNoteHint": "Optional note about the change",
   "setNextFollowUp": "Set next follow-up date and time",
   "keepExistingFollowUp": "Keep current date",
   "clearFollowUp": "Clear date",
-
   "reminderTitle": "Claim Reminder",
   "reminderWhenLabel": "Reminder Time",
   "reminderSet": "Set reminder time",
@@ -174,23 +188,19 @@
   "notificationsPermissionBody": "We need notification permission to remind you of claim follow-up times on schedule.",
   "notificationsDeniedTitle": "Notifications Off",
   "notificationsDeniedBody": "Enable app notifications in your device settings so follow-up reminders arrive on time.",
-
   "requiredField": "This field is required",
   "invalidNumber": "Enter a valid number",
   "invalidDate": "Enter a valid date",
   "futureFollowUpRequired": "The follow-up date must be in the future",
-
   "pickFromContacts": "Add from contacts",
   "contactPickFailed": "Couldn't open the contact picker",
   "callFailed": "Couldn't open the dialer",
-
   "deleteClaimTitle": "Delete claim?",
   "deleteClaimBody": "The claim, its status history, reminders and attachments will be permanently deleted.",
   "deleteClaimsTitle": "{count,plural, =1{Delete this claim?} other{Delete # claims?}}",
   "deleteClaimsBody": "These claims and their status histories, reminders and attachments will be permanently deleted.",
   "closeClaimTitle": "Close claim?",
   "closeClaimBody": "Status will change to “Closed” and upcoming scheduled reminders will be cancelled.",
-
   "settingsTheme": "Appearance",
   "themeLight": "Light",
   "themeDark": "Dark",
@@ -204,18 +214,15 @@
   "exactAlarmHint": "Reminders may not arrive at the exact time if Exact Alarms are restricted on your device.",
   "notificationsRequestAction": "Request notification permission",
   "notificationsOpenSettingsAction": "Open notification settings",
-
   "exactAlarmsStatusGranted": "Exact alarms allowed — reminders arrive on time.",
   "exactAlarmsStatusDenied": "Exact alarms not allowed — reminders may be delayed.",
   "exactAlarmsRequestAction": "Allow exact alarms",
   "exactAlarmExplainTitle": "Exact Alarms",
   "exactAlarmExplainBody": "We need the exact-alarm permission so follow-up reminders arrive at their scheduled time, especially while the app is closed.",
-
   "batteryStatusExempt": "App exempt from battery optimization — reminders work even when the app is closed.",
   "batteryStatusNotExempt": "App not exempt from battery optimization — the battery policy may block reminders when the app is closed.",
   "batteryRequestAction": "Request exemption",
   "batteryExplainBody": "Some Android devices stop background apps to save battery, which blocks on-time reminders. Granting the exemption guarantees your reminder arrives even while the app is closed.",
-
   "reminderScheduleFailed": "The time was saved, but scheduling the system reminder failed. Try again or check notification permissions.",
   "reminderInexactWarning": "Exact alarms are not allowed — this reminder may arrive late. Enable the permission in settings so it arrives on time.",
   "settingsBackupRestore": "Backup & Restore",
@@ -231,7 +238,6 @@
       }
     }
   },
-
   "backupExportTitle": "Backup",
   "backupRestoreTitle": "Restore Backup",
   "backupPassphraseHint": "Encryption passphrase for the backup",
@@ -261,7 +267,6 @@
   "backupRestoreFailed": "Restore failed. Your current data was not modified.",
   "securityInfoTitle": "Privacy & Security",
   "securityInfoBody": "All data is stored locally on your device only — nothing is sent over a network or used for analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure local storage complies with your employer's policies and Saudi PDPL privacy requirements where applicable.",
-
   "statusNew": "New",
   "statusSubmitted": "Claim Submitted",
   "statusAwaitingReview": "Awaiting Review",
@@ -272,13 +277,15 @@
   "statusCompensated": "Compensated",
   "statusRejected": "Rejected",
   "statusClosed": "Closed",
-
   "followUpOverdue": "Overdue",
   "followUpToday": "Today",
   "currencySar": "SAR",
-
   "reminderChannelName": "Claim Reminders",
   "reminderChannelDescription": "Follow-up alerts for motor-accident insurance claims",
   "genericReminderTitle": "Claim Follow-up Reminder",
-  "genericReminderBody": "You have a claim that is due for follow-up now."
+  "genericReminderBody": "You have a claim that is due for follow-up now.",
+  "dashGreeting": "Welcome back 👋",
+  "dashHeroSubtitle": "Every accident claim, organized in one place.",
+  "dashProgress": "Resolution progress",
+  "dashStatusOverview": "Status overview"
 }

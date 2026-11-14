@@ -55,6 +55,16 @@ class DashboardService {
     );
   }
 
+  /// Claim count per status key (only statuses with at least one claim).
+  Future<Map<String, int>> statusCounts() async {
+    final Map<String, int> out = <String, int>{};
+    for (final ClaimStatusMeta m in ClaimStatus.all) {
+      final int n = await _claims.countWithStatus(m.key);
+      if (n > 0) out[m.key] = n;
+    }
+    return out;
+  }
+
   /// Overdue first, then due-today, then recently updated — capped at [limit].
   Future<List<NeedsAttentionItem>> needsAttention({int limit = 5}) async {
     final DateTime nowUtc = DateTime.now().toUtc();

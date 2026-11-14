@@ -30,6 +30,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/notifications/reminder_scheduler.dart';
 import '../../core/utils/time_utils.dart';
+import '../../shared/widgets/modern.dart';
 import '../../shared/widgets/status_chip.dart';
 import '../attachments/attachment_file_service.dart';
 import '../attachments/attachment_picker_seam.dart';
@@ -817,6 +818,8 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _hero(theme, claim),
+                  const SizedBox(height: 18),
                   _section(
                     S.sectionCustomerInfo,
                     claim,
@@ -1159,8 +1162,14 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
             ),
       bottomNavigationBar: claim != null
           ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.cardTheme.color,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: AppTheme.softShadow(theme.colorScheme.primary),
+                ),
                 // All five actions stay on one line as icon-only buttons; each
                 // keeps its label as a tooltip for discoverability and screen
                 // readers while the visible UI shows icons only.
@@ -1229,32 +1238,132 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     );
   }
 
+  /// Icon + accent for each section heading (titles are localized strings).
+  (IconData, Color) _sectionVisual(String title) {
+    if (title == S.sectionCustomerInfo) {
+      return (Icons.person_rounded, AppColors.indigo);
+    }
+    if (title == S.sectionAccidentInfo) {
+      return (Icons.car_crash_rounded, AppColors.rose);
+    }
+    if (title == S.sectionClaimInfo) {
+      return (Icons.receipt_long_rounded, AppColors.violet);
+    }
+    if (title == S.statusLabel) return (Icons.flag_rounded, AppColors.sky);
+    if (title == S.reminderTitle) return (Icons.alarm_rounded, AppColors.amber);
+    if (title == S.statusHistoryLabel) {
+      return (Icons.timeline_rounded, AppColors.mint);
+    }
+    if (title == S.attachmentsLabel) {
+      return (Icons.photo_library_rounded, const Color(0xFF06B6D4));
+    }
+    return (Icons.playlist_add_rounded, AppColors.magenta);
+  }
+
+  /// Gradient summary header: accident-type badge, plate, customer, type and
+  /// accident date.
+  Widget _hero(ThemeData theme, Claim c) {
+    final String? type = c.accidentType;
+    final TextStyle? onHero = theme.textTheme.bodyMedium?.copyWith(
+      color: Colors.white.withValues(alpha: 0.9),
+      fontWeight: FontWeight.w600,
+    );
+    Widget pill(IconData icon, String text) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(text, style: onHero?.copyWith(fontSize: 12.5)),
+        ],
+      ),
+    );
+    return GradientHero(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Icon(
+                  AccidentVisual.icon(type),
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text(
+                        c.vehiclePlate ?? S.noPlate,
+                        key: const Key('hero-plate'),
+                        textAlign: TextAlign.left,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    Text(c.customerName, style: onHero),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (type != null)
+                pill(Icons.local_offer_rounded, AccidentTypes.display(type)),
+              pill(
+                Icons.event_rounded,
+                TimeUtils.formatDate(c.accidentDateUtcMs),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _section(
     String title,
     Claim claim,
     List<Widget> Function(Claim) rows,
   ) {
-    final ThemeData theme = Theme.of(context);
+    final (IconData icon, Color color) = _sectionVisual(title);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
         margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section headings use the brand accent (the theme primary —
-              // teal in light mode, lightened teal in dark) so every title on
-              // this page matches the app style instead of rendering white.
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
+              SectionTitle(icon: icon, color: color, title: title),
+              const SizedBox(height: 14),
               ...rows(claim),
             ],
           ),

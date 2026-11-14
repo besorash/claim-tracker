@@ -342,7 +342,7 @@ class _HomeShellState extends State<HomeShell> {
       floatingActionButton: showFab
           ? FloatingActionButton.extended(
               onPressed: _addClaim,
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded, size: 26),
               label: Text(S.addClaim),
             )
           : null,
@@ -351,15 +351,18 @@ class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (int i) => setState(() => _index = i),
         destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
+            icon: const Icon(Icons.space_dashboard_outlined),
+            selectedIcon: const Icon(Icons.space_dashboard_rounded),
             label: S.navDashboard,
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_open_outlined),
+            icon: const Icon(Icons.car_crash_outlined),
+            selectedIcon: const Icon(Icons.car_crash_rounded),
             label: S.navClaims,
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.tune_outlined),
+            selectedIcon: const Icon(Icons.tune_rounded),
             label: S.navSettings,
           ),
         ],

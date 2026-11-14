@@ -15,6 +15,7 @@ import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/time_utils.dart';
+import '../../shared/widgets/modern.dart';
 import 'claim_form_model.dart';
 
 class ClaimFormScreen extends StatefulWidget {
@@ -276,6 +277,13 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: GradientHero(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Center(child: Illustration('claim_shield', height: 120)),
+              ),
+            ),
             _section(S.sectionCustomerInfo, [
               _field(
                 'customerName',
@@ -436,21 +444,24 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
   }
 
   Widget _section(String title, List<Widget> children) {
+    final (IconData icon, Color color) = title == S.sectionCustomerInfo
+        ? (Icons.person_rounded, AppColors.indigo)
+        : title == S.sectionAccidentInfo
+        ? (Icons.car_crash_rounded, AppColors.rose)
+        : title == S.sectionClaimInfo
+        ? (Icons.receipt_long_rounded, AppColors.violet)
+        : (Icons.alarm_rounded, AppColors.amber);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
         margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
+              SectionTitle(icon: icon, color: color, title: title),
+              const SizedBox(height: 14),
               ...children,
             ],
           ),

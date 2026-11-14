@@ -15,6 +15,7 @@ import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
 import '../../core/utils/time_utils.dart';
 import '../../shared/widgets/load_error_view.dart';
+import '../../shared/widgets/modern.dart';
 import 'claim_card.dart';
 import 'claim_dialogs.dart';
 import 'claims_filter.dart';
@@ -379,10 +380,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: S.searchHint,
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
               onChanged: (String value) {
                 _query = value;
@@ -501,13 +499,14 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: theme.colorScheme.outline,
-            ),
+            const Illustration('empty_claims', height: 180),
             const SizedBox(height: 12),
-            Text(S.claimsEmpty, style: theme.textTheme.bodyLarge),
+            Text(
+              S.claimsEmpty,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       );
@@ -517,14 +516,14 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     // front froze the app (ANR) with ~1,700 imported claims.
     final bool selecting = _selectionMode;
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       itemCount: _claims.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (BuildContext context, int index) {
         final Claim c = _claims[index];
         return InkWell(
           key: Key('card-${c.id}'),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(22),
           // In selection mode a card tap toggles the check instead of opening
           // details — no accidental navigation out of bulk delete.
           onTap: selecting

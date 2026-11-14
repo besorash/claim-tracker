@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Claim Tracker'**
+  /// **'Claim Tracker Pro'**
   String get appName;
 
   /// No description provided for @navDashboard.
@@ -1369,6 +1369,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have a claim that is due for follow-up now.'**
   String get genericReminderBody;
+
+  /// No description provided for @dashGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back 👋'**
+  String get dashGreeting;
+
+  /// No description provided for @dashHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Every accident claim, organized in one place.'**
+  String get dashHeroSubtitle;
+
+  /// No description provided for @dashProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution progress'**
+  String get dashProgress;
+
+  /// No description provided for @dashStatusOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Status overview'**
+  String get dashStatusOverview;
 }
 
 class _AppLocalizationsDelegate

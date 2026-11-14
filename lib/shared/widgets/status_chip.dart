@@ -29,13 +29,24 @@ class StatusChip extends StatelessWidget {
         color: colors.background,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        meta.label,
-        style: TextStyle(
-          color: colors.foreground,
-          fontSize: compact ? 12 : 13,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            StatusPalette.icon(meta.tone),
+            size: compact ? 14 : 16,
+            color: colors.foreground,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            meta.label,
+            style: TextStyle(
+              color: colors.foreground,
+              fontSize: compact ? 12 : 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

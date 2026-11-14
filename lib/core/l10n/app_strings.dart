@@ -36,6 +36,10 @@ abstract final class S {
   static String get navClaims => _l.navClaims;
   static String get navReminders => _l.navReminders;
   static String get navSettings => _l.navSettings;
+  static String get dashGreeting => _l.dashGreeting;
+  static String get dashHeroSubtitle => _l.dashHeroSubtitle;
+  static String get dashProgress => _l.dashProgress;
+  static String get dashStatusOverview => _l.dashStatusOverview;
 
   // Common actions.
   static String get addClaim => _l.addClaim;

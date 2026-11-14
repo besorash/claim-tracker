@@ -35,6 +35,13 @@ import 'package:claim_tracker/features/dashboard/dashboard_service.dart';
 /// actually reorder differently from LTR.
 const String _plate = 'ABC-1234';
 
+/// The plate in the details rows (the gradient header repeats it as
+/// `hero-plate`).
+Finder get _rowPlate => find.byWidgetPredicate(
+  (Widget w) =>
+      w is Text && w.data == _plate && w.key != const Key('hero-plate'),
+);
+
 /// MaterialApp for [locale] with the app's ambient direction for that language
 /// (AR = RTL, mirroring production where Arabic drives RTL layout).
 Widget _harness(Locale locale, TextDirection ambient, Widget home) {
@@ -238,15 +245,12 @@ void main() {
           ),
         );
         await openDetails(tester);
-        await settle(tester, () => find.text(_plate).evaluate().isNotEmpty);
+        await settle(tester, () => _rowPlate.evaluate().isNotEmpty);
 
-        expect(find.text(_plate), findsOneWidget);
-        expect(_direction(tester, find.text(_plate)), TextDirection.ltr);
+        expect(_rowPlate, findsOneWidget);
+        expect(_direction(tester, _rowPlate), TextDirection.ltr);
         // Row convention (AR): value sits on the left like sibling rows.
-        expect(
-          tester.widget<Text>(find.text(_plate)).textAlign,
-          TextAlign.left,
-        );
+        expect(tester.widget<Text>(_rowPlate).textAlign, TextAlign.left);
       });
     });
   });
@@ -322,13 +326,13 @@ void main() {
           ),
         );
         await openDetails(tester);
-        await settle(tester, () => find.text(_plate).evaluate().isNotEmpty);
+        await settle(tester, () => _rowPlate.evaluate().isNotEmpty);
 
-        expect(find.text(_plate), findsOneWidget);
+        expect(_rowPlate, findsOneWidget);
         // Still an explicit LTR context...
-        expect(_direction(tester, find.text(_plate)), TextDirection.ltr);
+        expect(_direction(tester, _rowPlate), TextDirection.ltr);
         // ...and the EN row convention: value flush-right.
-        expect(tester.widget<Text>(find.text(_plate)).textAlign, TextAlign.end);
+        expect(tester.widget<Text>(_rowPlate).textAlign, TextAlign.end);
       });
     });
   });

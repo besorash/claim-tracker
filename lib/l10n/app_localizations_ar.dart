@@ -10,7 +10,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'متتبع المطالبات';
+  String get appName => 'متتبع المطالبات Pro';
 
   @override
   String get navDashboard => 'لوحة التحكم';
@@ -706,4 +706,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get genericReminderBody => 'لديك مطالبة تستحق المتابعة الآن.';
+
+  @override
+  String get dashGreeting => 'أهلاً بك 👋';
+
+  @override
+  String get dashHeroSubtitle => 'كل مطالبات الحوادث منظّمة في مكان واحد';
+
+  @override
+  String get dashProgress => 'نسبة الإنجاز';
+
+  @override
+  String get dashStatusOverview => 'نظرة على الحالات';
 }

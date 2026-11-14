@@ -10,7 +10,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Claim Tracker';
+  String get appName => 'Claim Tracker Pro';
 
   @override
   String get navDashboard => 'Dashboard';
@@ -709,4 +709,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get genericReminderBody =>
       'You have a claim that is due for follow-up now.';
+
+  @override
+  String get dashGreeting => 'Welcome back 👋';
+
+  @override
+  String get dashHeroSubtitle =>
+      'Every accident claim, organized in one place.';
+
+  @override
+  String get dashProgress => 'Resolution progress';
+
+  @override
+  String get dashStatusOverview => 'Status overview';
 }

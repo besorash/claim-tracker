@@ -56,3 +56,4 @@ tools/*.xml
 # iOS packaging outputs (built in CI, downloaded as an artifact)
 *.ipa
 Payload/
+*.apk
