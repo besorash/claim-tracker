@@ -7,6 +7,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/constants/accident_types.dart';
+import '../../core/constants/insurers.dart';
+import '../../core/contacts/contact_phone_picker.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
@@ -15,10 +18,19 @@ import '../../core/utils/time_utils.dart';
 import 'claim_form_model.dart';
 
 class ClaimFormScreen extends StatefulWidget {
-  const ClaimFormScreen({super.key, this.claim, required this.onSaved});
+  const ClaimFormScreen({
+    super.key,
+    this.claim,
+    required this.onSaved,
+    this.picker,
+  });
 
   /// `null` → add mode; otherwise edit mode for this claim.
   final Claim? claim;
+
+  /// OS contact-picker seam (both phone fields). Defaults to the production
+  /// channel — widget tests inject a fake so no method channels are touched.
+  final ContactPhonePicker? picker;
 
   /// Called exactly once with the built [Claim] when validation passes, and
   /// awaited before the form closes — so a failed persist keeps the user in
@@ -41,22 +53,47 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'mobile',
     'nationalId',
     'email',
-    'accidentNumber',
+    'vehicleType',
     'city',
-    'type',
     'plate',
     'claimNumber',
     'custInsurer',
+    'insMobile',
     'insurerRef',
     'amount',
     'notes',
   ];
+
+  /// Selected entry of the insurer list: a listed company's stored name,
+  /// [_otherInsurer] for a typed-in company, or null when nothing is chosen.
+  String? _insurerChoice;
+  static const String _otherInsurer = '__other__';
+
+  /// Selected accident type: one of [AccidentTypes]' stored English names,
+  /// or null when unset. A legacy free-form value (the field used to be free
+  /// text) starts unselected and stays in the model until the user picks an
+  /// entry — selecting "Not set" clears it.
+  String? _accidentTypeChoice;
 
   @override
   void initState() {
     super.initState();
     final Claim? existing = widget.claim;
     if (existing != null) _model.loadFrom(existing);
+    // A stored company from the list selects it (whatever its spelling); any
+    // other stored name opens under "Other" with the text kept.
+    final String stored = _model.customerInsuranceCompany.trim();
+    final Insurer? listed = Insurers.match(stored);
+    if (listed != null) {
+      _insurerChoice = listed.en;
+      _model.customerInsuranceCompany = listed.en;
+    } else if (stored.isNotEmpty) {
+      _insurerChoice = _otherInsurer;
+    }
+    // A stored accident type pre-selects its listed entry when it matches one
+    // of the fixed options; a legacy free-form value starts unselected and is
+    // kept in the model until the user chooses an entry.
+    _accidentTypeChoice = AccidentTypes.match(_model.accidentType)?.en;
     for (final String key in _textFields) {
       _controllers[key] = TextEditingController(text: _valueFor(key));
     }
@@ -75,12 +112,12 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     'mobile' => _model.customerMobile,
     'nationalId' => _model.customerNationalId,
     'email' => _model.customerEmail,
-    'accidentNumber' => _model.accidentNumber,
+    'vehicleType' => _model.vehicleType,
     'city' => _model.accidentCity,
-    'type' => _model.accidentType,
     'plate' => _model.vehiclePlate,
     'claimNumber' => _model.claimNumber,
     'custInsurer' => _model.customerInsuranceCompany,
+    'insMobile' => _model.insuranceMobile,
     'insurerRef' => _model.insurerReferenceNumber,
     'amount' => _model.claimAmount,
     'notes' => _model.notes,
@@ -97,18 +134,18 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         _model.customerNationalId = value;
       case 'email':
         _model.customerEmail = value;
-      case 'accidentNumber':
-        _model.accidentNumber = value;
+      case 'vehicleType':
+        _model.vehicleType = value;
       case 'city':
         _model.accidentCity = value;
-      case 'type':
-        _model.accidentType = value;
       case 'plate':
         _model.vehiclePlate = value;
       case 'claimNumber':
         _model.claimNumber = value;
       case 'custInsurer':
         _model.customerInsuranceCompany = value;
+      case 'insMobile':
+        _model.insuranceMobile = value;
       case 'insurerRef':
         _model.insurerReferenceNumber = value;
       case 'amount':
@@ -116,6 +153,31 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
       case 'notes':
         _model.notes = value;
     }
+  }
+
+  /// Opens the OS contact picker and fills [key]'s field with the chosen
+  /// number (manual typing remains fully possible — this only replaces it).
+  /// A cancel is a silent no-op; a platform failure shows S.contactPickFailed.
+  Future<void> _pickFromContacts(String key) async {
+    final ContactPhonePicker picker =
+        widget.picker ?? const PlatformContactPhonePicker();
+    String? phone;
+    try {
+      phone = await picker.pickContactPhone();
+    } on Object catch (_) {
+      // Platform failure — distinct from a cancel (null): surface it.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(S.contactPickFailed)));
+      return;
+    }
+    if (phone == null || !mounted) return; // user cancelled — field untouched
+    final String number = phone; // final local: safe inside the closure below
+    setState(() {
+      _controllers[key]!.text = number;
+      _onChanged(key, number);
+      _errors[key] = null; // a fresh picked value clears any prior error
+    });
   }
 
   Future<void> _pickDate(String which) async {
@@ -143,26 +205,46 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
 
   Future<void> _pickFollowUp() async {
     final DateTime now = DateTime.now().toUtc();
+    final DateTime? stored = _model.nextFollowUpUtcMs;
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: (_model.nextFollowUpUtcMs ?? now).toLocal(),
+      initialDate: (stored ?? now).toLocal(),
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
     );
-    if (picked == null) return;
-    setState(() => _model.nextFollowUpUtcMs = picked.toUtc());
+    if (picked == null || !mounted) return;
+    // The reminder fires at a precise moment — so the TIME is picked too,
+    // right after the date. Same pattern as the details screen's reminder
+    // flow and the status dialog (spec §10); previously this field was
+    // date-only and silently stored midnight.
+    final TimeOfDay initialTime = stored != null
+        ? TimeOfDay.fromDateTime(stored.toLocal())
+        : TimeOfDay.now();
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    if (time == null || !mounted) return;
+    setState(
+      () => _model.nextFollowUpUtcMs = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        time.hour,
+        time.minute,
+      ).toUtc(),
+    );
   }
 
   Future<void> _save() async {
     final Map<String, String?> errors = <String, String?>{
       'customerName': _model.validateCustomerName(),
       'mobile': _model.validateMobile(),
-      'claimNumber': _model.validateClaimNumber(),
       'custInsurer': _model.validateCustomerInsurer(),
-      'accidentDate': _model.accidentDateUtcMs == null ? S.requiredField : null,
-      'submissionDate': _model.submissionDateUtcMs == null
-          ? S.requiredField
-          : null,
+      'insMobile': _model.validateInsuranceMobile(),
+      'plate': _model.validateVehiclePlate(),
+      'vehicleType': _model.validateVehicleType(),
+      'accident': _model.accidentDateUtcMs == null ? S.requiredField : null,
     };
 
     if (errors.values.any((String? e) => e != null)) {
@@ -194,7 +276,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _section(S.customerNameLabel, [
+            _section(S.sectionCustomerInfo, [
               _field(
                 'customerName',
                 label: S.customerNameLabel,
@@ -203,37 +285,44 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               _field(
                 'mobile',
                 label: S.mobileLabel,
-                required: true,
                 number: true,
+                onPickSuffix: () => _pickFromContacts('mobile'),
               ),
               _field('nationalId', label: S.nationalIdLabel),
               _field('email', label: S.emailLabel),
             ]),
-            _section(S.accidentDateLabel, [
+            _section(S.sectionAccidentInfo, [
               _dateRow(
                 which: 'accident',
                 label: S.accidentDateLabel,
                 value: _model.accidentDateUtcMs,
                 required: true,
               ),
-              _field('accidentNumber', label: S.accidentNumberLabel),
               _field('city', label: S.cityLabel),
-              _field('type', label: S.accidentTypeLabel),
-              _field('plate', label: S.vehiclePlateLabel),
-            ]),
-            _section(S.claimNumberLabel, [
-              _field('claimNumber', label: S.claimNumberLabel, required: true),
+              _accidentTypeField(),
+              // Plate input is always LTR (see `_field`'s `ltr`).
               _field(
-                'custInsurer',
-                label: S.customerInsurerLabel,
+                'plate',
+                label: S.vehiclePlateLabel,
                 required: true,
+                ltr: true,
               ),
+              _field('vehicleType', label: S.vehicleTypeLabel, required: true),
               _liabilityField(),
+            ]),
+            _section(S.sectionClaimInfo, [
+              _field('claimNumber', label: S.claimNumberLabel),
+              _insurerField(),
+              _field(
+                'insMobile',
+                label: S.insuranceMobileLabel,
+                number: true,
+                onPickSuffix: () => _pickFromContacts('insMobile'),
+              ),
               _dateRow(
                 which: 'submission',
                 label: S.submissionDateLabel,
                 value: _model.submissionDateUtcMs,
-                required: true,
               ),
               _field('insurerRef', label: S.insurerRefLabel),
               _field('amount', label: S.claimAmountLabel, number: true),
@@ -261,7 +350,8 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                               child: Text(
                                 _model.nextFollowUpUtcMs == null
                                     ? S.setNextFollowUp
-                                    : TimeUtils.formatDate(
+                                    // Date AND time — the reminder fires at a precise moment; both must show.
+                                    : TimeUtils.formatDateTime(
                                         _model.nextFollowUpUtcMs!,
                                       ),
                                 style: TextStyle(
@@ -312,21 +402,6 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                           },
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.notifications_off, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      S.reminderDisabled,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppTheme.muted(context),
-                      ),
                     ),
                   ),
                 ],
@@ -390,8 +465,13 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     bool required = false,
     bool number = false,
     bool multiline = false,
+    VoidCallback? onPickSuffix,
+    // The vehicle plate is always displayed LTR (both EN and AR UIs): the
+    // whole field — label position included — renders in an explicit LTR
+    // context so input order matches a real license plate.
+    bool ltr = false,
   }) {
-    return Padding(
+    final Widget field = Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         key: Key('field-$key'),
@@ -403,12 +483,129 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
           labelText: label,
           errorText: _errors[key],
           border: const OutlineInputBorder(),
+          suffixIcon: onPickSuffix == null
+              ? null
+              // "Add from contacts" — opens the OS picker for this field.
+              : IconButton(
+                  key: Key('pick-$key'),
+                  tooltip: S.pickFromContacts,
+                  icon: const Icon(Icons.person_add_outlined),
+                  onPressed: onPickSuffix,
+                ),
+        ),
+      ),
+    );
+    if (!ltr) return field;
+    return Directionality(textDirection: TextDirection.ltr, child: field);
+  }
+
+  /// Insurer list in the app's language, plus "Other" to type a company that
+  /// is not listed. The claim stores the listed company's English name.
+  Widget _insurerField() {
+    final bool other = _insurerChoice == _otherInsurer;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InputDecorator(
+            key: const Key('field-insurerChoice'),
+            decoration: InputDecoration(
+              labelText: S.customerInsurerLabel,
+              errorText: other ? null : _errors['custInsurer'],
+              border: const OutlineInputBorder(),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                isDense: true,
+                value: _insurerChoice,
+                items: <DropdownMenuItem<String>>[
+                  for (final Insurer i in Insurers.all)
+                    DropdownMenuItem<String>(
+                      value: i.en,
+                      child: Text(i.label, overflow: TextOverflow.ellipsis),
+                    ),
+                  DropdownMenuItem<String>(
+                    value: _otherInsurer,
+                    child: Text(S.insurerOther),
+                  ),
+                ],
+                onChanged: (String? v) => setState(() {
+                  _insurerChoice = v;
+                  _errors['custInsurer'] = null;
+                  if (v == _otherInsurer) {
+                    // Start from whatever was typed before, not a list name.
+                    final String typed = _controllers['custInsurer']!.text;
+                    _model.customerInsuranceCompany =
+                        Insurers.match(typed) == null ? typed : '';
+                    _controllers['custInsurer']!.text =
+                        _model.customerInsuranceCompany;
+                  } else if (v != null) {
+                    _model.customerInsuranceCompany = v;
+                  }
+                }),
+              ),
+            ),
+          ),
+          if (other) ...[
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('field-custInsurer'),
+              controller: _controllers['custInsurer'],
+              onChanged: (String v) => _onChanged('custInsurer', v),
+              decoration: InputDecoration(
+                labelText: S.insurerOtherLabel,
+                errorText: _errors['custInsurer'],
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Accident type as a fixed list (spec §7.2): one of [AccidentTypes], or
+  /// unset — same shape as the liability dropdown. The claim stores the listed
+  /// entry's English name; its label is shown in the app's language.
+  Widget _accidentTypeField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InputDecorator(
+        key: const Key('field-accidentType'),
+        decoration: InputDecoration(
+          labelText: S.accidentTypeLabel,
+          border: const OutlineInputBorder(),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            isExpanded: true,
+            value: _accidentTypeChoice,
+            items: <DropdownMenuItem<String?>>[
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text(S.liabilityNotSet),
+              ),
+              for (final AccidentType t in AccidentTypes.all)
+                DropdownMenuItem<String?>(
+                  value: t.en,
+                  child: Text(t.label, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: (String? v) => setState(() {
+              _accidentTypeChoice = v;
+              // Selecting an entry stores its English name; "Not set" clears
+              // the field (including any legacy free-form value).
+              _model.accidentType = v ?? '';
+            }),
+          ),
         ),
       ),
     );
   }
 
-  /// Optional liability share: not set, 0%, 50% or 100%.
+  /// Optional liability share: not set, 0%, 25%, 50%, 75% or 100%.
   Widget _liabilityField() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

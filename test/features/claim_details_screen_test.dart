@@ -44,6 +44,8 @@ Widget _harness(
   AttachmentPicker? picker,
   AttachmentFileService? files,
   Future<bool> Function(Uri)? openExternal,
+  Future<bool> Function(File)? playVideo,
+  Future<bool> Function(String)? callNumber,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -69,6 +71,8 @@ Widget _harness(
                   picker: picker,
                   files: files,
                   openExternal: openExternal,
+                  playVideo: playVideo,
+                  callNumber: callNumber,
                 ),
               ),
             );
@@ -198,6 +202,30 @@ class _FakePicker implements AttachmentPicker {
 
   @override
   Future<List<PlatformFile>> pick({required FileType type}) async => next;
+}
+
+/// Recording dialer for widget tests — no url_launcher channel touched.
+class FakeDialer {
+  final List<String> called = [];
+  bool result = true; // false → snackbar path
+  bool shouldThrow = false;
+
+  Future<bool> call(String phone) async {
+    if (shouldThrow) throw StateError('dialer unavailable');
+    called.add(phone);
+    return result;
+  }
+}
+
+/// Recording in-app video player — no platform channels on host.
+class FakeVideoPlayer {
+  final List<File> played = [];
+  bool result = true; // false → snackbar path
+
+  Future<bool> call(File file) async {
+    played.add(file);
+    return result;
+  }
 }
 
 Future<void> openDetails(WidgetTester tester) async {
@@ -331,6 +359,215 @@ void main() {
         // Status chip shows the seeded Arabic status (never color alone).
         final Claim c = (await db.claimById(id))!;
         expect(find.text(ClaimStatus.byKey(c.statusKey).label), findsWidgets);
+      });
+    },
+  );
+
+  /// One claim in the insurer area; [insuranceMobile] optional.
+  Future<int> seedInsurer(String? insuranceMobile) {
+    final DateTime now = DateTime.utc(2026, 10, 6);
+    return claims.create(
+      Claim(
+        id: 0,
+        customerName: 'خالد',
+        customerMobile: '0501234567',
+        accidentDateUtcMs: DateTime.utc(2026, 10, 1),
+        claimNumber: 'CLM-INS',
+        customerInsuranceCompany: 'تعاونية',
+        insuranceMobile: insuranceMobile,
+        statusKey: 'new',
+        lastStatusUpdateUtcMs: now,
+        createdAtUtcMs: now,
+        updatedAtUtcMs: now,
+      ),
+    );
+  }
+
+  testWidgets('insurer mobile is shown in the claim section when set', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer('0561234567');
+      await tester.pumpWidget(_harness(db, id));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text(S.insuranceMobileLabel).evaluate().isNotEmpty,
+      );
+      expect(find.text('0561234567'), findsOneWidget);
+    });
+  });
+
+  testWidgets('insurer mobile: no row when the claim has none', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer(null);
+      await tester.pumpWidget(_harness(db, id));
+      await openDetails(tester);
+      await settle(tester, () => find.text('خالد').evaluate().isNotEmpty);
+      expect(find.text(S.insuranceMobileLabel), findsNothing);
+    });
+  });
+
+  testWidgets(
+    'phone values sit flush with their call affordance in both rows',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedInsurer(
+          '0561234567',
+        ); // customer mobile '0501234567'
+        await tester.pumpWidget(_harness(db, id));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text(S.insuranceMobileLabel).evaluate().isNotEmpty,
+        );
+
+        // The harness is RTL (ar): each call icon sits at the row's start
+        // edge and both numbers must end their value box against it — i.e.
+        // share one left edge regardless of label length. Regression guard
+        // for the flexible-label/spaceBetween drift that used to push the
+        // shorter-label row's number away from its own call icon.
+        final Rect customerRect = tester.getRect(find.text('0501234567').first);
+        final Rect insurerRect = tester.getRect(find.text('0561234567'));
+        expect(customerRect.left, insurerRect.left);
+
+        Finder iconIn(Finder row) =>
+            find.descendant(of: row, matching: find.byIcon(Icons.call));
+        final Rect customerIcon = tester.getRect(
+          iconIn(
+            find
+                .ancestor(
+                  of: find.text('0501234567').first,
+                  matching: find.byType(Row),
+                )
+                .first,
+          ),
+        );
+        expect(customerRect.left - customerIcon.right, closeTo(4.0, 0.5));
+
+        final Rect insurerIcon = tester.getRect(
+          iconIn(
+            find
+                .ancestor(
+                  of: find.text('0561234567'),
+                  matching: find.byType(Row),
+                )
+                .first,
+          ),
+        );
+        expect(insurerRect.left - insurerIcon.right, closeTo(4.0, 0.5));
+      });
+    },
+  );
+
+  testWidgets('tapping the customer mobile row dials it', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull(); // customerMobile '0559876543'
+      final FakeDialer dialer = FakeDialer();
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(dialer.called, <String>['0559876543']); // exact number passed
+    });
+  });
+
+  testWidgets('both phone rows dial their own numbers', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedInsurer('0561234567'); // customer '0501234567'
+      final FakeDialer dialer = FakeDialer();
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(tester, () => find.text('0561234567').evaluate().isNotEmpty);
+
+      // Insurer row first (below the fold on the test surface), then customer.
+      // Each row is scrolled into the safe band before its tap: after scrolling
+      // to one, the other can sit under the app bar.
+      await scrollTo(tester, find.byKey(const Key('call-insuranceMobile')));
+      await tester.tap(find.byKey(const Key('call-insuranceMobile')));
+      await tester.pump();
+      await scrollTo(tester, find.byKey(const Key('call-customerMobile')));
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      // Each row dials ITS OWN number, in tap order — no cross-wiring.
+      expect(dialer.called, <String>['0561234567', '0501234567']);
+    });
+  });
+
+  testWidgets('a failed dial shows callFailed', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final FakeDialer dialer = FakeDialer()..result = false;
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(dialer.called, <String>['0559876543']); // attempt was made…
+      expect(find.text(S.callFailed), findsOneWidget); // …and reported.
+      expect(tester.takeException(), isNull); // …without crashing.
+    });
+  });
+
+  testWidgets('a throwing dialer is caught and reported', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final FakeDialer dialer = FakeDialer()..shouldThrow = true;
+      await tester.pumpWidget(_harness(db, id, callNumber: dialer.call));
+      await openDetails(tester);
+      await settle(tester, () => find.text('0559876543').evaluate().isNotEmpty);
+
+      await tester.tap(find.byKey(const Key('call-customerMobile')));
+      await tester.pump();
+
+      expect(find.text(S.callFailed), findsOneWidget);
+      expect(tester.takeException(), isNull); // a throw must never crash
+    });
+  });
+
+  testWidgets(
+    'phone rows are accessible buttons with real touch targets (review F4)',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        await tester.pumpWidget(_harness(db, id));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text('0559876543').evaluate().isNotEmpty,
+        );
+
+        // Screen readers must hear a button affordance on the call row…
+        final SemanticsHandle handle = tester.ensureSemantics();
+        try {
+          expect(
+            tester.getSemantics(find.byKey(const Key('call-customerMobile'))),
+            isSemantics(isButton: true, hasTapAction: true),
+          );
+        } finally {
+          handle.dispose();
+        }
+
+        // …and it needs a real touch target: comfortably above the text line
+        // height (WCAG 2.5.8's floor is 44 CSS px; this was ~20 dp before).
+        final Size size = tester.getSize(
+          find.byKey(const Key('call-customerMobile')),
+        );
+        expect(size.height, greaterThanOrEqualTo(40));
       });
     },
   );
@@ -1072,6 +1309,227 @@ void main() {
 
       // A delete affordance exists for the new row.
       expect(find.byKey(Key('attach-del-${a.id}')), findsOneWidget);
+    });
+  });
+
+  testWidgets(
+    'empty state shows the photos button beside the file add button',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        await tester.pumpWidget(_harness(db, id));
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text(S.attachmentsLabel).evaluate().isNotEmpty,
+        );
+
+        expect(find.byKey(const Key('attach-add')), findsOneWidget);
+        expect(find.byKey(const Key('attach-add-photos')), findsOneWidget);
+      });
+    },
+  );
+
+  testWidgets(
+    'add photos: copies picked images into the store and records them',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        final Directory store = Directory.systemTemp.createTempSync('ct-store');
+        final File source = File('${store.path}/src/IMG_1234.jpg')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(<int>[9, 8, 7]);
+
+        final _FakePicker picker = _FakePicker()
+          ..next = [_FakePlatformFile(source.path)];
+        await tester.pumpWidget(
+          _harness(
+            db,
+            id,
+            picker: picker,
+            files: AttachmentFileService(baseDir: store),
+          ),
+        );
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text(S.attachmentsLabel).evaluate().isNotEmpty,
+        );
+
+        await scrollTo(tester, find.byKey(const Key('attach-add-photos')));
+        await tester.tap(find.byKey(const Key('attach-add-photos')));
+        await settle(
+          tester,
+          () => find.text('IMG_1234.jpg').evaluate().isNotEmpty,
+        );
+
+        final List<Attachment> rows = await AttachmentsRepository(db)
+            .listForClaim(id);
+        expect(rows, hasLength(1));
+        expect(rows.single.originalName, 'IMG_1234.jpg');
+        expect(rows.single.mimeType, 'image/jpeg');
+        expect(rows.single.sizeBytes, 3);
+        final File stored = File('${store.path}/${rows.single.relativePath}');
+        expect(stored.existsSync(), true);
+      });
+    },
+  );
+
+  testWidgets('add photos: a cancelled pick changes nothing', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final _FakePicker picker = _FakePicker()..next = const []; // user cancels
+      await tester.pumpWidget(_harness(db, id, picker: picker));
+      await openDetails(tester);
+      await settle(
+        tester,
+        () => find.text(S.attachmentsEmpty).evaluate().isNotEmpty,
+      );
+
+      await scrollTo(tester, find.byKey(const Key('attach-add-photos')));
+      await tester.tap(find.byKey(const Key('attach-add-photos')));
+      await tester.pump();
+
+      expect(await AttachmentsRepository(db).listForClaim(id), isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  testWidgets(
+    'add videos: copies picked clips into the store with a video mime',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        final Directory store = Directory.systemTemp.createTempSync('ct-store');
+        final File source = File('${store.path}/src/clip_2026.mp4')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(<int>[1, 1]);
+
+        final _FakePicker picker = _FakePicker()
+          ..next = [_FakePlatformFile(source.path)];
+        await tester.pumpWidget(
+          _harness(
+            db,
+            id,
+            picker: picker,
+            files: AttachmentFileService(baseDir: store),
+          ),
+        );
+        await openDetails(tester);
+        await settle(
+          tester,
+          () => find.text(S.attachmentsLabel).evaluate().isNotEmpty,
+        );
+
+        // The videos button must exist next to the photos slot.
+        expect(find.byKey(const Key('attach-add-videos')), findsOneWidget);
+
+        await scrollTo(tester, find.byKey(const Key('attach-add-videos')));
+        await tester.tap(find.byKey(const Key('attach-add-videos')));
+        await settle(
+          tester,
+          () => find.text('clip_2026.mp4').evaluate().isNotEmpty,
+        );
+
+        final List<Attachment> rows = await AttachmentsRepository(db)
+            .listForClaim(id);
+        expect(rows.single.originalName, 'clip_2026.mp4');
+        expect(rows.single.mimeType, 'video/mp4');
+      });
+    },
+  );
+
+  testWidgets(
+    'open: a video attachment routes to the in-app player, not external',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int id = await seedFull();
+        final Directory store = Directory.systemTemp.createTempSync('ct-store');
+        File('${store.path}/1-test/clip.mp4')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(<int>[0xAA, 0xBB]);
+
+        // Seed the row directly (bypasses picking): video mime drives routing.
+        await AttachmentsRepository(db).create(
+          Attachment(
+            id: 0,
+            claimId: id,
+            originalName: 'clip.mp4',
+            mimeType: 'video/mp4',
+            sizeBytes: 2,
+            relativePath: '1-test/clip.mp4',
+            createdAtUtcMs: DateTime.now().toUtc(),
+          ),
+        );
+
+        final FakeVideoPlayer player = FakeVideoPlayer();
+        Future<bool> throwingExternal(Uri uri) async =>
+            throw StateError('must not be called');
+        await tester.pumpWidget(
+          _harness(
+            db,
+            id,
+            files: AttachmentFileService(baseDir: store),
+            openExternal: throwingExternal,
+            playVideo: player.call,
+          ),
+        );
+        await openDetails(tester);
+        await settle(tester, () => find.text('clip.mp4').evaluate().isNotEmpty);
+
+        await scrollTo(tester, find.text('clip.mp4'));
+        await tester.tap(find.text('clip.mp4').first);
+        await tester.pump();
+
+        expect(player.played, hasLength(1));
+        expect(player.played.single.path, endsWith('clip.mp4'));
+        // A throwing external opener must have been bypassed entirely.
+        expect(tester.takeException(), isNull);
+      });
+    },
+  );
+
+  testWidgets('open: video playback failure surfaces the open-failed message', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      final int id = await seedFull();
+      final Directory store = Directory.systemTemp.createTempSync('ct-store');
+      File('${store.path}/1-test/clip.mp4')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(<int>[0xAA]);
+      await AttachmentsRepository(db).create(
+        Attachment(
+          id: 0,
+          claimId: id,
+          originalName: 'clip.mp4',
+          mimeType: 'video/mp4',
+          sizeBytes: 1,
+          relativePath: '1-test/clip.mp4',
+          createdAtUtcMs: DateTime.now().toUtc(),
+        ),
+      );
+
+      final FakeVideoPlayer player = FakeVideoPlayer()..result = false;
+      await tester.pumpWidget(
+        _harness(
+          db,
+          id,
+          files: AttachmentFileService(baseDir: store),
+          playVideo: player.call,
+        ),
+      );
+      await openDetails(tester);
+      await settle(tester, () => find.text('clip.mp4').evaluate().isNotEmpty);
+
+      await scrollTo(tester, find.text('clip.mp4'));
+      await tester.tap(find.text('clip.mp4').first);
+      await tester.pump();
+
+      expect(player.played, hasLength(1));
+      expect(find.text(S.attachmentOpenFailed), findsOneWidget);
     });
   });
 

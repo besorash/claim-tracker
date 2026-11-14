@@ -1,0 +1,4 @@
+/* App name on the home screen — mirrors android/app/src/main/res/values/strings.xml */
+"CFBundleDisplayName" = "Claim Tracker";
+"CFBundleName" = "Claim Tracker";
+"NSPhotoLibraryUsageDescription" = "Claim Tracker attaches photos you choose to a claim. Photos stay on this device.";

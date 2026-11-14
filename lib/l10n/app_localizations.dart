@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashClosedClaims.
   ///
   /// In en, this message translates to:
-  /// **'Closed Claims'**
+  /// **'Finished Claims'**
   String get dashClosedClaims;
 
   /// No description provided for @dashDueToday.
@@ -211,6 +211,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Overdue Follow-ups'**
   String get dashOverdue;
+
+  /// No description provided for @dashAwaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting Approval Claims'**
+  String get dashAwaitingApproval;
 
   /// No description provided for @dashNeedsAttention.
   ///
@@ -254,16 +260,64 @@ abstract class AppLocalizations {
   /// **'Overdue'**
   String get filterOverdue;
 
+  /// No description provided for @sortTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortTooltip;
+
+  /// No description provided for @sortDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default order'**
+  String get sortDefault;
+
+  /// No description provided for @sortSubmissionNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission date: newest first'**
+  String get sortSubmissionNewest;
+
+  /// No description provided for @sortSubmissionOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission date: oldest first'**
+  String get sortSubmissionOldest;
+
+  /// No description provided for @sortUpdatedNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update: newest first'**
+  String get sortUpdatedNewest;
+
+  /// No description provided for @sortUpdatedOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update: oldest first'**
+  String get sortUpdatedOldest;
+
+  /// No description provided for @lastUpdateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update'**
+  String get lastUpdateLabel;
+
   /// No description provided for @filterClosed.
   ///
   /// In en, this message translates to:
-  /// **'Closed'**
+  /// **'Finished'**
   String get filterClosed;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get clearFilters;
 
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Claim number, customer name, mobile, accident number…'**
+  /// **'Search plate, name, claim number, vehicle…'**
   String get searchHint;
 
   /// No description provided for @claimsEmpty.
@@ -277,6 +331,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the data right now. Please try again.'**
   String get loadFailed;
+
+  /// No description provided for @selectClaims.
+  ///
+  /// In en, this message translates to:
+  /// **'Select claims'**
+  String get selectClaims;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
 
   /// No description provided for @claimNumberLabel.
   ///
@@ -338,6 +416,42 @@ abstract class AppLocalizations {
   /// **'No plate'**
   String get noPlate;
 
+  /// No description provided for @vehicleTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Type'**
+  String get vehicleTypeLabel;
+
+  /// No description provided for @sectionCustomerInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Information'**
+  String get sectionCustomerInfo;
+
+  /// No description provided for @sectionAccidentInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Accident & Vehicle Information'**
+  String get sectionAccidentInfo;
+
+  /// No description provided for @sectionClaimInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim & Insurance Information'**
+  String get sectionClaimInfo;
+
+  /// No description provided for @insurerOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get insurerOther;
+
+  /// No description provided for @insurerOtherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance company name'**
+  String get insurerOtherLabel;
+
   /// No description provided for @vehiclePlateLabel.
   ///
   /// In en, this message translates to:
@@ -347,8 +461,14 @@ abstract class AppLocalizations {
   /// No description provided for @customerInsurerLabel.
   ///
   /// In en, this message translates to:
-  /// **'Customer\'s Insurance Company'**
+  /// **'Insurance Company'**
   String get customerInsurerLabel;
+
+  /// No description provided for @insuranceMobileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance Mobile'**
+  String get insuranceMobileLabel;
 
   /// No description provided for @liabilityPercentLabel.
   ///
@@ -467,7 +587,7 @@ abstract class AppLocalizations {
   /// No description provided for @csvErrorLiability.
   ///
   /// In en, this message translates to:
-  /// **'Liability % must be empty, 0, 50 or 100.'**
+  /// **'Liability % must be empty, 0, 25, 50, 75 or 100.'**
   String get csvErrorLiability;
 
   /// No description provided for @csvErrorDate.
@@ -596,6 +716,30 @@ abstract class AppLocalizations {
   /// **'Add Attachment'**
   String get attachmentAdd;
 
+  /// No description provided for @attachmentAddPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Photos'**
+  String get attachmentAddPhotos;
+
+  /// No description provided for @attachmentAddVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Videos'**
+  String get attachmentAddVideos;
+
+  /// No description provided for @videoPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get videoPlay;
+
+  /// No description provided for @videoPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get videoPause;
+
   /// No description provided for @attachmentOpenFailed.
   ///
   /// In en, this message translates to:
@@ -671,7 +815,7 @@ abstract class AppLocalizations {
   /// No description provided for @setNextFollowUp.
   ///
   /// In en, this message translates to:
-  /// **'Set next follow-up date'**
+  /// **'Set next follow-up date and time'**
   String get setNextFollowUp;
 
   /// No description provided for @keepExistingFollowUp.
@@ -782,6 +926,24 @@ abstract class AppLocalizations {
   /// **'The follow-up date must be in the future'**
   String get futureFollowUpRequired;
 
+  /// No description provided for @pickFromContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Add from contacts'**
+  String get pickFromContacts;
+
+  /// No description provided for @contactPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the contact picker'**
+  String get contactPickFailed;
+
+  /// No description provided for @callFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the dialer'**
+  String get callFailed;
+
   /// No description provided for @deleteClaimTitle.
   ///
   /// In en, this message translates to:
@@ -793,6 +955,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The claim, its status history, reminders and attachments will be permanently deleted.'**
   String get deleteClaimBody;
+
+  /// No description provided for @deleteClaimsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural, =1{Delete this claim?} other{Delete # claims?}}'**
+  String deleteClaimsTitle(num count);
+
+  /// No description provided for @deleteClaimsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These claims and their status histories, reminders and attachments will be permanently deleted.'**
+  String get deleteClaimsBody;
 
   /// No description provided for @closeClaimTitle.
   ///

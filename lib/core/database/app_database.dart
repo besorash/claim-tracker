@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 3;
+const int kDatabaseVersion = 7;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -83,10 +83,24 @@ class AppDatabase {
             await _migrateToV2(txn);
           case 3:
             await _migrateToV3(txn);
+          case 4:
+            await _migrateToV4(txn);
+          case 5:
+            await _migrateToV5(txn);
+          case 6:
+            await _migrateToV6(txn);
+          case 7:
+            await _migrateToV7(txn);
           // Future versions add cases here.
         }
       }
     });
+  }
+
+  /// v7: the insurance company's contact mobile for a claim (optional). Same
+  /// ADD COLUMN pattern as v3–v5 — works on every SQLite version Android ships.
+  static Future<void> _migrateToV7(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN insurance_mobile TEXT');
   }
 
   /// v2: the "submitted to insurer" column is replaced by the liability
@@ -163,6 +177,97 @@ class AppDatabase {
   /// as a JSON object. ADD COLUMN works on every SQLite version Android ships.
   static Future<void> _migrateToV3(sqf.Transaction txn) async {
     await txn.execute('ALTER TABLE claims ADD COLUMN extra_fields TEXT');
+  }
+
+  /// v4: vehicle type (make/model, free text). Replaces the accident number
+  /// in the app's forms; the old column is kept so no data is lost.
+  static Future<void> _migrateToV4(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN vehicle_type TEXT');
+  }
+
+  /// v5: when the notes were last edited, so "last update" can mean the
+  /// later of the last status change and the last notes edit.
+  static Future<void> _migrateToV5(sqf.Transaction txn) async {
+    await txn.execute(
+      'ALTER TABLE claims ADD COLUMN notes_updated_utc_ms INTEGER',
+    );
+  }
+
+  /// v6: the submission date becomes optional (only plate, accident date,
+  /// vehicle type, customer name and insurer are required now). SQLite cannot
+  /// drop a NOT NULL constraint in place, so the table is rebuilt the same
+  /// way as v2: new shape, copy every row, drop, rename, recreate indexes.
+  /// Must run with foreign keys OFF (see [open]) so the drop does not cascade.
+  static Future<void> _migrateToV6(sqf.Transaction txn) async {
+    const String columns =
+        'id, customer_name, customer_mobile, customer_national_id, '
+        'customer_email, accident_number, accident_date_utc_ms, accident_city, '
+        'accident_type, vehicle_plate, vehicle_type, claim_number, '
+        'customer_insurance_company, submission_date_utc_ms, '
+        'insurer_reference_number, claim_amount_sar, liability_percent, notes, '
+        'notes_updated_utc_ms, extra_fields, status_key, '
+        'last_status_update_utc_ms, next_follow_up_utc_ms, reminder_enabled, '
+        'created_at_utc_ms, updated_at_utc_ms';
+
+    await txn.execute('''
+      CREATE TABLE claims_v6 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT NOT NULL,
+        customer_mobile TEXT NOT NULL DEFAULT '',
+        customer_national_id TEXT,
+        customer_email TEXT,
+        accident_number TEXT,
+        accident_date_utc_ms INTEGER NOT NULL,
+        accident_city TEXT,
+        accident_type TEXT,
+        vehicle_plate TEXT,
+        vehicle_type TEXT,
+        claim_number TEXT NOT NULL DEFAULT '',
+        customer_insurance_company TEXT NOT NULL,
+        submission_date_utc_ms INTEGER,
+        insurer_reference_number TEXT,
+        claim_amount_sar REAL,
+        liability_percent REAL,
+        notes TEXT,
+        notes_updated_utc_ms INTEGER,
+        extra_fields TEXT,
+        status_key TEXT NOT NULL DEFAULT 'new',
+        last_status_update_utc_ms INTEGER NOT NULL,
+        next_follow_up_utc_ms INTEGER,
+        reminder_enabled INTEGER NOT NULL DEFAULT 0,
+        created_at_utc_ms INTEGER NOT NULL,
+        updated_at_utc_ms INTEGER NOT NULL
+      )
+    ''');
+    await txn.execute(
+      'INSERT INTO claims_v6 ($columns) SELECT $columns FROM claims',
+    );
+    await txn.execute('DROP TABLE claims');
+    await txn.execute('ALTER TABLE claims_v6 RENAME TO claims');
+
+    // Dropping the old table dropped its indexes — recreate them.
+    await txn.execute(
+      'CREATE INDEX idx_claims_claim_number ON claims(claim_number)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_customer_name ON claims(customer_name)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_customer_mobile ON claims(customer_mobile)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_accident_number ON claims(accident_number)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_insurer_ref ON claims(insurer_reference_number)',
+    );
+    await txn.execute('CREATE INDEX idx_claims_status ON claims(status_key)');
+    await txn.execute(
+      'CREATE INDEX idx_claims_next_follow_up ON claims(next_follow_up_utc_ms)',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_claims_vehicle_plate ON claims(vehicle_plate)',
+    );
   }
 
   static Future<void> _createSchemaV1(sqf.Transaction txn) async {

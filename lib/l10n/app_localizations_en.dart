@@ -58,13 +58,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashOpenClaims => 'Open Claims';
 
   @override
-  String get dashClosedClaims => 'Closed Claims';
+  String get dashClosedClaims => 'Finished Claims';
 
   @override
   String get dashDueToday => 'Follow-up Due Today';
 
   @override
   String get dashOverdue => 'Overdue Follow-ups';
+
+  @override
+  String get dashAwaitingApproval => 'Awaiting Approval Claims';
 
   @override
   String get dashNeedsAttention => 'Needs Your Attention';
@@ -88,11 +91,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterOverdue => 'Overdue';
 
   @override
-  String get filterClosed => 'Closed';
+  String get sortTooltip => 'Sort';
 
   @override
-  String get searchHint =>
-      'Claim number, customer name, mobile, accident number…';
+  String get sortDefault => 'Default order';
+
+  @override
+  String get sortSubmissionNewest => 'Submission date: newest first';
+
+  @override
+  String get sortSubmissionOldest => 'Submission date: oldest first';
+
+  @override
+  String get sortUpdatedNewest => 'Last update: newest first';
+
+  @override
+  String get sortUpdatedOldest => 'Last update: oldest first';
+
+  @override
+  String get lastUpdateLabel => 'Last update';
+
+  @override
+  String get filterClosed => 'Finished';
+
+  @override
+  String get clearFilters => 'Clear filters';
+
+  @override
+  String get searchHint => 'Search plate, name, claim number, vehicle…';
 
   @override
   String get claimsEmpty => 'No matching claims.';
@@ -100,6 +126,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get loadFailed =>
       'Couldn\'t load the data right now. Please try again.';
+
+  @override
+  String get selectClaims => 'Select claims';
+
+  @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get deselectAll => 'Deselect all';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
 
   @override
   String get claimNumberLabel => 'Claim Number';
@@ -132,10 +172,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPlate => 'No plate';
 
   @override
+  String get vehicleTypeLabel => 'Vehicle Type';
+
+  @override
+  String get sectionCustomerInfo => 'Customer Information';
+
+  @override
+  String get sectionAccidentInfo => 'Accident & Vehicle Information';
+
+  @override
+  String get sectionClaimInfo => 'Claim & Insurance Information';
+
+  @override
+  String get insurerOther => 'Other';
+
+  @override
+  String get insurerOtherLabel => 'Insurance company name';
+
+  @override
   String get vehiclePlateLabel => 'Vehicle Plate';
 
   @override
-  String get customerInsurerLabel => 'Customer\'s Insurance Company';
+  String get customerInsurerLabel => 'Insurance Company';
+
+  @override
+  String get insuranceMobileLabel => 'Insurance Mobile';
 
   @override
   String get liabilityPercentLabel => 'Liability %';
@@ -202,7 +263,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get csvErrorAmount => 'The amount must be a number.';
 
   @override
-  String get csvErrorLiability => 'Liability % must be empty, 0, 50 or 100.';
+  String get csvErrorLiability =>
+      'Liability % must be empty, 0, 25, 50, 75 or 100.';
 
   @override
   String get csvErrorDate =>
@@ -278,6 +340,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachmentAdd => 'Add Attachment';
 
   @override
+  String get attachmentAddPhotos => 'Add Photos';
+
+  @override
+  String get attachmentAddVideos => 'Add Videos';
+
+  @override
+  String get videoPlay => 'Play';
+
+  @override
+  String get videoPause => 'Pause';
+
+  @override
   String get attachmentOpenFailed =>
       'Could not open the file. Your device may have no app that opens this type.';
 
@@ -318,7 +392,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusNoteHint => 'Optional note about the change';
 
   @override
-  String get setNextFollowUp => 'Set next follow-up date';
+  String get setNextFollowUp => 'Set next follow-up date and time';
 
   @override
   String get keepExistingFollowUp => 'Keep current date';
@@ -382,11 +456,35 @@ class AppLocalizationsEn extends AppLocalizations {
       'The follow-up date must be in the future';
 
   @override
+  String get pickFromContacts => 'Add from contacts';
+
+  @override
+  String get contactPickFailed => 'Couldn\'t open the contact picker';
+
+  @override
+  String get callFailed => 'Couldn\'t open the dialer';
+
+  @override
   String get deleteClaimTitle => 'Delete claim?';
 
   @override
   String get deleteClaimBody =>
       'The claim, its status history, reminders and attachments will be permanently deleted.';
+
+  @override
+  String deleteClaimsTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete # claims?',
+      one: 'Delete this claim?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteClaimsBody =>
+      'These claims and their status histories, reminders and attachments will be permanently deleted.';
 
   @override
   String get closeClaimTitle => 'Close claim?';

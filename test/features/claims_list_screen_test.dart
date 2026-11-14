@@ -20,6 +20,8 @@ import 'package:claim_tracker/shared/widgets/status_chip.dart';
 Widget _harness(
   ClaimsRepository repo, {
   ClaimsFilter initial = ClaimsFilter.all,
+  String? status,
+  void Function(ClaimsFilter filter, String? status)? onSelectionChanged,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -30,7 +32,12 @@ Widget _harness(
   ],
   theme: AppTheme.light(),
   darkTheme: AppTheme.dark(),
-  home: ClaimsListScreen(repo: repo, initialFilter: initial),
+  home: ClaimsListScreen(
+    repo: repo,
+    initialFilter: initial,
+    initialStatus: status,
+    onSelectionChanged: onSelectionChanged,
+  ),
 );
 
 void main() {
@@ -283,6 +290,78 @@ void main() {
     },
   );
 
+  testWidgets('a large list only builds the cards on screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (int i = 0; i < 300; i++) {
+        await create(seed(statusKey: 'new', claimNumber: 'BULK-$i'));
+      }
+      await tester.pumpWidget(_harness(claims));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+      final int built = find.byType(ClaimCard).evaluate().length;
+      expect(built, greaterThan(0));
+      expect(built, lessThan(50));
+    });
+  });
+
+  testWidgets('a status chip shows only claims with that status', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      await create(seed(statusKey: 'new', claimNumber: 'ST-NEW'));
+      await create(seed(statusKey: 'rejected', claimNumber: 'ST-REJ'));
+      await create(
+        seed(statusKey: 'awaiting_documents', claimNumber: 'ST-DOC'),
+      );
+      await tester.pumpWidget(_harness(claims));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 3);
+
+      final Finder chip = find.byKey(
+        const Key('filter-status-awaiting_documents'),
+      );
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+      expect(find.text('ST-DOC'), findsOneWidget);
+
+      // "Finished" groups rejected with approved and closed.
+      final Finder finished = find.byKey(const Key('filter-closed'));
+      await tester.ensureVisible(finished);
+      await tester.tap(finished);
+      await settle(tester, () => find.text('ST-REJ').evaluate().isNotEmpty);
+      expect(find.byType(ClaimCard), findsOneWidget);
+    });
+  });
+
+  test('date sorts order by submission date or last update', () {
+    Claim c(int id, DateTime submitted, DateTime status, [DateTime? notes]) =>
+        seed(statusKey: 'new').copyWith(
+          id: id,
+          submissionDateUtcMs: submitted,
+          lastStatusUpdateUtcMs: status,
+          notesUpdatedUtcMs: notes,
+        );
+    final List<Claim> list = <Claim>[
+      c(1, DateTime.utc(2026, 1, 1), DateTime.utc(2026, 5, 1)),
+      c(2, DateTime.utc(2026, 3, 1), DateTime.utc(2026, 2, 1)),
+      // Old status change, but notes written most recently.
+      c(
+        3,
+        DateTime.utc(2026, 2, 1),
+        DateTime.utc(2026, 1, 1),
+        DateTime.utc(2026, 6, 1),
+      ),
+    ];
+    List<int> ids(ClaimsSort s) => s.apply(list).map((x) => x.id).toList();
+
+    expect(ids(ClaimsSort.submissionNewest), <int>[2, 3, 1]);
+    expect(ids(ClaimsSort.submissionOldest), <int>[1, 3, 2]);
+    expect(ids(ClaimsSort.updatedNewest), <int>[3, 1, 2]);
+    expect(ids(ClaimsSort.updatedOldest), <int>[2, 1, 3]);
+    expect(ids(ClaimsSort.smart), <int>[1, 2, 3]); // unchanged
+  });
+
   testWidgets('a claim without a plate shows the no-plate placeholder', (
     WidgetTester tester,
   ) async {
@@ -320,6 +399,335 @@ void main() {
           await tester.pump();
         }
         expect(calls, <String>['status-$id', 'edit-$id', 'delete-$id']);
+      });
+    },
+  );
+
+  testWidgets(
+    'clear-filters control: hidden by default, appears with an active '
+    'selection, and resets group filter or status chip back to all',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final List<String> reports = <String>[];
+        void record(ClaimsFilter f, String? s) =>
+            reports.add('${f.name}|${s ?? '-'}');
+
+        await seedStandard();
+        await tester.pumpWidget(_harness(claims, onSelectionChanged: record));
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 4,
+        );
+
+        // Nothing selected — no clear control, nothing reported.
+        expect(find.byKey(const Key('clear-filters')), findsNothing);
+        expect(reports, isEmpty);
+
+        // Group filter "Finished" (closed): one card; the control appears and
+        // reports the selection to the owner.
+        await tester.tap(find.widgetWithText(ChoiceChip, S.filterClosed));
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 1,
+        );
+        expect(find.byKey(const Key('clear-filters')), findsOneWidget);
+        expect(reports, <String>['closed|-']);
+
+        // Tapping it clears back to all claims and hides again.
+        await tester.tap(find.byKey(const Key('clear-filters')));
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 4,
+        );
+        expect(find.byKey(const Key('clear-filters')), findsNothing);
+        expect(reports, <String>['closed|-', 'all|-']);
+
+        // Status chips are cleared by the same control.
+        final Finder statusChip = find.byKey(const Key('filter-status-new'));
+        await tester.ensureVisible(statusChip);
+        await tester.tap(statusChip);
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2, // A and D
+        );
+        expect(find.byKey(const Key('clear-filters')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('clear-filters')));
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 4,
+        );
+        expect(reports, <String>['closed|-', 'all|-', 'all|new', 'all|-']);
+
+        // The "All" chip is selected again after clearing.
+        final ChoiceChip all = tester.widget<ChoiceChip>(
+          find.byKey(const Key('filter-all')),
+        );
+        expect(all.selected, isTrue);
+      });
+    },
+  );
+
+  testWidgets(
+    'initialFilter/initialStatus restore a remembered selection on mount',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        await seedStandard();
+
+        // A remount with the owner's remembered group filter applies it.
+        await tester.pumpWidget(_harness(claims, initial: ClaimsFilter.open));
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 3,
+        );
+        expect(find.text('Ø¹Ù…ÙŠÙ„ Ø¨'), findsNothing); // closed B hidden
+
+        // …and a remembered status chip applies it instead.
+        await tester.pumpWidget(
+          _harness(claims, initial: ClaimsFilter.all, status: 'new'),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
+        final ChoiceChip newStatus = tester.widget<ChoiceChip>(
+          find.byKey(const Key('filter-status-new')),
+        );
+        expect(newStatus.selected, isTrue);
+      });
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Selection mode (bulk delete): enter/check/select-all/confirm and the
+  // cancel/exit paths. The fake onBulkDelete records what was asked to be
+  // deleted; it does not touch the DB, so post-conditions here are about the
+  // UI contract — real deletion is covered in claim_actions_test.dart.
+  // ---------------------------------------------------------------------------
+
+  testWidgets(
+    'selection mode: card taps check (never navigate), select-all covers the '
+    'visible list, confirming bulk-deletes exactly what was checked',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int idA = await create(seed(statusKey: 'new'));
+        final int idB = await create(seed(statusKey: 'closed'));
+
+        List<Claim>? bulkDeleted;
+        var singleDeletes = 0;
+        var detailsOpened = 0;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ClaimsListScreen(
+              repo: claims,
+              onClaimTapped: (_) => detailsOpened++,
+              onDelete: (Claim c) async => singleDeletes++,
+              onBulkDelete: (List<Claim> list) async {
+                bulkDeleted = List.of(list);
+              },
+            ),
+          ),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
+
+        // Normal mode: entry control present, no checkboxes anywhere.
+        expect(find.byKey(const Key('enter-selection')), findsOneWidget);
+        expect(find.byKey(Key('card-check-$idA')), findsNothing);
+
+        await tester.tap(find.byKey(const Key('enter-selection')));
+        await tester.pump();
+
+        // Selection mode: one checkbox per card; the bulk-delete control is
+        // disabled while nothing is checked.
+        expect(find.byKey(Key('card-check-$idA')), findsOneWidget);
+        expect(find.byKey(Key('card-check-$idB')), findsOneWidget);
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(const Key('bulk-delete')))
+              .onPressed,
+          isNull,
+        );
+
+        // A card tap toggles the check — and never opens details.
+        await tester.tap(find.byKey(Key('card-$idA')));
+        await tester.pump();
+        expect(detailsOpened, 0);
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idA'))).value,
+          isTrue,
+        );
+        // The live count shows in the app bar title.
+        expect(find.text(S.selectedCount(1)), findsOneWidget);
+
+        // Select-all checks every visible claim (both of them here).
+        await tester.tap(find.byKey(const Key('selection-all')));
+        await tester.pump();
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idB'))).value,
+          isTrue,
+        );
+        expect(find.text(S.selectedCount(2)), findsOneWidget);
+
+        // Confirm: the dialog names the exact count...
+        await tester.tap(find.byKey(const Key('bulk-delete')));
+        await tester.pump();
+        expect(find.text(S.deleteClaimsTitle(2)), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, S.confirm));
+        await settle(tester, () => bulkDeleted != null);
+
+        // ...and the owner receives exactly the checked claims.
+        expect(bulkDeleted, isNotNull);
+        expect(bulkDeleted!.map((Claim c) => c.id).toSet(), <int>{idA, idB});
+        // The single-claim path was never used...
+        expect(singleDeletes, 0);
+        // ...and the list exited selection mode (back to normal controls).
+        await tester.pump();
+        expect(find.byKey(Key('card-check-$idA')), findsNothing);
+        expect(find.byKey(const Key('enter-selection')), findsOneWidget);
+      });
+    },
+  );
+
+  testWidgets(
+    'selection mode: cancel keeps the selection, exit clears it and restores '
+    'the single-claim actions',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int idA = await create(seed(statusKey: 'new'));
+        final int idB = await create(seed(statusKey: 'closed'));
+
+        List<Claim>? bulkDeleted;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ClaimsListScreen(
+              repo: claims,
+              onDelete: (Claim c) async {},
+              onBulkDelete: (List<Claim> list) async {
+                bulkDeleted = List.of(list);
+              },
+            ),
+          ),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
+
+        // Normal mode shows the single-claim delete action on each card.
+        expect(find.byKey(Key('card-delete-$idA')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('enter-selection')));
+        await tester.pump();
+        // In selection mode those per-card actions are hidden...
+        expect(find.byKey(Key('card-delete-$idA')), findsNothing);
+
+        // Check one claim, open the dialog, CANCEL — nothing happens.
+        await tester.tap(find.byKey(Key('card-$idA')));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('bulk-delete')));
+        await tester.pump();
+        expect(find.text(S.deleteClaimsTitle(1)), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(TextButton, S.cancel));
+        await settle(
+          tester,
+          () => find.text(S.deleteClaimsTitle(1)).evaluate().isEmpty,
+        );
+
+        // Still in selection mode: the checked claim stays checked, the other
+        // one stays unchecked, nothing was deleted.
+        expect(bulkDeleted, isNull);
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idA'))).value,
+          isTrue,
+        );
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idB'))).value,
+          isFalse,
+        );
+        expect(find.byKey(const Key('exit-selection')), findsOneWidget);
+
+        // Exit via the close control: checks cleared, normal actions back.
+        await tester.tap(find.byKey(const Key('exit-selection')));
+        await tester.pump();
+        expect(find.byKey(Key('card-check-$idA')), findsNothing);
+        expect(find.byKey(Key('card-delete-$idA')), findsOneWidget);
+      });
+    },
+  );
+
+  testWidgets(
+    'selection mode: searching for more claims keeps earlier checks; bulk '
+    'delete removes every checked claim, even ones no longer on screen',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final int idA = await create(
+          seed(statusKey: 'new', name: 'عميل ألف', claimNumber: 'CLM-AAA'),
+        );
+        final int idB = await create(
+          seed(statusKey: 'closed', name: 'عميل باء', claimNumber: 'CLM-BBB'),
+        );
+
+        List<Claim>? bulkDeleted;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ClaimsListScreen(
+              repo: claims,
+              onBulkDelete: (List<Claim> list) async {
+                bulkDeleted = List.of(list);
+              },
+            ),
+          ),
+        );
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 2,
+        );
+
+        // Check claim A in selection mode…
+        await tester.tap(find.byKey(const Key('enter-selection')));
+        await tester.pump();
+        await tester.tap(find.byKey(Key('card-$idA')));
+        await tester.pump();
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idA'))).value,
+          isTrue,
+        );
+
+        // …then search for claim B. A drops out of the visible list…
+        final Finder field = find.widgetWithText(TextField, S.searchHint);
+        await tester.enterText(field, 'CLM-BBB');
+        await settle(
+          tester,
+          () => find.byType(ClaimCard).evaluate().length == 1,
+        );
+        expect(find.text('عميل ألف'), findsNothing);
+
+        // …but its check must survive: the count still says one selected.
+        expect(find.text(S.selectedCount(1)), findsOneWidget);
+
+        // Add B to the selection from the search results…
+        await tester.tap(find.byKey(Key('card-$idB')));
+        await tester.pump();
+        expect(
+          tester.widget<Checkbox>(find.byKey(Key('card-check-$idB'))).value,
+          isTrue,
+        );
+        expect(find.text(S.selectedCount(2)), findsOneWidget);
+
+        // …confirm the bulk delete…
+        await tester.tap(find.byKey(const Key('bulk-delete')));
+        await tester.pump();
+        expect(find.text(S.deleteClaimsTitle(2)), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, S.confirm));
+        await settle(tester, () => bulkDeleted != null);
+
+        // …and BOTH claims reach the owner — A was invisible all along.
+        expect(bulkDeleted, isNotNull);
+        expect(bulkDeleted!.map((Claim c) => c.id).toSet(), <int>{idA, idB});
       });
     },
   );

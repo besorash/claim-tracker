@@ -32,6 +32,18 @@ abstract final class AppColors {
   // Shared semantic colors.
   static const Color errorLight = Color(0xFFB3261E);
   static const Color errorDark = Color(0xFFF2A9A5);
+
+  // Notes highlight (claim details screen): the notes row is the one field
+  // that must stand out from every other section — a distinct orange in both
+  // themes, each pair keeping ≥6.7:1 contrast against its own fill so the
+  // text stays fully legible (WCAG AA with margin).
+  static const Color lightNotesFill = Color(0xFFFFE0B2);
+  static const Color lightNotesText = Color(0xFF7A3B08);
+  static const Color lightNotesBorder = Color(0xFFF57C20);
+
+  static const Color darkNotesFill = Color(0xFF4E2C10);
+  static const Color darkNotesText = Color(0xFFFFB867);
+  static const Color darkNotesBorder = Color(0xFFE8853B);
 }
 
 /// Concrete chip colors for each [StatusTone], per theme (spec §8: consistent

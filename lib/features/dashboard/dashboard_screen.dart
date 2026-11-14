@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/l10n/app_strings.dart';
+import '../../core/models/claim_status.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/time_utils.dart';
 import '../../shared/widgets/load_error_view.dart';
@@ -21,9 +22,11 @@ class DashboardScreen extends StatefulWidget {
 
   final DashboardService service;
 
-  /// Called when a metric tile is tapped with the filter it represents.
-  /// The shell wires this to `ClaimsListScreen(initialFilter: …)` (Task 7).
-  final ValueChanged<ClaimsFilter> onMetricTapped;
+  /// Called when a metric tile is tapped with the selection it represents:
+  /// a group [ClaimsFilter] and, for status-based tiles, a single status key
+  /// (otherwise null). The shell wires this to
+  /// `ClaimsListScreen(initialFilter: …, initialStatus: …)`.
+  final void Function(ClaimsFilter filter, String? status) onMetricTapped;
 
   /// Optional: called when a needs-attention row is tapped (details screen,
   /// Task 5). No-op if not provided.
@@ -111,7 +114,7 @@ class _MetricGrid extends StatelessWidget {
   const _MetricGrid({required this.metrics, required this.onTileTapped});
 
   final DashboardMetrics metrics;
-  final ValueChanged<ClaimsFilter> onTileTapped;
+  final void Function(ClaimsFilter filter, String? status) onTileTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -128,35 +131,44 @@ class _MetricGrid extends StatelessWidget {
           icon: Icons.dashboard_outlined,
           value: metrics.total,
           label: S.dashTotalClaims,
-          onTap: () => onTileTapped(ClaimsFilter.all),
+          onTap: () => onTileTapped(ClaimsFilter.all, null),
         ),
         _MetricTile(
           key: const Key('metric-open'),
           icon: Icons.folder_open_outlined,
           value: metrics.open,
           label: S.dashOpenClaims,
-          onTap: () => onTileTapped(ClaimsFilter.open),
+          onTap: () => onTileTapped(ClaimsFilter.open, null),
         ),
         _MetricTile(
           key: const Key('metric-closed'),
           icon: Icons.check_circle_outline,
           value: metrics.closed,
           label: S.dashClosedClaims,
-          onTap: () => onTileTapped(ClaimsFilter.closed),
+          onTap: () => onTileTapped(ClaimsFilter.closed, null),
+        ),
+        _MetricTile(
+          key: const Key('metric-awaitingApproval'),
+          icon: Icons.gavel_outlined,
+          value: metrics.awaitingApproval,
+          label: S.dashAwaitingApproval,
+          // Status-based tile: opens the list with that status chip selected.
+          onTap: () =>
+              onTileTapped(ClaimsFilter.all, ClaimStatus.awaitingApprovalKey),
         ),
         _MetricTile(
           key: const Key('metric-followUp'),
           icon: Icons.event_available,
           value: metrics.dueToday,
           label: S.dashDueToday,
-          onTap: () => onTileTapped(ClaimsFilter.followUp),
+          onTap: () => onTileTapped(ClaimsFilter.followUp, null),
         ),
         _MetricTile(
           key: const Key('metric-overdue'),
           icon: Icons.warning_amber,
           value: metrics.overdue,
           label: S.dashOverdue,
-          onTap: () => onTileTapped(ClaimsFilter.overdue),
+          onTap: () => onTileTapped(ClaimsFilter.overdue, null),
         ),
       ],
     );
@@ -286,13 +298,19 @@ class _AttentionSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(
-                              item.claim.vehiclePlate ?? S.noPlate,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: item.claim.vehiclePlate == null
-                                    ? AppTheme.muted(context)
-                                    : null,
+                            // Plate always renders LTR (both EN and AR UIs):
+                            // explicit base direction + left alignment.
+                            Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Text(
+                                item.claim.vehiclePlate ?? S.noPlate,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: item.claim.vehiclePlate == null
+                                      ? AppTheme.muted(context)
+                                      : null,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -303,7 +321,7 @@ class _AttentionSection extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               '${S.claimNumberLabel}: '
-                              '${item.claim.claimNumber}',
+                              '${item.claim.claimNumberDisplay}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppTheme.muted(context),
                               ),

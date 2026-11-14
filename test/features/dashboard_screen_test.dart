@@ -11,14 +11,18 @@ import 'package:claim_tracker/core/database/app_database.dart';
 import 'package:claim_tracker/core/database/claims_repository.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
+import 'package:claim_tracker/core/models/claim_status.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/claims/claims_filter.dart';
 import 'package:claim_tracker/features/dashboard/dashboard_screen.dart';
 import 'package:claim_tracker/features/dashboard/dashboard_service.dart';
 
-Widget _harness(DashboardService service, {List<ClaimsFilter>? tapped}) {
-  final List<ClaimsFilter> sink = tapped ?? <ClaimsFilter>[];
+/// (group filter, status-chip key) pairs reported by tile taps.
+typedef MetricTap = (ClaimsFilter filter, String? status);
+
+Widget _harness(DashboardService service, {List<MetricTap>? tapped}) {
+  final List<MetricTap> sink = tapped ?? <MetricTap>[];
   return MaterialApp(
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar')],
@@ -31,7 +35,9 @@ Widget _harness(DashboardService service, {List<ClaimsFilter>? tapped}) {
     darkTheme: AppTheme.dark(),
     home: DashboardScreen(
       service: service,
-      onMetricTapped: (ClaimsFilter f) => sink.add(f),
+      onMetricTapped: (ClaimsFilter filter, String? status) {
+        sink.add((filter, status));
+      },
     ),
   );
 }
@@ -97,7 +103,7 @@ void main() {
     }
   }
 
-  testWidgets('renders all five metric tiles with values from the database', (
+  testWidgets('renders all six metric tiles with values from the database', (
     WidgetTester tester,
   ) async {
     final DashboardService service = DashboardService(claims);
@@ -106,6 +112,7 @@ void main() {
     // fake-async zone; bounded real-time polling instead of pumpAndSettle.
     await tester.runAsync(() async {
       await seedFive();
+      await claims.create(seed(statusKey: ClaimStatus.awaitingApprovalKey));
       await tester.pumpWidget(_harness(service));
       await pumpUntil(tester, find.text(S.dashTotalClaims));
     });
@@ -114,23 +121,25 @@ void main() {
       S.dashTotalClaims,
       S.dashOpenClaims,
       S.dashClosedClaims,
+      S.dashAwaitingApproval,
       S.dashDueToday,
       S.dashOverdue,
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
-    // Values come from the seeded DB (5 total / 4 open / 1 closed).
+    // Values come from the seeded DB (6 total / 5 open / 1 closed + 1
+    // awaiting approval).
+    expect(find.text('6'), findsWidgets);
     expect(find.text('5'), findsWidgets);
-    expect(find.text('4'), findsWidgets);
     expect(find.text('1'), findsWidgets);
   });
 
-  testWidgets('tapping a metric tile requests the matching ClaimsFilter', (
+  testWidgets('tapping a metric tile requests the matching filter or status', (
     WidgetTester tester,
   ) async {
     final DashboardService service = DashboardService(claims);
-    final List<ClaimsFilter> tapped = <ClaimsFilter>[];
+    final List<MetricTap> tapped = <MetricTap>[];
 
     await tester.runAsync(() async {
       await seedFive();
@@ -138,10 +147,24 @@ void main() {
       await pumpUntil(tester, find.text(S.dashTotalClaims));
     });
 
-    // Row 1 is in the initial viewport — tap it first.
+    // Row 1 is in the initial viewport — tap it first. Group tiles request
+    // their filter with no status chip.
     await tester.tap(find.byKey(const Key('metric-open')));
     await tester.pump();
-    expect(tapped, <ClaimsFilter>[ClaimsFilter.open]);
+    expect(tapped, <MetricTap>[(ClaimsFilter.open, null)]);
+
+    tapped.clear();
+    // The awaiting-approval tile is a status tile: it requests that status
+    // chip instead of a group filter.
+    await tester.ensureVisible(
+      find.byKey(const Key('metric-awaitingApproval')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('metric-awaitingApproval')));
+    await tester.pump();
+    expect(tapped, <MetricTap>[
+      (ClaimsFilter.all, ClaimStatus.awaitingApprovalKey),
+    ]);
 
     tapped.clear();
     // The overdue tile (last row) is below the fold in the 600px viewport.
@@ -149,7 +172,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('metric-overdue')));
     await tester.pump();
-    expect(tapped, <ClaimsFilter>[ClaimsFilter.overdue]);
+    expect(tapped, <MetricTap>[(ClaimsFilter.overdue, null)]);
   });
 
   testWidgets('empty database shows the empty state and zero values', (

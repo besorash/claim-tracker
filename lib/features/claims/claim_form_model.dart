@@ -23,11 +23,16 @@ class ClaimFormModel {
   String accidentCity = '';
   String accidentType = '';
   String vehiclePlate = '';
+  String vehicleType = '';
 
   // Claim (spec §7.3) — number, both insurers and submission date are required.
   String claimNumber = '';
   String customerInsuranceCompany = '';
-  double? liabilityPercent; // null = not set; otherwise 0, 50 or 100
+
+  /// The insurer's contact mobile: optional; when entered it must be a valid
+  /// Saudi number (same rule as the customer mobile).
+  String insuranceMobile = '';
+  double? liabilityPercent; // null = not set; otherwise 0, 25, 50, 75 or 100
   DateTime? submissionDateUtcMs;
   String insurerReferenceNumber = '';
   String claimAmount = ''; // editable string; parsed to SAR double on save
@@ -52,8 +57,10 @@ class ClaimFormModel {
     accidentCity = claim.accidentCity ?? '';
     accidentType = claim.accidentType ?? '';
     vehiclePlate = claim.vehiclePlate ?? '';
+    vehicleType = claim.vehicleType ?? '';
     claimNumber = claim.claimNumber;
     customerInsuranceCompany = claim.customerInsuranceCompany;
+    insuranceMobile = claim.insuranceMobile ?? '';
     liabilityPercent = claim.liabilityPercent;
     submissionDateUtcMs = claim.submissionDateUtcMs;
     insurerReferenceNumber = claim.insurerReferenceNumber ?? '';
@@ -73,13 +80,15 @@ class ClaimFormModel {
 
   String? validateCustomerName() => _required(customerName);
 
-  String? validateClaimNumber() => _required(claimNumber);
-
   String? validateCustomerInsurer() => _required(customerInsuranceCompany);
+
+  String? validateVehiclePlate() => _required(vehiclePlate);
+
+  String? validateVehicleType() => _required(vehicleType);
 
   /// Liability percentage is optional; when set it must be one of the
   /// allowed shares.
-  static const List<double> liabilityOptions = <double>[0, 50, 100];
+  static const List<double> liabilityOptions = <double>[0, 25, 50, 75, 100];
 
   /// Canonical Saudi mobile: strip spaces/dashes/parens, a leading `+966` or
   /// `00966`, then one leading `0`; the result must be exactly 9 digits.
@@ -96,31 +105,46 @@ class ClaimFormModel {
     return s;
   }
 
-  String? validateMobile() {
-    final String raw = customerMobile.trim();
-    if (raw.isEmpty) return S.requiredField;
-    if (!RegExp(r'^\d{9}$').hasMatch(normalizeMobile(raw))) {
+  /// Shared Saudi-number rule: optional, but when entered it must be exactly
+  /// 9 digits after [normalizeMobile].
+  static String? _validateMobileText(String raw) {
+    final String value = raw.trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^\d{9}$').hasMatch(normalizeMobile(value))) {
       return S.invalidNumber;
     }
     return null;
   }
 
-  /// All required validators pass AND both dates are set.
+  /// Mobile is optional; when entered it must be a valid Saudi number.
+  String? validateMobile() => _validateMobileText(customerMobile);
+
+  /// The insurer's contact mobile: same rule as the customer mobile —
+  /// optional, but a valid Saudi number when entered (spec §7.3).
+  String? validateInsuranceMobile() => _validateMobileText(insuranceMobile);
+
+  /// Required: vehicle plate, accident date, vehicle type, customer name and
+  /// insurer. Everything else is optional (an entered mobile must be valid).
   bool get isValid =>
+      validateVehiclePlate() == null &&
+      validateVehicleType() == null &&
       validateCustomerName() == null &&
-      validateMobile() == null &&
-      validateClaimNumber() == null &&
       validateCustomerInsurer() == null &&
-      accidentDateUtcMs != null &&
-      submissionDateUtcMs != null;
+      validateMobile() == null &&
+      validateInsuranceMobile() == null &&
+      accidentDateUtcMs != null;
 
   // ---------------------------------------------------------------------------
   // Claim construction (spec §7) — the screen never touches the repository.
   // ---------------------------------------------------------------------------
 
   /// Builds a [Claim] from the current field values with the given identity.
-  /// Only call when [isValid] is true (dates are then guaranteed non-null).
-  Claim toClaim({required int id, required DateTime createdAtUtcMs}) {
+  /// Only call when [isValid] is true (the accident date is then set).
+  Claim toClaim({
+    required int id,
+    required DateTime createdAtUtcMs,
+    DateTime? notesUpdatedUtcMs,
+  }) {
     return Claim(
       id: id,
       customerName: customerName.trim(),
@@ -132,13 +156,16 @@ class ClaimFormModel {
       accidentCity: _opt(accidentCity),
       accidentType: _opt(accidentType),
       vehiclePlate: _opt(vehiclePlate),
+      vehicleType: _opt(vehicleType),
       claimNumber: claimNumber.trim(),
       customerInsuranceCompany: customerInsuranceCompany.trim(),
+      insuranceMobile: _opt(insuranceMobile),
       liabilityPercent: liabilityPercent,
-      submissionDateUtcMs: submissionDateUtcMs!,
+      submissionDateUtcMs: submissionDateUtcMs,
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),
       notes: _opt(notes),
+      notesUpdatedUtcMs: notesUpdatedUtcMs,
       extraFields: Map<String, String>.unmodifiable(extraFields),
       statusKey: statusKey,
       lastStatusUpdateUtcMs: createdAtUtcMs,
@@ -150,15 +177,23 @@ class ClaimFormModel {
   }
 
   /// Add mode: a brand-new claim (id assigned by the repository on create).
-  Claim buildNew(DateTime nowUtc) => toClaim(id: 0, createdAtUtcMs: nowUtc);
+  Claim buildNew(DateTime nowUtc) => toClaim(
+    id: 0,
+    createdAtUtcMs: nowUtc,
+    notesUpdatedUtcMs: _opt(notes) == null ? null : nowUtc,
+  );
 
   /// Edit mode: preserves [existing]'s id/createdAt and reminder flag; bumps
   /// `updatedAtUtcMs` to [nowUtc]; refreshes `lastStatusUpdateUtcMs` only when
   /// the status actually changed (no history writes — that is Phase 3).
   Claim applyTo(Claim existing, DateTime nowUtc) {
+    // Notes stamp moves only when the notes text actually changed.
     final Claim base = toClaim(
       id: existing.id,
       createdAtUtcMs: existing.createdAtUtcMs,
+      notesUpdatedUtcMs: _opt(notes) == existing.notes
+          ? existing.notesUpdatedUtcMs
+          : nowUtc,
     );
     return base.copyWith(
       updatedAtUtcMs: nowUtc,

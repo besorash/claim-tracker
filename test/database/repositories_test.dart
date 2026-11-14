@@ -152,6 +152,76 @@ void main() {
       },
     );
 
+    test(
+      'SQL counts match the list queries; recentlyUpdated is capped',
+      () async {
+        final DateTime now = DateTime.now().toUtc();
+        for (int i = 0; i < 6; i++) {
+          final int id = await claims.create(sampleClaim(claimNumber: 'N$i'));
+          // Status first: changing it stamps updated_at, set explicitly below.
+          if (i == 5) {
+            await history.changeStatus(claimId: id, newStatusKey: 'approved');
+          }
+          final Claim c = (await db.claimById(id))!;
+          await claims.update(
+            c.copyWith(
+              nextFollowUpUtcMs: i.isEven
+                  ? now.subtract(const Duration(hours: 1))
+                  : now.add(const Duration(hours: 1)),
+              updatedAtUtcMs: now.add(Duration(minutes: i)),
+            ),
+          );
+        }
+        final DateTime start = now.subtract(const Duration(hours: 3));
+        final DateTime end = now.add(const Duration(hours: 3));
+
+        expect(await claims.countAll(), (await claims.all()).length);
+        expect(await claims.countOpen(), (await claims.open()).length);
+        expect(await claims.countClosed(), (await claims.closed()).length);
+        expect(
+          await claims.countOverdue(now),
+          (await claims.overdue(now)).length,
+        );
+        expect(
+          await claims.countDueBetween(start, end),
+          (await claims.dueBetween(start, end)).length,
+        );
+        expect(await claims.countClosed(), 1);
+
+        final List<Claim> recent = await claims.recentlyUpdated(2);
+        expect(recent.map((c) => c.claimNumber), <String>['N5', 'N4']);
+      },
+    );
+
+    test('search looks in every field, insurer names and statuses', () async {
+      await claims.create(
+        sampleClaim(claimNumber: 'S1').copyWith(
+          vehicleType: 'Camry 2022',
+          customerInsuranceCompany: 'GIG',
+          accidentCity: 'Khobar',
+          notes: 'waiting for invoice',
+          extraFields: <String, String>{'agent': 'Fahad'},
+        ),
+      );
+      await claims.create(sampleClaim(claimNumber: 'S2'));
+
+      Future<List<String>> hits(String q) async =>
+          (await claims.search(q)).map((c) => c.claimNumber).toList();
+
+      expect(await hits('camry'), <String>['S1']); // vehicle type
+      expect(await hits('khobar'), <String>['S1']); // city
+      expect(await hits('invoice'), <String>['S1']); // notes
+      expect(await hits('fahad'), <String>['S1']); // extra field
+      expect(await hits('الخليجية'), <String>['S1']); // insurer, Arabic name
+    });
+
+    test('search also matches the vehicle plate', () async {
+      await claims.create(
+        sampleClaim(claimNumber: 'P1').copyWith(vehiclePlate: '4051 VJD'),
+      );
+      expect((await claims.search('vjd')).single.claimNumber, 'P1');
+    });
+
     test('overdue and dueBetween use the follow-up timestamp', () async {
       final int id = await claims.create(sampleClaim());
       final Claim stored = (await db.claimById(id))!;

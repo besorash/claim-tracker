@@ -14,6 +14,7 @@ import '../core/database/settings_repository.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/models/claim.dart';
 import '../core/notifications/notification_service.dart';
+import '../core/notifications/reminder_scheduler.dart';
 import '../features/attachments/attachment_file_service.dart';
 import '../features/claims/claim_actions.dart';
 import '../features/claims/claim_dialogs.dart';
@@ -21,6 +22,7 @@ import '../features/claims/claim_details_screen.dart';
 import '../features/claims/claim_form_screen.dart';
 import '../features/claims/claims_filter.dart';
 import '../features/claims/claims_list_screen.dart';
+import '../features/claims/reminder_save_flow.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/dashboard/dashboard_service.dart';
 import '../features/settings/settings_screen.dart';
@@ -37,6 +39,7 @@ class HomeShell extends StatefulWidget {
     this.backupService,
     this.csvService,
     this.reconnectAfterRestore,
+    this.scheduler,
   });
 
   /// Notification-tap routing hook (spec §10): set by the shell's State while
@@ -71,6 +74,11 @@ class HomeShell extends StatefulWidget {
   /// Provided by `main.dart`; null in tests that don't restore.
   final Future<void> Function()? reconnectAfterRestore;
 
+  /// OS-side reminder scheduler seam (spec §10). Defaults to the production
+  /// [NotificationService] singleton; widget tests inject a recording fake so
+  /// no method channels are touched when add/edit flows schedule reminders.
+  final ReminderScheduler? scheduler;
+
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -78,6 +86,12 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   ClaimsFilter _listFilter = ClaimsFilter.all;
+
+  /// Status-chip selection active in the claims list (null = the group filter
+  /// [_listFilter] applies). Remembered here alongside the group filter so a
+  /// remount — returning from details, any data refresh — restores exactly
+  /// what the user had selected instead of resetting to "all".
+  String? _listStatus;
 
   /// Bumped after every data mutation. IndexedStack keeps all destinations
   /// alive, so without a remount they would keep showing stale SQLite data —
@@ -88,6 +102,10 @@ class _HomeShellState extends State<HomeShell> {
   // swapped after a restore (see there).
   late ClaimsRepository _claims;
   late DashboardService _dashboard;
+
+  /// Reminder scheduling seam (spec §10) — production default, fake-injectable.
+  ReminderScheduler get _scheduler =>
+      widget.scheduler ?? NotificationService.instance;
 
   @override
   void initState() {
@@ -137,19 +155,52 @@ class _HomeShellState extends State<HomeShell> {
     _bump();
   }
 
-  /// Dashboard metric tile → claims list pre-filtered to that metric (spec §5).
-  void _onMetricTapped(ClaimsFilter filter) {
+  /// Dashboard metric tile → claims list pre-filtered to that metric (spec §5):
+  /// group tiles pass their [ClaimsFilter]; the "Awaiting Approval" status
+  /// tile passes its status key as a selected status chip.
+  void _onMetricTapped(ClaimsFilter filter, String? status) {
     setState(() {
       _listFilter = filter;
+      _listStatus = status;
       _index = 1;
+    });
+  }
+
+  /// The claims list reports its active selection (group chip or status chip)
+  /// so the shell can restore it on every remount. Without this, returning
+  /// from the details screen — which bumps [_gen] and remounts the list —
+  /// silently reset a user-selected filter back to "all".
+  void _onListSelectionChanged(ClaimsFilter filter, String? status) {
+    if (_listFilter == filter && _listStatus == status) return;
+    setState(() {
+      _listFilter = filter;
+      _listStatus = status;
     });
   }
 
   Future<void> _addClaim() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            ClaimFormScreen(onSaved: (Claim c) => _claims.create(c)),
+        builder: (_) => ClaimFormScreen(
+          // A follow-up picked on the form is a REAL reminder (spec §10):
+          // after the claim row exists, persist its enabled reminder and
+          // schedule the OS alarm — same permission-aware flow as the details
+          // screen. The in-app state persists regardless of OS permission;
+          // only the scheduling depends on it (failures are surfaced).
+          onSaved: (Claim c) async {
+            final DateTime? when = c.nextFollowUpUtcMs;
+            final int id = await _claims.create(c);
+            if (when != null && mounted) {
+              await scheduleFollowUpOnCreate(
+                context,
+                widget.db,
+                _scheduler,
+                id,
+                when,
+              );
+            }
+          },
+        ),
       ),
     );
     if (!mounted) return;
@@ -178,10 +229,46 @@ class _HomeShellState extends State<HomeShell> {
       MaterialPageRoute<void>(
         builder: (_) => ClaimFormScreen(
           claim: claim,
-          onSaved: (Claim saved) => _claims.update(saved),
+          onSaved: (Claim saved) async {
+            await _claims.update(saved);
+            if (!mounted) return;
+            // Keep the reminder in sync with the saved follow-up (spec §10):
+            // reschedule when it changed, cancel + clear when removed —
+            // otherwise an edit would leave a stale alarm at the old time.
+            await syncFollowUpAfterEdit(
+              context,
+              widget.db,
+              _scheduler,
+              before: claim,
+              saved: saved,
+            );
+          },
         ),
       ),
     );
+    if (mounted) _bump();
+  }
+
+  /// Bulk delete of the claims list's selection-mode selection: the list
+  /// screen already showed its count-aware confirmation, so this only runs the
+  /// deletion (same per-claim guarantees as [_cardDelete] — alarms cancelled,
+  /// attachment files removed best-effort, rows deleted last) and refreshes.
+  Future<void> _bulkDelete(List<Claim> claims) async {
+    if (claims.isEmpty) return;
+    AttachmentFileService? files;
+    try {
+      files = AttachmentFileService(
+        baseDir: await const AttachmentFileService().storeDir(),
+      );
+    } on Object catch (_) {
+      files = null;
+    }
+    final List<int> ids = <int>[for (final Claim c in claims) c.id];
+    await ClaimActions(
+      widget.db,
+      NotificationService.instance,
+      files: files,
+    ).deleteClaims(ids);
     if (mounted) _bump();
   }
 
@@ -220,27 +307,21 @@ class _HomeShellState extends State<HomeShell> {
               onClaimTapped: _openClaim,
             ),
             ClaimsListScreen(
-              // Key includes the filter so a metric-tap re-inits this screen
-              // with the new initialFilter (IndexedStack would otherwise keep
-              // the old instance and its old filter).
-              key: ValueKey('claims-$_listFilter-$_gen'),
+              // Key carries only the generation counter: a data refresh (bump)
+              // remounts this screen for a fresh load, and initState restores
+              // the selection below. Chip taps must NOT change the key — that
+              // would remount and drop local state like the search box;
+              // external changes instead arrive through didUpdateWidget.
+              key: ValueKey('claims-$_gen'),
               repo: _claims,
               initialFilter: _listFilter,
+              initialStatus: _listStatus,
+              onSelectionChanged: _onListSelectionChanged,
               onClaimTapped: (Claim c) => _openClaim(c.id),
               onChangeStatus: _cardChangeStatus,
               onEdit: _cardEdit,
               onDelete: _cardDelete,
-            ),
-            // Reminders destination = the follow-up-filtered claims list — a
-            // real, honest view of scheduled follow-ups (spec §3.3: no stubs).
-            ClaimsListScreen(
-              key: ValueKey('reminders-$_gen'),
-              repo: _claims,
-              initialFilter: ClaimsFilter.followUp,
-              onClaimTapped: (Claim c) => _openClaim(c.id),
-              onChangeStatus: _cardChangeStatus,
-              onEdit: _cardEdit,
-              onDelete: _cardDelete,
+              onBulkDelete: _bulkDelete,
             ),
             SettingsScreen(
               settingsRepo: widget.settingsRepo,
@@ -276,10 +357,6 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.folder_open_outlined),
             label: S.navClaims,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_none_rounded),
-            label: S.navReminders,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

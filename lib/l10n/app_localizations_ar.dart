@@ -58,13 +58,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashOpenClaims => 'مطالبات مفتوحة';
 
   @override
-  String get dashClosedClaims => 'مطالبات مغلقة';
+  String get dashClosedClaims => 'مطالبات منتهية';
 
   @override
   String get dashDueToday => 'متابعة مستحقة اليوم';
 
   @override
   String get dashOverdue => 'متابعات متأخرة';
+
+  @override
+  String get dashAwaitingApproval => 'مطالبات بانتظار الموافقة';
 
   @override
   String get dashNeedsAttention => 'تحتاج إلى انتباهك';
@@ -88,16 +91,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get filterOverdue => 'متأخرة';
 
   @override
-  String get filterClosed => 'المغلقة';
+  String get sortTooltip => 'ترتيب';
 
   @override
-  String get searchHint => 'رقم المطالبة، اسم العميل، الجوال، رقم الحادث…';
+  String get sortDefault => 'الترتيب الافتراضي';
+
+  @override
+  String get sortSubmissionNewest => 'تاريخ التقديم: الأحدث أولاً';
+
+  @override
+  String get sortSubmissionOldest => 'تاريخ التقديم: الأقدم أولاً';
+
+  @override
+  String get sortUpdatedNewest => 'آخر تحديث: الأحدث أولاً';
+
+  @override
+  String get sortUpdatedOldest => 'آخر تحديث: الأقدم أولاً';
+
+  @override
+  String get lastUpdateLabel => 'آخر تحديث';
+
+  @override
+  String get filterClosed => 'المنتهية';
+
+  @override
+  String get clearFilters => 'مسح المرشحات';
+
+  @override
+  String get searchHint => 'ابحث باللوحة، الاسم، رقم المطالبة، المركبة…';
 
   @override
   String get claimsEmpty => 'لا توجد مطالبات مطابقة.';
 
   @override
   String get loadFailed => 'تعذّر تحميل البيانات الآن. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get selectClaims => 'تحديد المطالبات';
+
+  @override
+  String get selectAll => 'تحديد الكل';
+
+  @override
+  String get deselectAll => 'إلغاء تحديد الكل';
+
+  @override
+  String selectedCount(int count) {
+    return 'المحددة: $count';
+  }
 
   @override
   String get claimNumberLabel => 'رقم المطالبة';
@@ -130,10 +171,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noPlate => 'بدون لوحة';
 
   @override
+  String get vehicleTypeLabel => 'نوع المركبة';
+
+  @override
+  String get sectionCustomerInfo => 'معلومات العميل';
+
+  @override
+  String get sectionAccidentInfo => 'معلومات الحادث والمركبة';
+
+  @override
+  String get sectionClaimInfo => 'معلومات المطالبة وشركة التأمين';
+
+  @override
+  String get insurerOther => 'أخرى';
+
+  @override
+  String get insurerOtherLabel => 'اسم شركة التأمين';
+
+  @override
   String get vehiclePlateLabel => 'رقم اللوحة';
 
   @override
-  String get customerInsurerLabel => 'شركة تأمين العميل';
+  String get customerInsurerLabel => 'شركة التأمين';
+
+  @override
+  String get insuranceMobileLabel => 'جوال الشركة';
 
   @override
   String get liabilityPercentLabel => 'نسبة المسؤولية';
@@ -199,7 +261,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get csvErrorLiability =>
-      'نسبة المسؤولية يجب أن تكون فارغة أو 0 أو 50 أو 100.';
+      'نسبة المسؤولية يجب أن تكون فارغة أو 0 أو 25 أو 50 أو 75 أو 100.';
 
   @override
   String get csvErrorDate =>
@@ -273,6 +335,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get attachmentAdd => 'إضافة مرفق';
+
+  @override
+  String get attachmentAddPhotos => 'إضافة صور';
+
+  @override
+  String get attachmentAddVideos => 'إضافة فيديو';
+
+  @override
+  String get videoPlay => 'تشغيل';
+
+  @override
+  String get videoPause => 'إيقاف مؤقت';
 
   @override
   String get attachmentOpenFailed =>
@@ -377,11 +451,39 @@ class AppLocalizationsAr extends AppLocalizations {
   String get futureFollowUpRequired => 'موعد المتابعة يجب أن يكون في المستقبل';
 
   @override
+  String get pickFromContacts => 'إضافة من جهات الاتصال';
+
+  @override
+  String get contactPickFailed => 'تعذّر فتح جهات الاتصال';
+
+  @override
+  String get callFailed => 'تعذّر فتح الهاتف';
+
+  @override
   String get deleteClaimTitle => 'حذف المطالبة؟';
 
   @override
   String get deleteClaimBody =>
       'سيتم حذف المطالبة وسجل حالاتها وتذكيراتها ومرفقاتها نهائيًا.';
+
+  @override
+  String deleteClaimsTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'حذف $count من المطالبات؟',
+      many: 'حذف $count من المطالبات؟',
+      few: 'حذف $count مطالبات؟',
+      two: 'حذف المادتين؟',
+      one: 'حذف المطالبة؟',
+      zero: 'حذف جميع المطالبات؟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteClaimsBody =>
+      'سيتم حذف هذه المطالبات وسجلات حالاتها وتذكيراتها ومرفقاتها نهائيًا.';
 
   @override
   String get closeClaimTitle => 'إغلاق المطالبة؟';

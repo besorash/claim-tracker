@@ -15,18 +15,69 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
+import 'package:claim_tracker/core/constants/insurers.dart';
 import 'package:claim_tracker/app/home_shell.dart';
 import 'package:claim_tracker/core/database/app_database.dart';
 import 'package:claim_tracker/core/database/claims_repository.dart';
 import 'package:claim_tracker/core/database/settings_repository.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/core/models/claim.dart';
+import 'package:claim_tracker/core/models/reminder.dart';
+import 'package:claim_tracker/core/notifications/notification_service.dart';
+import 'package:claim_tracker/core/notifications/reminder_scheduler.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/claims/claim_details_screen.dart';
 import 'package:claim_tracker/features/claims/claim_form_screen.dart';
 
-Widget _harness(AppDatabase db, ThemeMode mode) {
+/// Recording scheduler for the shell's reminder flows (no method channels on
+/// host). Defaults mirror "everything granted, exact alarms allowed" so the
+/// permission dialogs never appear in these tests.
+class FakeScheduler implements ReminderScheduler {
+  final List<Reminder> scheduled = [];
+  final List<int> cancelled = [];
+
+  @override
+  Future<void> cancelReminder(int notificationId) async =>
+      cancelled.add(notificationId);
+
+  @override
+  Future<AlarmPrecision> scheduleReminder(Reminder reminder) async {
+    scheduled.add(reminder);
+    return AlarmPrecision.exact;
+  }
+
+  @override
+  Future<bool> areNotificationsEnabled() async => true;
+
+  @override
+  Future<NotificationPermissionState> requestNotificationsPermission() async =>
+      NotificationPermissionState.granted;
+
+  @override
+  Future<void> reconcile(List<Reminder> enabledReminders) async {}
+
+  @override
+  Future<bool> openAppNotificationSettings() async => true;
+
+  @override
+  Future<bool> canScheduleExactAlarms() async => true;
+
+  @override
+  Future<bool> requestExactAlarmsPermission() async => true;
+
+  @override
+  Future<bool> isIgnoringBatteryOptimizations() async => true;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimizations() async => true;
+}
+
+Widget _harness(
+  AppDatabase db,
+  ThemeMode mode, {
+  ReminderScheduler? scheduler,
+}) {
   return MaterialApp(
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar')],
@@ -52,6 +103,7 @@ Widget _harness(AppDatabase db, ThemeMode mode) {
           ? ThemeMode.dark
           : ThemeMode.light,
       onThemeChanged: (ThemeMode _) {},
+      scheduler: scheduler,
     ),
   );
 }
@@ -197,7 +249,6 @@ void main() {
       for (final String label in <String>[
         S.navDashboard,
         S.navClaims,
-        S.navReminders,
         S.navSettings,
       ]) {
         expect(
@@ -206,6 +257,11 @@ void main() {
           reason: label,
         );
       }
+      // The Follow-ups tab was removed (its filter lives on the claims page).
+      expect(
+        find.descendant(of: nav, matching: find.text(S.navReminders)),
+        findsNothing,
+      );
 
       // RTL direction is applied to the shell.
       final Directionality dir = tester.firstWidget<Directionality>(
@@ -307,9 +363,22 @@ void main() {
           'CLM-E2E',
         );
         await tester.enterText(
-          find.byKey(const Key('field-custInsurer')),
-          'تعاونية',
+          find.byKey(const Key('field-plate')),
+          '4051 VJD',
         );
+        await tester.enterText(
+          find.byKey(const Key('field-vehicleType')),
+          'Camry 2022',
+        );
+        // Insurer comes from the list.
+        final Finder insurer = find.byKey(const Key('field-insurerChoice'));
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump(const Duration(milliseconds: 16));
+        await _tappableInForm(tester, insurer);
+        await tester.tap(insurer);
+        await _settle(tester);
+        await tester.tap(find.text(Insurers.all.first.label).last);
+        await _settle(tester);
         // And the two required dates.
         await _pickDate(tester, 'accident');
         await _pickDate(tester, 'submission');
@@ -349,6 +418,111 @@ void main() {
 
         await raw2.close();
         await dir.delete(recursive: true);
+      });
+    },
+  );
+
+  testWidgets(
+    'add claim WITH a follow-up: date+time pickers appear, and the saved '
+    'reminder is persisted ENABLED with its OS alarm scheduled (the original bug)',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        final ffi.Database raw = await _openInMemory();
+        final AppDatabase db = AppDatabase.fromExisting(raw);
+        final FakeScheduler fake = FakeScheduler();
+
+        await tester.pumpWidget(_harness(db, ThemeMode.light, scheduler: fake));
+        await settle(tester, () => find.text(S.addClaim).evaluate().isNotEmpty);
+        expect(find.text(S.addClaim), findsOneWidget);
+
+        // Open the form through the real FAB.
+        await tester.tap(find.text(S.addClaim));
+        await settle(
+          tester,
+          () => find.byType(ClaimFormScreen).evaluate().isNotEmpty,
+        );
+        await _settle(tester);
+
+        // Required fields (same flow as the plain add e2e above).
+        await tester.enterText(
+          find.byKey(const Key('field-customerName')),
+          'خالد',
+        );
+        await tester.enterText(
+          find.byKey(const Key('field-plate')),
+          '4051 VJD',
+        );
+        await tester.enterText(
+          find.byKey(const Key('field-vehicleType')),
+          'Camry 2022',
+        );
+        final Finder insurer = find.byKey(const Key('field-insurerChoice'));
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump(const Duration(milliseconds: 16));
+        await _tappableInForm(tester, insurer);
+        await tester.tap(insurer);
+        await _settle(tester);
+        await tester.tap(find.text(Insurers.all.first.label).last);
+        await _settle(tester);
+        await _pickDate(tester, 'accident');
+
+        // THE follow-up pick: date dialog … then a TIME dialog must appear.
+        final Finder followUp = find.byKey(const Key('date-followup'));
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump(const Duration(milliseconds: 16));
+        await _tappableInForm(tester, followUp);
+        await tester.tap(followUp);
+        await settle(
+          tester,
+          () => find.byType(DatePickerDialog).evaluate().isNotEmpty,
+        );
+        expect(find.byType(DatePickerDialog), findsOneWidget);
+        await tester.tap(find.text('حسنًا')); // accept the date …
+        await settle(
+          tester,
+          () => find.byType(TimePickerDialog).evaluate().isNotEmpty,
+        );
+        // The regression under test: no time picker used to appear at all.
+        expect(find.byType(TimePickerDialog), findsOneWidget);
+        await tester.tap(find.text('حسنًا').last); // … and the time.
+        await settle(
+          tester,
+          () => find.byType(TimePickerDialog).evaluate().isEmpty,
+        );
+
+        // Save — persists AND schedules through the injected scheduler.
+        FocusManager.instance.primaryFocus?.unfocus();
+        await _tappableInForm(tester, find.text(S.save));
+        await tester.tap(find.text(S.save));
+        await settle(
+          tester,
+          () => find.byType(ClaimFormScreen).evaluate().isEmpty,
+        );
+
+        // Exactly one claim … with an enabled reminder row at the SAME instant.
+        final List<Claim> claims = await ClaimsRepository(db).all();
+        expect(claims, hasLength(1));
+        final Claim c = claims.single;
+        expect(c.nextFollowUpUtcMs, isNotNull);
+
+        final List<Map<String, Object?>> rows = await raw.query(
+          'reminders',
+          where: 'claim_id = ?',
+          whereArgs: [c.id],
+        );
+        expect(rows, hasLength(1));
+        expect(rows.single['enabled'], 1);
+        expect(
+          rows.single['fire_at_utc_ms'],
+          c.nextFollowUpUtcMs!.millisecondsSinceEpoch,
+        );
+
+        // … and exactly ONE OS alarm scheduled for it (stable id == claimId).
+        expect(fake.scheduled, hasLength(1));
+        expect(fake.scheduled.single.notificationId, c.id);
+        expect(fake.scheduled.single.fireAtUtcMs, c.nextFollowUpUtcMs!.toUtc());
+
+        await raw.close();
       });
     },
   );

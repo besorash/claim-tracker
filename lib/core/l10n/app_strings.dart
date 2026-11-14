@@ -41,6 +41,19 @@ abstract final class S {
   static String get addClaim => _l.addClaim;
   static String get edit => _l.edit;
   static String get noPlate => _l.noPlate;
+  static String get sortTooltip => _l.sortTooltip;
+  static String get sortDefault => _l.sortDefault;
+  static String get sortSubmissionNewest => _l.sortSubmissionNewest;
+  static String get sortSubmissionOldest => _l.sortSubmissionOldest;
+  static String get sortUpdatedNewest => _l.sortUpdatedNewest;
+  static String get sortUpdatedOldest => _l.sortUpdatedOldest;
+  static String get lastUpdateLabel => _l.lastUpdateLabel;
+  static String get vehicleTypeLabel => _l.vehicleTypeLabel;
+  static String get sectionCustomerInfo => _l.sectionCustomerInfo;
+  static String get sectionAccidentInfo => _l.sectionAccidentInfo;
+  static String get sectionClaimInfo => _l.sectionClaimInfo;
+  static String get insurerOther => _l.insurerOther;
+  static String get insurerOtherLabel => _l.insurerOtherLabel;
   static String get save => _l.save;
   static String get cancel => _l.cancel;
   static String get delete => _l.delete;
@@ -55,6 +68,7 @@ abstract final class S {
   static String get dashClosedClaims => _l.dashClosedClaims;
   static String get dashDueToday => _l.dashDueToday;
   static String get dashOverdue => _l.dashOverdue;
+  static String get dashAwaitingApproval => _l.dashAwaitingApproval;
   static String get dashNeedsAttention => _l.dashNeedsAttention;
   static String get dashRecentlyUpdated => _l.dashRecentlyUpdated;
   static String get dashEmpty => _l.dashEmpty;
@@ -65,8 +79,15 @@ abstract final class S {
   static String get filterFollowUp => _l.filterFollowUp;
   static String get filterOverdue => _l.filterOverdue;
   static String get filterClosed => _l.filterClosed;
+  static String get clearFilters => _l.clearFilters;
   static String get searchHint => _l.searchHint;
   static String get claimsEmpty => _l.claimsEmpty;
+
+  // Selection mode / bulk delete (claims list).
+  static String get selectClaims => _l.selectClaims;
+  static String get selectAll => _l.selectAll;
+  static String get deselectAll => _l.deselectAll;
+  static String selectedCount(int count) => _l.selectedCount(count);
 
   /// Shown when a screen's initial load fails (e.g. the database handle was
   /// closed mid-load during a restore swap) — with a retry affordance.
@@ -116,6 +137,7 @@ abstract final class S {
       _l.csvExtraColumnsSaved(columns);
   static String get extraFieldsLabel => _l.extraFieldsLabel;
   static String get submissionDateLabel => _l.submissionDateLabel;
+  static String get insuranceMobileLabel => _l.insuranceMobileLabel;
   static String get insurerRefLabel => _l.insurerRefLabel;
   static String get claimAmountLabel => _l.claimAmountLabel;
   static String get notesLabel => _l.notesLabel;
@@ -127,6 +149,10 @@ abstract final class S {
   static String get attachmentsLabel => _l.attachmentsLabel;
   static String get attachmentsEmpty => _l.attachmentsEmpty;
   static String get attachmentAdd => _l.attachmentAdd;
+  static String get attachmentAddPhotos => _l.attachmentAddPhotos;
+  static String get attachmentAddVideos => _l.attachmentAddVideos;
+  static String get videoPlay => _l.videoPlay;
+  static String get videoPause => _l.videoPause;
   static String get attachmentOpenFailed => _l.attachmentOpenFailed;
   static String get attachmentMissing => _l.attachmentMissing;
   static String get deleteAttachmentTitle => _l.deleteAttachmentTitle;
@@ -167,9 +193,16 @@ abstract final class S {
   static String get invalidDate => _l.invalidDate;
   static String get futureFollowUpRequired => _l.futureFollowUpRequired;
 
+  // Contacts / calls (contact picker + tap-to-call).
+  static String get pickFromContacts => _l.pickFromContacts;
+  static String get contactPickFailed => _l.contactPickFailed;
+  static String get callFailed => _l.callFailed;
+
   // Delete / close confirmations (spec §11).
   static String get deleteClaimTitle => _l.deleteClaimTitle;
   static String get deleteClaimBody => _l.deleteClaimBody;
+  static String deleteClaimsTitle(int count) => _l.deleteClaimsTitle(count);
+  static String get deleteClaimsBody => _l.deleteClaimsBody;
   static String get closeClaimTitle => _l.closeClaimTitle;
   static String get closeClaimBody => _l.closeClaimBody;
 

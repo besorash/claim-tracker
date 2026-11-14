@@ -82,6 +82,9 @@ abstract final class ClaimStatus {
 
   static const String defaultKey = 'new';
 
+  /// The "Awaiting Approval" status key (the dashboard metric tile).
+  static const String awaitingApprovalKey = 'awaiting_approval';
+
   /// The explicit "Closed" status (what closing a claim sets).
   static final ClaimStatusMeta closed = all.last;
 

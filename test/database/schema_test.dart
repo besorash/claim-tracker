@@ -202,8 +202,122 @@ void main() {
           .toList();
       expect(claims.single.claimNumber, 'CLM-V2');
       expect(claims.single.extraFields, isEmpty);
+
+      // v3 → v4: vehicle type added, accident number kept.
+      await db.update('claims', <String, Object?>{'accident_number': 'A-1'});
+      await AppDatabase.migrate(db, from: 3, to: 4);
+      final Claim v4 = Claim.fromRow((await db.query('claims')).single);
+      expect(v4.claimNumber, 'CLM-V2');
+      expect(v4.accidentNumber, 'A-1');
+      expect(v4.vehicleType, isNull);
       await db.close();
     });
+
+    test(
+      'v5 → v6 keeps every column and row; submission date optional',
+      () async {
+        final ffi.Database db = await openInMemory();
+        // Production migrates with foreign keys OFF (switched on in onOpen).
+        await AppDatabase.migrate(db, from: 0, to: 5);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        await db.insert('claims', <String, Object?>{
+          'customer_name': 'عميل',
+          'customer_mobile': '0501234567',
+          'accident_date_utc_ms': now,
+          'vehicle_plate': '4051 VJD',
+          'vehicle_type': 'Camry',
+          'claim_number': 'CLM-V5',
+          'customer_insurance_company': 'GIG',
+          'submission_date_utc_ms': now,
+          'notes': 'n',
+          'notes_updated_utc_ms': now,
+          'extra_fields': '{"agent":"Fahad"}',
+          'liability_percent': 50,
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+        await db.insert('status_history', <String, Object?>{
+          'claim_id': 1,
+          'previous_status_key': '',
+          'new_status_key': 'new',
+          'changed_at_utc_ms': now,
+        });
+
+        await AppDatabase.migrate(db, from: 5, to: 6);
+        await db.execute('PRAGMA foreign_keys = ON');
+
+        final Claim kept = Claim.fromRow((await db.query('claims')).single);
+        expect(kept.claimNumber, 'CLM-V5');
+        expect(kept.vehicleType, 'Camry');
+        expect(kept.liabilityPercent, 50);
+        expect(kept.extraFields, <String, String>{'agent': 'Fahad'});
+        expect(kept.notesUpdatedUtcMs, isNotNull);
+        expect(
+          (await db.rawQuery('SELECT COUNT(*) c FROM status_history'))
+              .first['c'],
+          1,
+          reason: 'the rebuild must not cascade-delete history',
+        );
+
+        // A claim without submission date, claim number or mobile now fits.
+        await db.insert('claims', <String, Object?>{
+          'customer_name': 'بدون',
+          'accident_date_utc_ms': now,
+          'customer_insurance_company': 'GIG',
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+        final Claim bare = Claim.fromRow(
+          (await db.query('claims', where: "customer_name = 'بدون'")).single,
+        );
+        expect(bare.submissionDateUtcMs, isNull);
+        expect(bare.claimNumberDisplay, '—');
+        await db.close();
+      },
+    );
+
+    test(
+      'v6 → v7 adds insurance_mobile; existing claims keep their data',
+      () async {
+        final ffi.Database db = await openInMemory();
+        await AppDatabase.migrate(db, from: 0, to: 6);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        await db.insert('claims', <String, Object?>{
+          'customer_name': 'عميل',
+          'customer_mobile': '0501234567',
+          'accident_date_utc_ms': now,
+          'vehicle_plate': '4051 VJD',
+          'vehicle_type': 'Camry',
+          'claim_number': 'CLM-V6',
+          'customer_insurance_company': 'GIG',
+          'insurer_reference_number': 'REF-9',
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+
+        await AppDatabase.migrate(db, from: 6, to: 7);
+
+        // The old row survives with the new column null…
+        final Claim kept = Claim.fromRow((await db.query('claims')).single);
+        expect(kept.claimNumber, 'CLM-V6');
+        expect(kept.insurerReferenceNumber, 'REF-9');
+        expect(kept.insuranceMobile, isNull);
+
+        // …and the new column can be written and read back.
+        await db.execute('UPDATE claims SET insurance_mobile = ?', [
+          '0561234567',
+        ]);
+        final Claim updated = Claim.fromRow((await db.query('claims')).single);
+        expect(updated.insuranceMobile, '0561234567');
+        await db.close();
+      },
+    );
 
     test('v2 migration does not use ALTER TABLE DROP COLUMN', () async {
       // Android 13 and older ship SQLite < 3.35, where DROP COLUMN is a

@@ -564,3 +564,124 @@ After `restoreFrom` swapped the DB, pre-restore pending alarms could still fire 
 | `flutter test` full, final (after `dart format lib test`) | 151/151 passed |
 | `flutter build ios` / IPA | **not run** — needs macOS; first real check is the CI run |
 | Swift code (`AppDelegate.swift`) | **not compiled locally** — compiled for the first time by CI |
+
+---
+
+## 2026-11-13 — Multi-select + bulk delete on the claims list (owner request)
+
+**Scope**: select multiple claims in the claims list and delete them at once, without breaking existing behavior.
+
+### Changes
+
+- `lib/features/claims/claims_list_screen.dart` — selection mode: app-bar entry ("Select claims"), close control, live "N selected" title, select-all/deselect-all toggle (covers exactly the visible, filtered list), bulk-delete action disabled until ≥1 is checked. Card taps check instead of navigating; checked ids are pruned on every reload so a claim can never be deleted while invisible.
+- `lib/features/claims/claim_card.dart` — optional `selection`/`onSelectionChanged`: leading checkbox per card (`card-check-<id>`), single-claim action row hidden in selection mode, normal mode unchanged.
+- `lib/features/claims/claim_dialogs.dart` — `confirmDeleteClaims(context, count)`: same style as the single-delete dialog, names the exact number of claims.
+- `lib/features/claims/claim_actions.dart` — `ClaimActions.deleteClaims(ids)`: one pass over enabled reminders (cancel selected alarms first), attachment files removed best-effort per file, claim rows deleted last in one transaction (FK cascade removes history + attachment rows). Single-delete path untouched.
+- `lib/app/home_shell.dart` — `_bulkDelete` runs the same flow as `_cardDelete` (attachment-store resolution included) and bumps every destination; wired via the new optional `onBulkDelete`.
+- l10n: EN/AR strings incl. ICU plurals for the dialog title (`=1{Delete this claim?}` / proper Arabic zero-one-two-few-many forms); regenerated via `flutter gen-l10n`.
+
+### Verification (actually run)
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `dart format --set-exit-if-changed lib test` | clean (2 pre-existing files also reflowed by Dart 3.13's formatter — style only, no semantic change) |
+| `flutter test` full suite | **227/227 passed** (incl. new: bulk-delete orchestration ×3, selection-mode UI ×2) |
+| `flutter build apk --release` | √ Built (56.3 MB), installed on emulator-5554 — Success |
+| On-device flow (uiautomator-driven) | entered selection mode → checked 1 of 1726 claims ("1 selected" title, others unchecked) → dialog "Delete this claim?" (singular form correct) → confirmed → list back to normal mode, claim gone, dashboard totals 1726→1725 / open 136→135 / awaiting-approval 3→2 |
+| Crashes during the flow | none — app process alive throughout, no FATAL/Exception lines in its logcat |
+
+**Note**: one imported test claim (5835 XJR / LINXON) was deleted on the emulator as part of the end-to-end proof.
+
+---
+
+## 2026-11-13 — Vehicle plate always displayed LTR in EN and AR interfaces (owner request)
+
+**Scope**: the vehicle plate field must always render left-to-right, identically in both the English and Arabic interfaces. Before: plate widgets inherited the ambient directionality, so under the AR UI they rendered right-aligned with an RTL base direction (mixed-letter plates like `5782 RLR` at risk of reordering).
+
+### Changes
+
+- `lib/features/claims/claim_form_screen.dart` — `_field()` gained an optional `ltr:` flag; when set the whole field (label + input) renders inside `Directionality(textDirection: TextDirection.ltr)` so typing/caret behavior is deterministic LTR. The plate field passes it.
+- `lib/features/claims/claim_card.dart` — card plate text wrapped in explicit LTR direction + `TextAlign.left`.
+- `lib/features/dashboard/dashboard_screen.dart` — needs-attention row plate: same LTR wrap + left alignment.
+- `lib/features/claims/claim_details_screen.dart` — `_row()` gained an optional `ltr:` flag; the plate value renders in an explicit LTR context aligned left (label/value layout per language otherwise unchanged).
+- New regression file `test/features/plate_ltr_test.dart`: 6 tests (AR + EN) asserting the NEAREST `Directionality` ancestor of each plate widget (and the form's editable region) is LTR — fails if any site regresses to inheriting ambient direction.
+
+### Verification (actually run)
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `dart format` (touched files) | clean |
+| `flutter test` full suite | **260/260 passed** (incl. the 6 new plate-LTR tests; run 3× in a row for stability) |
+| `flutter build apk --release` | ✓ Built — `build/app/outputs/flutter-apk/app-release.apk` (59,082,524 bytes), installed on emulator-5554 → Success (data preserved: ~1725 imported claims intact) |
+| On-device AR flow (accessibility-tree dumps) | launch clean; claims-list cards show plates `5527 HRA` / `5782 RLR` / `3870 LJB` / `8763 DZA` in correct order inside the RTL layout; details screen plate carries an explicit LTR embedding (U+202A…U+202C — Flutter marks only parts with an explicit direction, i.e. our wrapper) while unwrapped values on the same screen carry none |
+| On-device EN flow (accessibility-tree dumps) | switched UI to English via Settings → claims list + details render LTR with plates unchanged (`Vehicle Plate \| 5782 RLR`) |
+| Crashes during the flows | none — app process alive throughout, no FATAL/Exception lines in logcat |
+
+**Note**: TalkBack accessibility was enabled on the emulator to expose Flutter's semantics tree for verification and disabled again afterwards (global `accessibility_enabled` = 0). App UI language was left on English (the spec default); switch back anytime from Settings → Language.
+
+---
+
+## 2026-11-13 (QA session) — Claim details: phone-number alignment + label renames (owner feedback)
+
+**Scope**: Owner-reported issues on the claim details page: (1) customer mobile not aligned like the insurer's number, (2) "Customer's Insurance Company" → "Insurance Company", (3) "Insurance Company Mobile" → "Insurance Mobile".
+
+### Root cause of issue 1 — measured, not guessed
+- `_phoneRow` used `Flexible(label)` + `Expanded(value)`: equal flex factors split the remaining width in half; the label only consumes its natural width, and **its unused share becomes free space that `mainAxisAlignment: spaceBetween` spreads as extra gaps between all children**. The trailing call icon (last child) stays pinned at the row edge — so a shorter-label row ends up with its value box, and thus its number, shifted away from the icon.
+- On-device pixel proof (semantics tree + PNG glyph analysis): `0500000005` ended x=860 with its call icon at 962–1030; `0553454360` ended x=945 with the same icon position → Δ≈85 px. Non-phone rows (`_row`) are unaffected because their value box IS the last flex child and stays pinned (all measured values end within ≤5 px of each other).
+- Reproduced in a controlled widget test against the real screen; the model fit both rows with zero residual (value share 353 px, icon 18 px) before fixing.
+
+### Changes
+- `lib/features/claims/claim_details_screen.dart` — `_phoneRow`: removed the `Flexible` wrapper on the label so only the value box flexes → no free space to distribute; every phone row's number now ends flush against its own call icon, EN and AR alike (one-line change + doc comment documenting the invariant).
+- l10n renames (shared keys — details AND form screens stay in sync): `app_en.arb`: "Customer's Insurance Company" → **"Insurance Company"**, "Insurance Company Mobile" → **"Insurance Mobile"**; mirrored in `app_ar.arb`: "شركة تأمين العميل" → "شركة التأمين", "جوال شركة التأمين" → "جوال الشركة". Regenerated via `flutter gen-l10n`.
+- `lib/core/csv/claims_csv.dart` — legacy import aliases for the two old wordings (EN+AR) so spreadsheets made under the previous UI still import; without this, real user files AND the existing test (`claims_csv_test.dart`: "headers may be the Arabic field names") would break.
+
+### Verification (actually run)
+| Check | Result |
+|---|---|
+| New regression test `phone values sit flush with their call affordance in both rows` (AR harness): equal value-box start edges across both phone rows + 4 px adjacency to each row's own call icon | **Fails without the fix** (left edges 133.875 vs 112.5); passes with it |
+| `flutter analyze` | No issues found |
+| `flutter test` full suite | **262/262 passed** (incl. the new regression test) |
+| `flutter build apk --release` | √ Built (56.3 MB), installed on emulator-5554 → Success, data intact (1725 claims) |
+| On-device pixel measurement post-install (EN UI, claim 5527 HRA / FRAIKIN DAYIM) | Both numbers now end at **x=945** with both call icons at [966..999] — Δ between rows = 0 px; labels render "Insurance Company" (Orient) and "Insurance Mobile" (0553454360) |
+| Crashes during the flows | none — process alive throughout, no FATAL/AndroidRuntime lines in logcat |
+
+**Note**: TalkBack was temporarily enabled for semantics-tree + pixel measurement, then disabled again (`accessibility_enabled` = 0). UI language left on English. Pre-existing Dart 3.13 formatter drift exists in a few contact-picker files (since that feature landed) — left untouched to keep this diff surgical; `dart format lib test` cleans them if desired.
+
+---
+
+## 2026-11-14 — Claim form: reminder date+time pick + reminders actually scheduled on create/edit (owner request)
+
+**Owner report**: "When I add a new claim and choose the reminder appointment, I can only pick the DATE — not the time."
+
+### Root cause (measured, two defects sharing one origin)
+
+1. **Date-only picker.** `claim_form_screen.dart::_pickFollowUp()` called only `showDatePicker` — no `showTimePicker` anywhere in the form file; the stored value silently became midnight of that day. Both other reminder entry points (details screen `_pickReminderDate`, status dialog `claim_dialogs.dart`) already use the date→time pattern.
+2. **Create/edit flows were never wired to reminders at all.** `home_shell._addClaim`'s onSaved was just `_claims.create(c)`; the form model hardcodes `reminderEnabled: false`; a static "التذكير متوقف" row told users reminders don't work there. No reminder row, no OS alarm — so even with time picking added, a reminder set while creating would never fire. The edit path had the same gap (stale alarm at the old time after changing/clearing the follow-up).
+
+### Changes
+
+- `lib/features/claims/claim_form_screen.dart` — `_pickFollowUp()`: date picker **then** time picker (same combine expression as details/dialogs: `DateTime(y,m,d,h,min).toUtc()`; initialTime = stored value's local time, else now); the row displays date+time via `TimeUtils.formatDateTime`; removed the stale "Reminder Disabled" static row.
+- `lib/features/claims/reminder_save_flow.dart` (new) — shared spec §10 flows used by every entry point: `resolveReminderPermissions` + `reportReminderSaveOutcome` (extracted verbatim from details' `_saveReminder`, keys/text identical), plus `scheduleFollowUpOnCreate` and `syncFollowUpAfterEdit` (changed → reschedule/replace; cleared → cancel alarm + remove row; unchanged → no-op).
+- `lib/app/home_shell.dart` — optional `scheduler` seam (null → production singleton); `_addClaim` now creates the claim then runs the create flow when a follow-up was set; `_cardEdit` runs the edit-reconcile after update.
+- `lib/features/claims/claim_details_screen.dart` — `_saveReminder` refactored onto the shared helpers (behavior identical — its existing tests are the guard); `_edit()` now reconciles reminders too.
+- l10n EN: `setNextFollowUp` → "Set next follow-up date and time" (AR already implied an appointment; unchanged). Regenerated via `flutter gen-l10n`.
+
+### Verification (actually run, 2026-11-14)
+
+| Check | Result |
+|---|---|
+| RED first — form picker tests (`--plain-name "follow-up pick"`) | **FAIL as expected**: `Found 0 widgets with type "TimePickerDialog"` (both add-mode and edit-mode tests); flow file: compile fail, functions absent |
+| RED first — flow tests (`form_followup_flow_test.dart`) | FAIL (missing `reminder_save_flow.dart`) → after implementation **4/4 pass** (create persists enabled row + schedules exactly that instant; edit replace/clear/no-op semantics) |
+| New e2e in `widget_test.dart` (real shell, FFI DB, fake scheduler): FAB → form → date dialog → **time dialog** → save | **Pass**: 1 claim, 1 enabled reminder row at the same instant as `claims.next_follow_up_utc_ms`, exactly ONE OS alarm scheduled with stable id == claimId |
+| `dart format lib test` / re-check | clean (0 changed on re-run) |
+| `flutter analyze` | **No issues found** (after 4 lint fixes: 3× `use_build_context_synchronously` mounted guards, 1 unused local in the new test) |
+| `flutter test` full suite — run 1 | **All tests passed — 277/277** |
+| `flutter test` full suite — run 2 (load confidence) | **All tests passed — 277/277** |
+| Release build | √ Built → `build\app\outputs\flutter-apk\app-release.apk` (57.5 MB) |
+| Install on emulator-5554 (`install -r`) | Success — data intact: dashboard semantics dump shows **1725 total claims** unchanged; nothing was created during verification (pickers cancelled out, no save tapped) |
+| On-device proof (TalkBack semantics dumps) | form opens → "Set next follow-up date and time" row visible (stale disabled-row gone) → tap → date dialog (Nov 14, 2026 selected) → OK → **TIME dialog appears: "6:55 AM — Select time / hours / minutes / AM/PM"** — the exact regression, fixed on-device |
+| Launch + crash check (live logcat monitor) | `Displayed … +823ms`; grep of the full session capture for FATAL/ANR/Exception in our PID lineage: **zero matches** |
+
+**Note**: TalkBack re-enabled only for the semantics dumps and disabled again (`accessibility_enabled` = 0). UI language left on English (pre-existing owner setting). Live logcat monitor for the emulator kept running throughout.

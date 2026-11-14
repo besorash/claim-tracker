@@ -231,6 +231,49 @@ class ClaimActions {
     }
   }
 
+  /// Bulk variant of [deleteClaim] for the claims list's selection mode:
+  /// deletes every claim in [claimIds] with the same guarantees as a single
+  /// deletion — pending OS alarms are cancelled FIRST (so no stale alarm
+  /// survives), attachment files are removed best-effort per file (one failing
+  /// file never blocks the rest or any row), and the claim rows go last, all
+  /// in one transaction. FK cascade removes each claim's history and
+  /// attachment rows. The enabled-reminder table is queried once for the whole
+  /// selection instead of once per claim.
+  Future<void> deleteClaims(Iterable<int> claimIds) async {
+    final Set<int> ids = claimIds.toSet();
+    if (ids.isEmpty) return;
+
+    // One pass over every enabled reminder: cancel the selected claims' alarms,
+    // then drop all of their reminder rows.
+    final List<Reminder> pending = await _reminders.allEnabled();
+    for (final Reminder r in pending.where((r) => ids.contains(r.claimId))) {
+      await _safeCancel(r.notificationId);
+    }
+
+    final AttachmentFileService? svc = files;
+    if (svc != null) {
+      for (final int id in ids) {
+        for (final Attachment a in await _attachments.listForClaim(id)) {
+          await _safeDeleteAttachment(svc, a);
+        }
+        await _reminders.removeAllForClaim(id);
+      }
+    } else {
+      for (final int id in ids) {
+        await _reminders.removeAllForClaim(id);
+      }
+    }
+
+    // Delete the claim rows last; FK cascade removes each claim's status
+    // history and attachment rows.
+    final List<int> list = ids.toList();
+    await _db.rawDb.transaction((txn) async {
+      for (final int id in list) {
+        await txn.delete('claims', where: 'id = ?', whereArgs: [id]);
+      }
+    });
+  }
+
   /// Cancel & remove all reminders FIRST (so no stale alarm survives), then
   /// delete the claim's attachment files (best-effort per file — one failure
   /// must not block the rest or the row), then delete the claim. FK cascade

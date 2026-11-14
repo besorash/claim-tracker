@@ -16,13 +16,16 @@ class Claim {
     this.accidentCity,
     this.accidentType,
     this.vehiclePlate,
+    this.vehicleType,
     required this.claimNumber,
     required this.customerInsuranceCompany,
+    this.insuranceMobile,
     this.liabilityPercent,
-    required this.submissionDateUtcMs,
+    this.submissionDateUtcMs,
     this.insurerReferenceNumber,
     this.claimAmountSar,
     this.notes,
+    this.notesUpdatedUtcMs,
     this.extraFields = const <String, String>{},
     required this.statusKey,
     required this.lastStatusUpdateUtcMs,
@@ -47,16 +50,28 @@ class Claim {
   final String? accidentType;
   final String? vehiclePlate;
 
+  /// Vehicle make/model as typed, e.g. "Camry 2022".
+  final String? vehicleType;
+
   // Claim (spec §7.3).
   final String claimNumber;
   final String customerInsuranceCompany;
 
-  /// Liability share of the claim: 0, 50 or 100 (percent). Null = not set.
+  /// The insurance company's contact mobile for this claim (null = none).
+  /// Same Saudi-number rule as the customer mobile when entered.
+  final String? insuranceMobile;
+
+  /// Liability share of the claim: 0, 25, 50, 75 or 100 (percent). Null = not set.
   final double? liabilityPercent;
-  final DateTime submissionDateUtcMs;
+
+  /// Optional since v6 (null = not submitted yet / not recorded).
+  final DateTime? submissionDateUtcMs;
   final String? insurerReferenceNumber;
   final double? claimAmountSar;
   final String? notes;
+
+  /// When the notes were last changed (null = never written).
+  final DateTime? notesUpdatedUtcMs;
 
   /// User-defined fields that came in as extra spreadsheet columns, keyed by
   /// the column header. Stored as JSON; never null (empty = none).
@@ -83,13 +98,16 @@ class Claim {
     String? accidentCity,
     String? accidentType,
     String? vehiclePlate,
+    String? vehicleType,
     String? claimNumber,
     String? customerInsuranceCompany,
+    String? insuranceMobile,
     double? liabilityPercent,
     DateTime? submissionDateUtcMs,
     String? insurerReferenceNumber,
     double? claimAmountSar,
     String? notes,
+    DateTime? notesUpdatedUtcMs,
     Map<String, String>? extraFields,
     String? statusKey,
     DateTime? lastStatusUpdateUtcMs,
@@ -109,15 +127,18 @@ class Claim {
       accidentCity: accidentCity ?? this.accidentCity,
       accidentType: accidentType ?? this.accidentType,
       vehiclePlate: vehiclePlate ?? this.vehiclePlate,
+      vehicleType: vehicleType ?? this.vehicleType,
       claimNumber: claimNumber ?? this.claimNumber,
       customerInsuranceCompany:
           customerInsuranceCompany ?? this.customerInsuranceCompany,
+      insuranceMobile: insuranceMobile ?? this.insuranceMobile,
       liabilityPercent: liabilityPercent ?? this.liabilityPercent,
       submissionDateUtcMs: submissionDateUtcMs ?? this.submissionDateUtcMs,
       insurerReferenceNumber:
           insurerReferenceNumber ?? this.insurerReferenceNumber,
       claimAmountSar: claimAmountSar ?? this.claimAmountSar,
       notes: notes ?? this.notes,
+      notesUpdatedUtcMs: notesUpdatedUtcMs ?? this.notesUpdatedUtcMs,
       extraFields: extraFields ?? this.extraFields,
       statusKey: statusKey ?? this.statusKey,
       lastStatusUpdateUtcMs:
@@ -140,13 +161,16 @@ class Claim {
     'accident_city': accidentCity,
     'accident_type': accidentType,
     'vehicle_plate': vehiclePlate,
+    'vehicle_type': vehicleType,
     'claim_number': claimNumber,
     'customer_insurance_company': customerInsuranceCompany,
+    'insurance_mobile': insuranceMobile,
     'liability_percent': liabilityPercent,
-    'submission_date_utc_ms': submissionDateUtcMs.millisecondsSinceEpoch,
+    'submission_date_utc_ms': submissionDateUtcMs?.millisecondsSinceEpoch,
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
     'notes': notes,
+    'notes_updated_utc_ms': notesUpdatedUtcMs?.millisecondsSinceEpoch,
     'extra_fields': encodeExtraFields(extraFields),
     'status_key': statusKey,
     'last_status_update_utc_ms': lastStatusUpdateUtcMs.millisecondsSinceEpoch,
@@ -170,16 +194,26 @@ class Claim {
     accidentCity: row['accident_city'] as String?,
     accidentType: row['accident_type'] as String?,
     vehiclePlate: row['vehicle_plate'] as String?,
+    vehicleType: row['vehicle_type'] as String?,
     claimNumber: row['claim_number']! as String,
     customerInsuranceCompany: row['customer_insurance_company']! as String,
+    insuranceMobile: row['insurance_mobile'] as String?,
     liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),
-    submissionDateUtcMs: DateTime.fromMillisecondsSinceEpoch(
-      row['submission_date_utc_ms']! as int,
-      isUtc: true,
-    ),
+    submissionDateUtcMs: (row['submission_date_utc_ms'] as int?) == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(
+            row['submission_date_utc_ms']! as int,
+            isUtc: true,
+          ),
     insurerReferenceNumber: row['insurer_reference_number'] as String?,
     claimAmountSar: (row['claim_amount_sar'] as num?)?.toDouble(),
     notes: row['notes'] as String?,
+    notesUpdatedUtcMs: (row['notes_updated_utc_ms'] as int?) == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(
+            row['notes_updated_utc_ms']! as int,
+            isUtc: true,
+          ),
     extraFields: decodeExtraFields(row['extra_fields'] as String?),
     statusKey: row['status_key']! as String,
     lastStatusUpdateUtcMs: DateTime.fromMillisecondsSinceEpoch(
@@ -202,6 +236,18 @@ class Claim {
       isUtc: true,
     ),
   );
+
+  /// Claim number for display: "—" when none was entered.
+  String get claimNumberDisplay => claimNumber.isEmpty ? '—' : claimNumber;
+
+  /// "Last update" as the user means it: the later of the last status change
+  /// and the last notes edit.
+  DateTime get lastActivityUtcMs {
+    final DateTime? notesAt = notesUpdatedUtcMs;
+    return notesAt != null && notesAt.isAfter(lastStatusUpdateUtcMs)
+        ? notesAt
+        : lastStatusUpdateUtcMs;
+  }
 
   /// JSON for the `extra_fields` column; null when there are none.
   static String? encodeExtraFields(Map<String, String> fields) =>

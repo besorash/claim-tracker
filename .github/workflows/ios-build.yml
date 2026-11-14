@@ -11,7 +11,7 @@ name: iOS build
 
 on:
   push:
-    branches: [main, master]
+    branches: ['**']
   workflow_dispatch:
 
 concurrency:
@@ -72,6 +72,34 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry ClaimTracker-unsigned.ipa Payload
           ls -lh ClaimTracker-unsigned.ipa
+
+      - name: Verify the .ipa contents
+        run: |
+          set -euo pipefail
+          APP=Payload/Runner.app
+          test -x "$APP/Runner"
+          test -f "$APP/Info.plist"
+          test -d "$APP/Frameworks/Flutter.framework"
+          test -d "$APP/Frameworks/App.framework"
+          lipo -info "$APP/Runner" | grep -q arm64
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          # Arabic/English home-screen names (mirror Android's values-ar/values).
+          plutil -lint "$APP/ar.lproj/InfoPlist.strings" "$APP/en.lproj/InfoPlist.strings"
+          plutil -p "$APP/ar.lproj/InfoPlist.strings"
+          # App icon (home screen + notification banners): the AppIcon set must
+          # be compiled into the bundle, otherwise iOS falls back to a blank /
+          # cached icon in notifications.
+          test -f "$APP/Assets.car"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$APP/Info.plist" | grep -qx AppIcon
+          ls "$APP"/AppIcon60x60@2x.png
+          xcrun --sdk iphoneos assetutil --info "$APP/Assets.car" | grep -q '"Name" : "AppIcon"'
+          # The 60x60@2x icon must be our logo, not Flutter's default
+          # (Flutter's default icon file is under 1 KB).
+          test "$(stat -f%z "$APP/AppIcon60x60@2x.png")" -gt 5000
+          echo "App icon OK"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -22,6 +22,7 @@
 library;
 
 import '../../features/claims/claim_form_model.dart';
+import '../constants/insurers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ar.dart';
 import '../../l10n/app_localizations_en.dart';
@@ -41,8 +42,10 @@ const List<String> kClaimsCsvColumns = <String>[
   'accident_city',
   'accident_type',
   'vehicle_plate',
+  'vehicle_type',
   'claim_number',
   'customer_insurance_company',
+  'insurance_mobile',
   'submission_date',
   'insurer_reference_number',
   'claim_amount_sar',
@@ -55,12 +58,11 @@ const List<String> kClaimsCsvColumns = <String>[
 /// Columns an import must contain. The others are optional: when one is left
 /// out, new claims get it empty and existing claims keep their stored value.
 const List<String> kRequiredCsvColumns = <String>[
-  'customer_name',
-  'customer_mobile',
+  'vehicle_plate',
   'accident_date',
-  'claim_number',
+  'vehicle_type',
+  'customer_name',
   'customer_insurance_company',
-  'submission_date',
 ];
 
 const List<String> _dateColumns = <String>[
@@ -188,9 +190,13 @@ abstract final class ClaimsCsv {
     'accident_city': c.accidentCity ?? '',
     'accident_type': c.accidentType ?? '',
     'vehicle_plate': c.vehiclePlate ?? '',
+    'vehicle_type': c.vehicleType ?? '',
     'claim_number': c.claimNumber,
     'customer_insurance_company': c.customerInsuranceCompany,
-    'submission_date': _formatDate(c.submissionDateUtcMs),
+    'insurance_mobile': c.insuranceMobile ?? '',
+    'submission_date': c.submissionDateUtcMs == null
+        ? ''
+        : _formatDate(c.submissionDateUtcMs!),
     'insurer_reference_number': c.insurerReferenceNumber ?? '',
     'claim_amount_sar': c.claimAmountSar == null
         ? ''
@@ -325,8 +331,10 @@ abstract final class ClaimsCsv {
       ..accidentCity = text('accident_city')
       ..accidentType = text('accident_type')
       ..vehiclePlate = text('vehicle_plate')
+      ..vehicleType = text('vehicle_type')
       ..claimNumber = text('claim_number')
-      ..customerInsuranceCompany = text('customer_insurance_company')
+      ..customerInsuranceCompany = _insurer(text('customer_insurance_company'))
+      ..insuranceMobile = _mobile(number('insurance_mobile'))
       ..insurerReferenceNumber = text('insurer_reference_number')
       ..notes = text('notes');
 
@@ -353,7 +361,7 @@ abstract final class ClaimsCsv {
     if (status != null) {
       m.statusKey = status;
     } else {
-      fail('status_key', S.csvErrorStatus);
+      fail('status_key', '"${text('status_key')}" — ${S.csvErrorStatus}');
     }
 
     DateTime? date(String column, {int defaultHour = 0}) {
@@ -373,20 +381,21 @@ abstract final class ClaimsCsv {
     m.nextFollowUpUtcMs = date('next_follow_up', defaultHour: 9);
 
     // The same required-field rules as the claim form.
-    final String? nameError = m.validateCustomerName();
-    if (nameError != null) fail('customer_name', nameError);
-    final String? mobileError = m.validateMobile();
-    if (mobileError != null) fail('customer_mobile', mobileError);
-    final String? claimError = m.validateClaimNumber();
-    if (claimError != null) fail('claim_number', claimError);
-    final String? insurerError = m.validateCustomerInsurer();
-    if (insurerError != null) fail('customer_insurance_company', insurerError);
+    final String? plateError = m.validateVehiclePlate();
+    if (plateError != null) fail('vehicle_plate', plateError);
     if (text('accident_date').isEmpty) {
       fail('accident_date', S.requiredField);
     }
-    if (text('submission_date').isEmpty) {
-      fail('submission_date', S.requiredField);
-    }
+    final String? typeError = m.validateVehicleType();
+    if (typeError != null) fail('vehicle_type', typeError);
+    final String? nameError = m.validateCustomerName();
+    if (nameError != null) fail('customer_name', nameError);
+    final String? insurerError = m.validateCustomerInsurer();
+    if (insurerError != null) fail('customer_insurance_company', insurerError);
+    final String? mobileError = m.validateMobile();
+    if (mobileError != null) fail('customer_mobile', mobileError);
+    final String? insMobileError = m.validateInsuranceMobile();
+    if (insMobileError != null) fail('insurance_mobile', insMobileError);
 
     return CsvRowResult(
       id: id,
@@ -422,6 +431,7 @@ abstract final class ClaimsCsv {
       add(l.cityLabel, 'accident_city');
       add(l.accidentTypeLabel, 'accident_type');
       add(l.vehiclePlateLabel, 'vehicle_plate');
+      add(l.vehicleTypeLabel, 'vehicle_type');
       add(l.claimNumberLabel, 'claim_number');
       add(l.customerInsurerLabel, 'customer_insurance_company');
       add(l.submissionDateLabel, 'submission_date');
@@ -435,12 +445,19 @@ abstract final class ClaimsCsv {
     add('status', 'status_key');
     add('الحالة', 'status_key');
     add('amount', 'claim_amount_sar');
+    // Legacy display names from earlier UI wordings (renamed in EN/AR l10n)
+    // keep working as import headers for spreadsheets made with old builds.
+    add("Customer's Insurance Company", 'customer_insurance_company');
+    add('شركة تأمين العميل', 'customer_insurance_company');
     return map;
   }
 
   /// A status cell: the key, or the status name in English or Arabic.
   static String? _statusKey(String raw) {
-    final String wanted = _normalize(raw);
+    // Trailing dots are dropped so "missing docs." matches "missing docs".
+    final String wanted = _normalize(raw).replaceAll(RegExp(r'\.+$'), '');
+    final String? alias = _statusAliases[wanted];
+    if (alias != null) return alias;
     for (final ClaimStatusMeta s in ClaimStatus.all) {
       if (_normalize(s.key) == wanted) return s.key;
       for (final AppLocalizations l in <AppLocalizations>[
@@ -452,6 +469,14 @@ abstract final class ClaimsCsv {
     }
     return null;
   }
+
+  /// Other wordings found in real spreadsheets (normalized, no trailing dot).
+  static const Map<String, String> _statusAliases = <String, String>{
+    'missing docs': 'awaiting_documents',
+    'missing documents': 'awaiting_documents',
+    'pending documents': 'awaiting_documents',
+    'invoice payment': 'processing',
+  };
 
   static String _statusLabel(AppLocalizations l, String key) => switch (key) {
     'new' => l.statusNew,
@@ -498,6 +523,10 @@ abstract final class ClaimsCsv {
     }
     return out.toString();
   }
+
+  /// A listed insurer in any spelling (`ORIENT`, its Arabic name) is stored
+  /// under its list name; any other company is kept as written.
+  static String _insurer(String raw) => Insurers.match(raw)?.en ?? raw;
 
   /// Puts back what a spreadsheet strips from a number cell: the leading `0`
   /// (`569896589` → `0569896589`) or the `+` (`966569896589`).

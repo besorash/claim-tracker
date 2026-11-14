@@ -12,6 +12,17 @@ abstract class AttachmentPicker {
   Future<List<PlatformFile>> pick({required FileType type});
 }
 
+/// Gallery convenience picks on top of the seam (spec §12 extension): concrete
+/// members would force every `implements AttachmentPicker` to re-implement them,
+/// so these are an extension — same call shape, existing fakes untouched.
+extension AttachmentGalleryPick on AttachmentPicker {
+  /// Photo picker from the gallery (multi-select) — delegates with [FileType.image].
+  Future<List<PlatformFile>> pickImages() => pick(type: FileType.image);
+
+  /// Video picker from the gallery (multi-select) — delegates with [FileType.video].
+  Future<List<PlatformFile>> pickVideos() => pick(type: FileType.video);
+}
+
 /// Production implementation wrapping file_picker (spec §12: images, PDFs and
 /// common document types). Note: file_picker 13.x exposes a static API with no
 /// `withData` parameter — bytes are read on demand from the returned path,

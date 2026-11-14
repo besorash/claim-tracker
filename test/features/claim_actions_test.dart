@@ -160,6 +160,65 @@ void main() {
     expect(fake.cancelled, contains(id));
   });
 
+  // ---------------------------------------------------------------------------
+  // Bulk delete (selection mode): same guarantees as a single delete, but for
+  // many claims at once — and the unselected must survive untouched.
+  // ---------------------------------------------------------------------------
+
+  test(
+    'deleteClaims deletes every selected claim; the rest survives',
+    () async {
+      final int a = await seedClaim();
+      final int b = await seedClaim();
+      final int c = await seedClaim(
+        statusKey: 'closed',
+      ); // NOT in the selection
+      await seedReminder(a);
+      await seedReminder(b);
+
+      await actions.deleteClaims(<int>[a, b]);
+
+      expect(await db.claimById(a), isNull);
+      expect(await db.claimById(b), isNull);
+      // The unselected claim and its data are untouched.
+      expect((await db.claimById(c))!.statusKey, 'closed');
+      expect(await reminders.allEnabled(), isEmpty);
+      // Both selected alarms were cancelled; c's (absent) one never touched.
+      expect(fake.cancelled, containsAll(<int>[a, b]));
+    },
+  );
+
+  test('deleteClaims with duplicate/empty ids is safe and a no-op', () async {
+    final int a = await seedClaim();
+    await seedReminder(a);
+
+    await actions.deleteClaims(const <int>[]); // empty: nothing happens at all
+    expect((await db.claimById(a))!.statusKey, 'new');
+    expect(await reminders.allEnabled(), hasLength(1));
+    expect(fake.cancelled, isEmpty);
+
+    await actions.deleteClaims(<int>[a, a]); // duplicates collapse to one id
+    expect(await db.claimById(a), isNull);
+    expect(await reminders.allEnabled(), isEmpty);
+  });
+
+  test(
+    'deleteClaims survives a throwing scheduler (best-effort cancel)',
+    () async {
+      final int a = await seedClaim();
+      final int b = await seedClaim();
+      await seedReminder(a);
+      await seedReminder(b);
+      fake.throwOnCancel = true;
+
+      await actions.deleteClaims(<int>[a, b]); // must not throw
+
+      expect(await db.claimById(a), isNull);
+      expect(await db.claimById(b), isNull);
+      expect(await reminders.allEnabled(), isEmpty);
+    },
+  );
+
   test('changeStatus with SetFollowUp persists status AND schedules', () async {
     final int id = await seedClaim();
     final DateTime fireAt = DateTime.now().toUtc().add(const Duration(days: 2));

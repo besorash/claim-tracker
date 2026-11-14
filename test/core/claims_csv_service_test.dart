@@ -98,6 +98,8 @@ void main() {
         id: 0,
         customerName: name,
         customerMobile: '0501234567',
+        vehiclePlate: '4051 VJD',
+        vehicleType: 'Camry 2022',
         accidentDateUtcMs: DateTime(2026, 10, 1).toUtc(),
         claimNumber: 'CLM-${name.hashCode.abs()}-${t.microsecondsSinceEpoch}',
         customerInsuranceCompany: 'تعاونية',
@@ -158,12 +160,12 @@ void main() {
     // What WPS writes back: M/d/yyyy dates, mobile as a number, plus a row
     // the user added and a column of their own.
     final String file =
-        'id,customer_name,customer_mobile,accident_date,claim_number,'
-        'customer_insurance_company,submission_date,liability_percent,'
-        'status_key,اسم المندوب\r\n'
-        '$id,بسام,501234567,10/1/2026,${before.claimNumber},تعاونية,'
-        '10/5/2026,100,new,فهد\r\n'
-        ',سعد,567897654,11/5/2026,CLM-NEW,GIG,11/12/2026,50,'
+        'id,vehicle_plate,vehicle_type,customer_name,customer_mobile,'
+        'accident_date,claim_number,customer_insurance_company,'
+        'submission_date,liability_percent,status_key,اسم المندوب\r\n'
+        '$id,4051 VJD,Camry 2022,بسام,501234567,10/1/2026,'
+        '${before.claimNumber},تعاونية,10/5/2026,100,new,فهد\r\n'
+        ',4568 DTT,Yaris,سعد,567897654,11/5/2026,CLM-NEW,GIG,11/12/2026,50,'
         'awaiting_review,\r\n';
 
     final CsvImportReport report = await service.importText(file);
@@ -197,10 +199,11 @@ void main() {
     final int id = await seed(name: 'أحمد');
     final Claim before = (await db.claimById(id))!;
     final String file =
-        'id,customer_name,customer_mobile,accident_date,claim_number,'
-        'customer_insurance_company,submission_date\r\n'
-        '$id,أحمد الجديد,0501234567,2026-10-01,${before.claimNumber},'
-        'تعاونية,2026-10-05\r\n';
+        'id,vehicle_plate,vehicle_type,customer_name,customer_mobile,'
+        'accident_date,claim_number,customer_insurance_company,'
+        'submission_date\r\n'
+        '$id,4051 VJD,Camry 2022,أحمد الجديد,0501234567,2026-10-01,'
+        '${before.claimNumber},تعاونية,2026-10-05\r\n';
 
     final CsvImportReport report = await service.importText(file);
 
@@ -292,10 +295,10 @@ void main() {
     final int first = await seed(name: 'أحمد');
     await seed(name: 'سالم');
     final List<String> lines = (await exportText()).split('\r\n');
-    // Break the second data row (liability 75 is not an allowed share).
+    // Break the second data row (liability 30 is not an allowed share).
     final List<String> header = lines.first.split(',');
     final List<String> bad = lines[2].split(',');
-    bad[header.indexOf('liability_percent')] = '75';
+    bad[header.indexOf('liability_percent')] = '30';
     final String csv = '${lines.first}\r\n${lines[1]}\r\n${bad.join(',')}\r\n';
 
     final CsvImportReport report = await service.importText(csv);
