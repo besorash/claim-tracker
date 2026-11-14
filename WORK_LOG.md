@@ -685,3 +685,43 @@ After `restoreFrom` swapped the DB, pre-restore pending alarms could still fire 
 | Launch + crash check (live logcat monitor) | `Displayed … +823ms`; grep of the full session capture for FATAL/ANR/Exception in our PID lineage: **zero matches** |
 
 **Note**: TalkBack re-enabled only for the semantics dumps and disabled again (`accessibility_enabled` = 0). UI language left on English (pre-existing owner setting). Live logcat monitor for the emulator kept running throughout.
+
+---
+
+## 2026-11-14 (iOS) — Android→iOS sync audit + unsigned IPA via GitHub Actions (owner request, `IOS_BUILD_PROMPT.md`)
+
+**Task**: produce an error-free unsigned iOS IPA from the current project state via GitHub Actions; keep all platform settings in sync.
+
+### Repo surgery (no project files touched)
+- The working folder was a **detached worktree copy**: `.git` was a dead gitfile pointing at `D:\Projects\MobileApp\OpenCode-iOSBuild-Testing` (that directory no longer exists) — no usable repo or remote locally. Found the real remote via `gh repo list`: **besorash/claim-tracker** (public). Restored history in place: backed up + removed the dead `.git` file, `git init -b main`, added origin, fetched, pointed `main` at `origin/main` (`update-ref`), built the index with `git read-tree HEAD`.
+- The folder held unpushed work vs `origin/main` (contact picker + tap-to-call feature, icon redesign on both platforms, ar/en InfoPlist.strings, reminder pick flows, new tests) → committed on new branch **`contact-picker-tap-to-call`** and pushed (identity `Majesty <beso.rash@gmail.com>` per prior commits).
+
+### Android→iOS sync audit
+| Item | Finding / action |
+|---|---|
+| App name EN/AR | Already in sync: `CFBundleDisplayName` "Claim Tracker" + `ar.lproj/InfoPlist.strings` "متتبع المطالبات" (= android `values-ar`) and `en.lproj`, wired into the Runner target via a PBXVariantGroup (local unpushed work) |
+| Bundle ID | **Mismatch fixed this session**: iOS was `com.claimtracker.claimTracker` (`flutter create --org com.claimtracker` default, camelCase) → now `com.claimtracker.claim_tracker`, exactly Android's applicationId — 6 `PRODUCT_BUNDLE_IDENTIFIER` sites in `project.pbxproj` (app + RunnerTests variants) |
+| Version | pubspec `1.0.0+1`: `CFBundleShortVersionString=$(FLUTTER_BUILD_NAME)`; CI passes `--build-number=<run#>` → CFBundleVersion |
+| App icon | Already regenerated locally on both platforms from the new design. iOS set complete (all iPhone/iPad sizes + 1024 marketing); pixel-sampled: fully opaque, no transparency — nothing to regenerate |
+| Splash | Consistent: Android plain white (+ night theme) ↔ iOS `systemBackgroundColor` + 1×1 blank LaunchImage placeholder; neither side shows a logo — matches |
+| Permissions | Only required key is `NSPhotoLibraryUsageDescription` (file_picker photo access) — present in en+ar. Android's alarm/battery/boot permissions have no iOS plist equivalent (local notifications need none). Contact picker uses ACTION_PICK / CNContactPickerViewController → deliberately **no** contacts keys on either platform (documented in code comments) |
+| Plugins vs minimums | All resolved plugins require Flutter ≤ 3.47 and iOS min ≤ 12; deployment target 15.0 satisfies all. This Flutter (3.47.9) embeds iOS plugins via **SwiftPM** (`ios/Flutter/ephemeral/Packages` + `GeneratedPluginRegistrant`) — no Podfile by design, so the absence of `ios/Podfile` is correct |
+| url_launcher `tel:` | plain `launchUrl` → no `LSApplicationQueriesSchemes` needed (only `canLaunchUrl` requires it) |
+
+### Local verification (actually run, 2026-11-14)
+| Check | Result |
+|---|---|
+| `flutter pub get` | Got dependencies! |
+| `flutter analyze` | **No issues found** |
+| `flutter test` | **All tests passed — 277/277** |
+
+### GitHub Actions (attempt 1 of max 5 — SUCCESS)
+- Branch push triggered workflow "iOS build" (~8 min total):
+  - Analyze and test ✅ — pub get, analyze clean, 277 tests green on ubuntu-latest.
+  - Build unsigned IPA ✅ — `flutter build ios --release --no-codesign --build-number=<run#>` → zip `Payload/Runner.app` → `ClaimTracker-unsigned.ipa`; then the content-verification step passed: Runner executable, Info.plist, Flutter/App frameworks, arm64 slice (`lipo`), CFBundleIdentifier/DisplayName/version printed via PlistBuddy, ar+en `InfoPlist.strings` linted, `Assets.car` present + flattened `AppIcon60x60@2x.png` > 5 KB (i.e. our logo, not the Flutter default).
+- **Run URL**: https://github.com/besorash/claim-tracker/actions/runs/43556525534
+- **Artifact**: `ClaimTracker-unsigned-ipa`, archive 10,257,456 B (inner IPA 10,302,216 B), artifact sha256 `11e20370…` matches the API digest; valid until 2026-12-14. Download: repo → Actions → that run → Artifacts.
+- Local double-check of the downloaded IPA (independent of CI): two decoders agree byte-for-byte (inner sha256 `c496107c…`); `Payload/Runner.app` contains `Runner` (1.3 MB), `Assets.car` (1.5 MB), `AppIcon60x60@2x.png` 37 KB, all six plugin bundles with `PrivacyInfo.xcprivacy`; bplist decode of bundled `ar.lproj/InfoPlist.strings` = "متتبع المطالبات" ✓.
+
+### Installing on a real iPhone
+The IPA is **unsigned** — install only via re-signing: AltStore / Sideloadly (or any resigner) with your own Apple ID, then trust the developer profile on the device; refresh weekly unless using AltStore's 7-day renewal.
