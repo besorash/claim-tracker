@@ -232,5 +232,12 @@
   "dashGreeting": "أهلاً بك 👋",
   "dashHeroSubtitle": "كل مطالبات الحوادث منظّمة في مكان واحد",
   "dashProgress": "نسبة الإنجاز",
-  "dashStatusOverview": "نظرة على الحالات"
+  "dashStatusOverview": "نظرة على الحالات",
+  "navCustomers": "العملاء",
+  "customersAll": "كل العملاء",
+  "customersCount": "{count} عميل",
+  "customersEmpty": "لا يوجد عملاء بعد. يظهرون هنا عند إضافة المطالبات.",
+  "customersSearchHint": "ابحث باسم العميل أو الجوال",
+  "customerAllClaims": "كل المطالبات",
+  "customerClaimsCount": "{count} مطالبة"
 }

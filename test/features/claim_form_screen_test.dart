@@ -36,6 +36,7 @@ Widget _harness({
   Claim? claim,
   List<Claim>? saved,
   ContactPhonePicker? picker,
+  Map<String, String> customers = const <String, String>{},
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -49,6 +50,7 @@ Widget _harness({
   home: ClaimFormScreen(
     claim: claim,
     picker: picker,
+    customers: customers,
     onSaved: (Claim c) {
       saved?.add(c);
     },
@@ -714,5 +716,48 @@ void main() {
     expect(saved, hasLength(1));
     expect(saved.single.customerMobile, '+966551234567');
     expect(find.text(S.invalidNumber), findsNothing);
+  });
+
+  testWidgets('customer name: focusing lists existing customers, typing '
+      'narrows them, picking fills the name and an empty mobile', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _harness(
+        customers: const <String, String>{
+          'محمد العتيبي': '0551112233',
+          'سارة القحطاني': '0504445566',
+        },
+      ),
+    );
+    await tester.tap(field('customerName'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('customer-option-محمد العتيبي')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('customer-option-سارة القحطاني')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(field('customerName'), 'سارة');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('customer-option-محمد العتيبي')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('customer-option-سارة القحطاني')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(field('customerName')).controller!.text,
+      'سارة القحطاني',
+    );
+    expect(
+      tester.widget<TextField>(field('mobile')).controller!.text,
+      '0504445566',
+    );
+    expect(
+      find.byKey(const Key('customer-option-سارة القحطاني')),
+      findsNothing,
+    );
   });
 }

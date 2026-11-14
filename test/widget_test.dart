@@ -249,6 +249,7 @@ void main() {
       for (final String label in <String>[
         S.navDashboard,
         S.navClaims,
+        S.navCustomers,
         S.navSettings,
       ]) {
         expect(

@@ -1,4 +1,4 @@
-/// App shell (spec §4): bottom navigation with the four primary destinations,
+/// App shell (spec §4): bottom navigation with the primary destinations,
 /// an Add-Claim FAB on the dashboard and claims-list destinations, and
 /// ownership of all cross-screen navigation + persistence so feature screens
 /// stay router-free and testable in isolation.
@@ -24,6 +24,7 @@ import '../features/claims/claims_filter.dart';
 import '../features/claims/claims_list_screen.dart';
 import '../features/claims/reminder_save_flow.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/customers/customers_screen.dart';
 import '../features/dashboard/dashboard_service.dart';
 import '../features/settings/settings_screen.dart';
 
@@ -92,6 +93,10 @@ class _HomeShellState extends State<HomeShell> {
   /// remount — returning from details, any data refresh — restores exactly
   /// what the user had selected instead of resetting to "all".
   String? _listStatus;
+
+  /// Customers tab selection, kept across remounts like the list filter.
+  String? _customer;
+  String? _customerStatus;
 
   /// Bumped after every data mutation. IndexedStack keeps all destinations
   /// alive, so without a remount they would keep showing stale SQLite data —
@@ -179,9 +184,12 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _addClaim() async {
+    final Map<String, String> customers = await _claims.customers();
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ClaimFormScreen(
+          customers: customers,
           // A follow-up picked on the form is a REAL reminder (spec §10):
           // after the claim row exists, persist its enabled reminder and
           // schedule the OS alarm — same permission-aware flow as the details
@@ -225,10 +233,13 @@ class _HomeShellState extends State<HomeShell> {
   );
 
   Future<void> _cardEdit(Claim claim) async {
+    final Map<String, String> customers = await _claims.customers();
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ClaimFormScreen(
           claim: claim,
+          customers: customers,
           onSaved: (Claim saved) async {
             await _claims.update(saved);
             if (!mounted) return;
@@ -323,6 +334,17 @@ class _HomeShellState extends State<HomeShell> {
               onDelete: _cardDelete,
               onBulkDelete: _bulkDelete,
             ),
+            CustomersScreen(
+              key: ValueKey('customers-$_gen'),
+              repo: _claims,
+              initialCustomer: _customer,
+              initialStatus: _customerStatus,
+              onSelectionChanged: (String? customer, String? status) {
+                _customer = customer;
+                _customerStatus = status;
+              },
+              onClaimTapped: (Claim c) => _openClaim(c.id),
+            ),
             SettingsScreen(
               settingsRepo: widget.settingsRepo,
               currentThemeMode: widget.currentThemeMode,
@@ -359,6 +381,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: const Icon(Icons.car_crash_outlined),
             selectedIcon: const Icon(Icons.car_crash_rounded),
             label: S.navClaims,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.groups_outlined),
+            selectedIcon: const Icon(Icons.groups_rounded),
+            label: S.navCustomers,
           ),
           NavigationDestination(
             icon: const Icon(Icons.tune_outlined),

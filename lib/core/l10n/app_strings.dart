@@ -41,6 +41,15 @@ abstract final class S {
   static String get dashProgress => _l.dashProgress;
   static String get dashStatusOverview => _l.dashStatusOverview;
 
+  // Customers.
+  static String get navCustomers => _l.navCustomers;
+  static String get customersAll => _l.customersAll;
+  static String customersCount(int count) => _l.customersCount(count);
+  static String get customersEmpty => _l.customersEmpty;
+  static String get customersSearchHint => _l.customersSearchHint;
+  static String get customerAllClaims => _l.customerAllClaims;
+  static String customerClaimsCount(int count) => _l.customerClaimsCount(count);
+
   // Common actions.
   static String get addClaim => _l.addClaim;
   static String get edit => _l.edit;

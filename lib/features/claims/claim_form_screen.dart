@@ -24,7 +24,12 @@ class ClaimFormScreen extends StatefulWidget {
     this.claim,
     required this.onSaved,
     this.picker,
+    this.customers = const <String, String>{},
   });
+
+  /// Existing customers (name → mobile) offered as a pick list on the
+  /// customer-name field; a new name can still be typed.
+  final Map<String, String> customers;
 
   /// `null` → add mode; otherwise edit mode for this claim.
   final Claim? claim;
@@ -48,6 +53,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
   final ClaimFormModel _model = ClaimFormModel();
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, String?> _errors = {};
+  final FocusNode _nameFocus = FocusNode();
 
   static const List<String> _textFields = [
     'customerName',
@@ -102,6 +108,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
 
   @override
   void dispose() {
+    _nameFocus.dispose();
     for (final TextEditingController c in _controllers.values) {
       c.dispose();
     }
@@ -285,11 +292,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               ),
             ),
             _section(S.sectionCustomerInfo, [
-              _field(
-                'customerName',
-                label: S.customerNameLabel,
-                required: true,
-              ),
+              _customerNameField(),
               _field(
                 'mobile',
                 label: S.mobileLabel,
@@ -508,6 +511,95 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     );
     if (!ltr) return field;
     return Directionality(textDirection: TextDirection.ltr, child: field);
+  }
+
+  /// Customer name with the existing customers as a pick list: focusing the
+  /// field shows them all, typing narrows the list, and any new name can
+  /// still be typed. Picking one also fills an empty mobile field.
+  Widget _customerNameField() {
+    return RawAutocomplete<String>(
+      textEditingController: _controllers['customerName'],
+      focusNode: _nameFocus,
+      optionsBuilder: (TextEditingValue v) {
+        final String q = v.text.trim().toLowerCase();
+        return widget.customers.keys.where(
+          (String n) => n.toLowerCase().contains(q) && n != v.text.trim(),
+        );
+      },
+      onSelected: (String name) => setState(() {
+        _onChanged('customerName', name);
+        _errors['customerName'] = null;
+        final String mobile = widget.customers[name] ?? '';
+        if (_controllers['mobile']!.text.trim().isEmpty && mobile.isNotEmpty) {
+          _controllers['mobile']!.text = mobile;
+          _onChanged('mobile', mobile);
+          _errors['mobile'] = null;
+        }
+      }),
+      fieldViewBuilder: (_, TextEditingController c, FocusNode f, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(
+          key: const Key('field-customerName'),
+          controller: c,
+          focusNode: f,
+          onChanged: (String v) => _onChanged('customerName', v),
+          decoration: InputDecoration(
+            labelText: S.customerNameLabel,
+            errorText: _errors['customerName'],
+            border: const OutlineInputBorder(),
+            suffixIcon: widget.customers.isEmpty
+                ? null
+                : const Icon(Icons.arrow_drop_down_rounded),
+          ),
+        ),
+      ),
+      optionsViewBuilder:
+          (
+            BuildContext context,
+            AutocompleteOnSelected<String> onSelected,
+            Iterable<String> options,
+          ) => Align(
+            alignment: AlignmentDirectional.topStart,
+            child: Material(
+              elevation: 6,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: 280,
+                  maxWidth: MediaQuery.sizeOf(context).width - 40,
+                ),
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shrinkWrap: true,
+                  children: <Widget>[
+                    for (final String name in options)
+                      ListTile(
+                        key: Key('customer-option-$name'),
+                        leading: const IconBubble(
+                          icon: Icons.person_rounded,
+                          color: AppColors.sky,
+                          size: 34,
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: (widget.customers[name] ?? '').isEmpty
+                            ? null
+                            : Text(
+                                widget.customers[name]!,
+                                textDirection: TextDirection.ltr,
+                                textAlign: TextAlign.start,
+                              ),
+                        onTap: () => onSelected(name),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
   }
 
   /// Insurer list in the app's language, plus "Other" to type a company that

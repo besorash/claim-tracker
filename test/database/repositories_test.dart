@@ -58,6 +58,30 @@ void main() {
 
   group('claims repository', () {
     test(
+      'customers: distinct trimmed names A→Z with the latest mobile',
+      () async {
+        await claims.create(sampleClaim(name: 'سعد', claimNumber: 'A'));
+        final int later = await claims.create(
+          sampleClaim(name: ' سعد ', claimNumber: 'B'),
+        );
+        await raw.update(
+          'claims',
+          <String, Object?>{
+            'customer_mobile': '0559999999',
+            'updated_at_utc_ms': DateTime.utc(2030).millisecondsSinceEpoch,
+          },
+          where: 'id = ?',
+          whereArgs: <Object?>[later],
+        );
+        await claims.create(sampleClaim(name: 'أحمد', claimNumber: 'C'));
+
+        final Map<String, String> out = await claims.customers();
+        expect(out.keys.toList(), <String>['أحمد', 'سعد']);
+        expect(out['سعد'], '0559999999');
+      },
+    );
+
+    test(
       'create persists the claim and writes an initial history entry',
       () async {
         final int id = await claims.create(sampleClaim());

@@ -722,4 +722,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashStatusOverview => 'Status overview';
+
+  @override
+  String get navCustomers => 'Customers';
+
+  @override
+  String get customersAll => 'All customers';
+
+  @override
+  String customersCount(int count) {
+    return '$count customers';
+  }
+
+  @override
+  String get customersEmpty =>
+      'No customers yet. They appear here once you add claims.';
+
+  @override
+  String get customersSearchHint => 'Search customer name or mobile';
+
+  @override
+  String get customerAllClaims => 'All claims';
+
+  @override
+  String customerClaimsCount(int count) {
+    return '$count claims';
+  }
 }

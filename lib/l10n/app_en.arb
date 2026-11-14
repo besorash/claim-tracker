@@ -287,5 +287,14 @@
   "dashGreeting": "Welcome back 👋",
   "dashHeroSubtitle": "Every accident claim, organized in one place.",
   "dashProgress": "Resolution progress",
-  "dashStatusOverview": "Status overview"
+  "dashStatusOverview": "Status overview",
+  "navCustomers": "Customers",
+  "customersAll": "All customers",
+  "customersCount": "{count} customers",
+  "@customersCount": {"placeholders": {"count": {"type": "int"}}},
+  "customersEmpty": "No customers yet. They appear here once you add claims.",
+  "customersSearchHint": "Search customer name or mobile",
+  "customerAllClaims": "All claims",
+  "customerClaimsCount": "{count} claims",
+  "@customerClaimsCount": {"placeholders": {"count": {"type": "int"}}}
 }

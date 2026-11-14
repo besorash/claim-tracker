@@ -1393,6 +1393,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status overview'**
   String get dashStatusOverview;
+
+  /// No description provided for @navCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get navCustomers;
+
+  /// No description provided for @customersAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All customers'**
+  String get customersAll;
+
+  /// No description provided for @customersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} customers'**
+  String customersCount(int count);
+
+  /// No description provided for @customersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers yet. They appear here once you add claims.'**
+  String get customersEmpty;
+
+  /// No description provided for @customersSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search customer name or mobile'**
+  String get customersSearchHint;
+
+  /// No description provided for @customerAllClaims.
+  ///
+  /// In en, this message translates to:
+  /// **'All claims'**
+  String get customerAllClaims;
+
+  /// No description provided for @customerClaimsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} claims'**
+  String customerClaimsCount(int count);
 }
 
 class _AppLocalizationsDelegate

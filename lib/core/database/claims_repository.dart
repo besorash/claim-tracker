@@ -240,6 +240,22 @@ class ClaimsRepository {
   Future<int> countWithStatus(String statusKey) =>
       _count('status_key = ?', <Object?>[statusKey]);
 
+  /// Every distinct customer (trimmed name, A→Z) with the mobile from their
+  /// most recently updated claim — the claim form's customer list.
+  Future<Map<String, String>> customers() async {
+    // SQLite: with MAX(), the bare customer_mobile comes from that same row.
+    final List<Map<String, Object?>> rows = await _db.rawDb.rawQuery(
+      'SELECT TRIM(customer_name) AS name, customer_mobile, '
+      'MAX(updated_at_utc_ms) FROM claims '
+      "WHERE TRIM(customer_name) <> '' "
+      'GROUP BY TRIM(customer_name) ORDER BY name',
+    );
+    return <String, String>{
+      for (final Map<String, Object?> r in rows)
+        r['name']! as String: (r['customer_mobile'] as String?) ?? '',
+    };
+  }
+
   /// The [limit] most recently updated claims, newest first.
   Future<List<Claim>> recentlyUpdated(int limit) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(

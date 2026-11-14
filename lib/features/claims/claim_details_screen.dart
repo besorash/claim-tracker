@@ -200,10 +200,13 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
 
   Future<void> _edit() async {
     final Claim current = _claim!;
+    final Map<String, String> customers = await _repo.customers();
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ClaimFormScreen(
           claim: current,
+          customers: customers,
           onSaved: (Claim saved) async {
             await _repo.update(saved);
             if (!mounted) return;

@@ -718,4 +718,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dashStatusOverview => 'نظرة على الحالات';
+
+  @override
+  String get navCustomers => 'العملاء';
+
+  @override
+  String get customersAll => 'كل العملاء';
+
+  @override
+  String customersCount(int count) {
+    return '$count عميل';
+  }
+
+  @override
+  String get customersEmpty =>
+      'لا يوجد عملاء بعد. يظهرون هنا عند إضافة المطالبات.';
+
+  @override
+  String get customersSearchHint => 'ابحث باسم العميل أو الجوال';
+
+  @override
+  String get customerAllClaims => 'كل المطالبات';
+
+  @override
+  String customerClaimsCount(int count) {
+    return '$count مطالبة';
+  }
 }
