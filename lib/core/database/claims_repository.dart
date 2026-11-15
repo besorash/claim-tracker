@@ -164,9 +164,7 @@ class ClaimsRepository {
   Future<List<Claim>> needsFollowUp() async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where:
-          'next_follow_up_utc_ms IS NOT NULL AND status_key NOT IN $_closedIn',
-      whereArgs: ClaimStatus.closedKeys,
+      where: 'next_follow_up_utc_ms IS NOT NULL',
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
@@ -176,8 +174,8 @@ class ClaimsRepository {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
       where:
-          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ? AND status_key NOT IN $_closedIn',
-      whereArgs: [nowUtc.millisecondsSinceEpoch, ...ClaimStatus.closedKeys],
+          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ?',
+      whereArgs: [nowUtc.millisecondsSinceEpoch],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
   }
@@ -188,11 +186,10 @@ class ClaimsRepository {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
       where:
-          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ? AND status_key NOT IN $_closedIn',
+          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ?',
       whereArgs: [
         startUtc.millisecondsSinceEpoch,
         endUtc.millisecondsSinceEpoch,
-        ...ClaimStatus.closedKeys,
       ],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
@@ -222,16 +219,15 @@ class ClaimsRepository {
       _count('status_key IN $_closedIn', ClaimStatus.closedKeys);
 
   Future<int> countOverdue(DateTime nowUtc) => _count(
-    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ? AND status_key NOT IN $_closedIn',
-    <Object?>[nowUtc.millisecondsSinceEpoch, ...ClaimStatus.closedKeys],
+    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ?',
+    <Object?>[nowUtc.millisecondsSinceEpoch],
   );
 
   Future<int> countDueBetween(DateTime startUtc, DateTime endUtc) => _count(
-    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ? AND status_key NOT IN $_closedIn',
+    'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ?',
     <Object?>[
       startUtc.millisecondsSinceEpoch,
       endUtc.millisecondsSinceEpoch,
-      ...ClaimStatus.closedKeys,
     ],
   );
 
@@ -282,15 +278,18 @@ class ClaimsRepository {
   // ---------------------------------------------------------------------------
 
   /// Default order: overdue / due-soon claims first (earliest follow-up
-  /// first), then the most recently updated. Closed claims sink to the end.
+  /// first), then the most recently updated. Closed claims without a
+  /// follow-up sink to the end.
   List<Claim> sortDefault(List<Claim> claims, {DateTime? nowUtc}) {
     final DateTime now = nowUtc ?? DateTime.now().toUtc();
 
     int priority(Claim c) {
-      if (ClaimStatus.isClosedKey(c.statusKey)) return 3;
+      // A follow-up counts whatever the status: closing clears it, so one
+      // on a finished claim was set on purpose.
       final DateTime? fu = c.nextFollowUpUtcMs;
       if (fu != null && !fu.isAfter(now)) return 0; // overdue or due now
       if (fu != null) return 1; // upcoming follow-up
+      if (ClaimStatus.isClosedKey(c.statusKey)) return 3;
       return 2; // no follow-up scheduled
     }
 

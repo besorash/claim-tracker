@@ -285,9 +285,9 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
       case ClaimsFilter.closed:
         return closed;
       case ClaimsFilter.followUp:
-        return followUp != null && !closed;
+        return followUp != null;
       case ClaimsFilter.overdue:
-        return followUp != null && followUp.isBefore(nowUtc) && !closed;
+        return followUp != null && followUp.isBefore(nowUtc);
     }
   }
 

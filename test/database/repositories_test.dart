@@ -141,8 +141,8 @@ void main() {
         ]) {
           final int id = await claims.create(sampleClaim(claimNumber: key));
           await history.changeStatus(claimId: id, newStatusKey: key);
-          // A follow-up date on every claim: closed ones must not show up in
-          // the follow-up or overdue lists either.
+          // A past follow-up on every claim. Closing clears follow-ups, so one
+          // on a finished claim was set on purpose and must still count.
           final Claim c = (await db.claimById(id))!;
           await claims.update(
             c.copyWith(
@@ -171,8 +171,8 @@ void main() {
           ids['approved']!,
           ids['rejected']!,
         });
-        expect(followUp, <int>{ids['compensated']!});
-        expect(overdue, <int>{ids['compensated']!});
+        expect(followUp, ids.values.toSet());
+        expect(overdue, ids.values.toSet());
       },
     );
 

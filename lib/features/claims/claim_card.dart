@@ -54,10 +54,9 @@ class ClaimCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ClaimStatusMeta status = ClaimStatus.byKey(claim.statusKey);
-    final bool closed = status.isClosed;
     final DateTime? followUp = claim.nextFollowUpUtcMs;
     final DateTime nowUtc = DateTime.now().toUtc();
-    final bool showFollowUp = followUp != null && !closed;
+    final bool showFollowUp = followUp != null;
     final bool overdue = showFollowUp && followUp.isBefore(nowUtc);
     final String? plate = claim.vehiclePlate;
     final Color stripe = StatusPalette.accent(status.tone);
