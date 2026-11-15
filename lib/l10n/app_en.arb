@@ -121,7 +121,7 @@
     }
   },
   "csvNoRows": "The file has no claims in it.",
-  "csvDatesMonthFirst": "Dates were read as month/day/year (11/4/2026 = 4 November 2026).",
+  "csvDatesDayFirst": "Dates were read as day/month/year (5/11/2026 = 5 November 2026).",
   "csvExtraColumnsSaved": "Extra columns saved with the claims: {columns}",
   "@csvExtraColumnsSaved": {
     "placeholders": {
@@ -227,6 +227,7 @@
   "reminderInexactWarning": "Exact alarms are not allowed — this reminder may arrive late. Enable the permission in settings so it arrives on time.",
   "settingsBackupRestore": "Backup & Restore",
   "settingsAbout": "About the App",
+  "aboutDeveloper": "This application has been fully developed and designed by Bassam Alrasheed.",
   "appVersion": "Version {version} (build {build})",
   "@appVersion": {
     "placeholders": {

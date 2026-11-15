@@ -163,9 +163,9 @@ void main() {
         'id,vehicle_plate,vehicle_type,customer_name,customer_mobile,'
         'accident_date,claim_number,customer_insurance_company,'
         'submission_date,liability_percent,status_key,اسم المندوب\r\n'
-        '$id,4051 VJD,Camry 2022,بسام,501234567,10/1/2026,'
-        '${before.claimNumber},تعاونية,10/5/2026,100,new,فهد\r\n'
-        ',4568 DTT,Yaris,سعد,567897654,11/5/2026,CLM-NEW,GIG,11/12/2026,50,'
+        '$id,4051 VJD,Camry 2022,بسام,501234567,1/10/2026,'
+        '${before.claimNumber},تعاونية,5/10/2026,100,new,فهد\r\n'
+        ',4568 DTT,Yaris,سعد,567897654,5/11/2026,CLM-NEW,GIG,12/11/2026,50,'
         'awaiting_review,\r\n';
 
     final CsvImportReport report = await service.importText(file);

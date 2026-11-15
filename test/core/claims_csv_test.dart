@@ -333,29 +333,32 @@ void main() {
       );
     });
 
-    test('month-first slash dates (WPS) are read, and flagged as assumed', () {
+    test(
+      'ambiguous slash dates are read day first, and flagged as assumed',
+      () {
+        final CsvDocument doc = parseOk(
+          '$required\r\n'
+          '1234 ABC,Camry,سعد,567897654,5/11/2026,CLM-1,GIG,12/11/2026\r\n',
+        );
+        expect(doc.dateOrder, CsvDateOrder.dayFirst);
+        expect(doc.dateOrderAssumed, isTrue);
+        final CsvRowResult row = ClaimsCsv.toForm(
+          doc.records.single,
+          dateOrder: doc.dateOrder,
+        );
+        expect(row.errors, isEmpty);
+        expect(row.model!.accidentDateUtcMs, DateTime(2026, 11, 5).toUtc());
+        // The spreadsheet dropped the leading zero; it is put back.
+        expect(row.model!.customerMobile, '0567897654');
+      },
+    );
+
+    test('a day above 12 in second place switches to month-first', () {
       final CsvDocument doc = parseOk(
         '$required\r\n'
-        '1234 ABC,Camry,سعد,567897654,11/5/2026,CLM-1,GIG,11/12/2026\r\n',
+        '1234 ABC,Camry,سعد,0567897654,11/4/2026,CLM-1,GIG,10/31/2026\r\n',
       );
       expect(doc.dateOrder, CsvDateOrder.monthFirst);
-      expect(doc.dateOrderAssumed, isTrue);
-      final CsvRowResult row = ClaimsCsv.toForm(
-        doc.records.single,
-        dateOrder: doc.dateOrder,
-      );
-      expect(row.errors, isEmpty);
-      expect(row.model!.accidentDateUtcMs, DateTime(2026, 11, 5).toUtc());
-      // The spreadsheet dropped the leading zero; it is put back.
-      expect(row.model!.customerMobile, '0567897654');
-    });
-
-    test('a day above 12 anywhere in the file switches to day-first', () {
-      final CsvDocument doc = parseOk(
-        '$required\r\n'
-        '1234 ABC,Camry,سعد,0567897654,4/11/2026,CLM-1,GIG,31/10/2026\r\n',
-      );
-      expect(doc.dateOrder, CsvDateOrder.dayFirst);
       expect(doc.dateOrderAssumed, isFalse);
       final CsvRowResult row = ClaimsCsv.toForm(
         doc.records.single,

@@ -62,7 +62,6 @@ jobs:
       - name: Build iOS app (no code signing)
         run: >
           flutter build ios --release --no-codesign
-          --build-number=${{ github.run_number }}
 
       - name: Package Runner.app into an .ipa
         run: |

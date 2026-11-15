@@ -354,8 +354,10 @@ void main() {
           'updated_at_utc_ms': now,
         });
         final Claim sparse = Claim.fromRow(
-          (await db.query('claims', where: "claim_number = 'ONLY-NUMBER'"))
-              .single,
+          (await db.query(
+            'claims',
+            where: "claim_number = 'ONLY-NUMBER'",
+          )).single,
         );
         expect(sparse.accidentDateUtcMs, isNull);
         expect(await db.query('sheet_sync_state'), isEmpty);

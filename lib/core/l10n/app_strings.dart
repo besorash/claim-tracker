@@ -150,6 +150,8 @@ abstract final class S {
   static String get csvNoRows => _l.csvNoRows;
   static String csvUnknownIdsAdded(int count) => _l.csvUnknownIdsAdded(count);
 
+  static String get aboutDeveloper => _l.aboutDeveloper;
+
   // Google Sheets sync.
   static String get sheetsCardTitle => _l.sheetsCardTitle;
   static String get sheetsSyncAction => _l.sheetsSyncAction;
@@ -170,7 +172,7 @@ abstract final class S {
   static String get sheetsWrongKey => _l.sheetsWrongKey;
   static String get sheetsNoInternet => _l.sheetsNoInternet;
   static String get sheetsBadResponse => _l.sheetsBadResponse;
-  static String get csvDatesMonthFirst => _l.csvDatesMonthFirst;
+  static String get csvDatesDayFirst => _l.csvDatesDayFirst;
   static String csvExtraColumnsSaved(String columns) =>
       _l.csvExtraColumnsSaved(columns);
   static String get extraFieldsLabel => _l.extraFieldsLabel;

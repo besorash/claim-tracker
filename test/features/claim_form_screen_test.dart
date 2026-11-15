@@ -764,9 +764,7 @@ void main() {
   testWidgets('customer name: "Other" clears the field for a new name and '
       'closes the list', (WidgetTester tester) async {
     await tester.pumpWidget(
-      _harness(
-        customers: const <String, String>{'محمد العتيبي': '0551112233'},
-      ),
+      _harness(customers: const <String, String>{'محمد العتيبي': '0551112233'}),
     );
     await tester.tap(field('customerName'));
     await tester.pumpAndSettle();
@@ -777,10 +775,7 @@ void main() {
     expect(name.controller!.text, isEmpty);
     expect(name.focusNode!.hasFocus, isTrue);
     expect(find.byKey(const Key('customer-option-other')), findsNothing);
-    expect(
-      find.byKey(const Key('customer-option-محمد العتيبي')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('customer-option-محمد العتيبي')), findsNothing);
 
     await tester.enterText(field('customerName'), 'عميل جديد');
     await tester.pumpAndSettle();

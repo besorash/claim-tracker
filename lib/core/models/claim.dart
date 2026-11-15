@@ -45,6 +45,7 @@ class Claim {
 
   // Accident (spec §7.2).
   final String? accidentNumber;
+
   /// Null since v8: a claim synced from a sheet row may not have one yet.
   final DateTime? accidentDateUtcMs;
   final String? accidentCity;

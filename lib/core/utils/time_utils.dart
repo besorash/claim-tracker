@@ -1,6 +1,7 @@
 /// Time helpers anchored to Asia/Riyadh (spec §2, §10).
 library;
 
+import 'package:flutter/widgets.dart' show BuildContext, Locale, Localizations;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -66,12 +67,19 @@ class TimeUtils {
     final String locale = AppLocale.locale.languageCode;
     if (_fmtLocale != locale || _dateFmt == null) {
       _fmtLocale = locale;
-      _dateFmt = DateFormat.yMd(locale);
-      _dateTimeFmt = DateFormat.Md(locale).add_Hms();
+      // English too is day/month/year (owner's choice); Arabic already is.
+      _dateFmt = locale == 'en'
+          ? DateFormat('d/M/y', 'en')
+          : DateFormat.yMd(locale);
+      _dateTimeFmt =
+          (locale == 'en' ? DateFormat('d/M', 'en') : DateFormat.Md(locale))
+              .add_Hms();
     }
   }
 
-  /// e.g. «11/11/2026» (en) or «١١/١١/٢٠٢٦» (ar — Arabic-Indic digits).
+  /// Day/month/year: «15/11/2026» (en) or «١٥/١١/٢٠٢٦» (ar).
+  ///
+  /// Date pickers use [pickerLocale] for the same order.
   static String formatDate(DateTime utc) {
     _ensureFormatters();
     return _dateFmt!.format(toRiyadh(utc));
@@ -82,6 +90,13 @@ class TimeUtils {
     _ensureFormatters();
     return _dateTimeFmt!.format(toRiyadh(utc));
   }
+
+  /// Locale for `showDatePicker`: British English in English, so typed and
+  /// shown dates are day/month/year like the rest of the app.
+  static Locale? pickerLocale(BuildContext context) =>
+      Localizations.localeOf(context).languageCode == 'en'
+      ? const Locale('en', 'GB')
+      : null;
 
   /// SAR amount with thousands separators + the localized currency label.
   static String formatSar(double? amount) {

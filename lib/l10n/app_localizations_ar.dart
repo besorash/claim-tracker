@@ -295,8 +295,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get csvNoRows => 'الملف لا يحتوي على أي مطالبات.';
 
   @override
-  String get csvDatesMonthFirst =>
-      'قُرئت التواريخ بصيغة شهر/يوم/سنة (‎11/4/2026‎ = 4 نوفمبر 2026).';
+  String get csvDatesDayFirst =>
+      'قُرئت التواريخ بصيغة يوم/شهر/سنة (‎5/11/2026‎ = 5 نوفمبر 2026).';
 
   @override
   String csvExtraColumnsSaved(String columns) {
@@ -585,6 +585,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsAbout => 'حول التطبيق';
+
+  @override
+  String get aboutDeveloper =>
+      'تم تطوير وتصميم هذا التطبيق بالكامل بواسطة بسام الرشيد.';
 
   @override
   String appVersion(String version, String build) {

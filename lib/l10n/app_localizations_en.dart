@@ -299,8 +299,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get csvNoRows => 'The file has no claims in it.';
 
   @override
-  String get csvDatesMonthFirst =>
-      'Dates were read as month/day/year (11/4/2026 = 4 November 2026).';
+  String get csvDatesDayFirst =>
+      'Dates were read as day/month/year (5/11/2026 = 5 November 2026).';
 
   @override
   String csvExtraColumnsSaved(String columns) {
@@ -587,6 +587,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAbout => 'About the App';
+
+  @override
+  String get aboutDeveloper =>
+      'This application has been fully developed and designed by Bassam Alrasheed.';
 
   @override
   String appVersion(String version, String build) {

@@ -253,6 +253,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
         (_reminder?.fireAtUtcMs ?? _claim?.nextFollowUpUtcMs ?? now).toLocal();
     final DateTime? d = await showDatePicker(
       context: context,
+      locale: TimeUtils.pickerLocale(context),
       initialDate: initial,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),

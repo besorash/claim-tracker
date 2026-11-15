@@ -394,6 +394,10 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
           SizedBox(
             height: 48,
             child: SingleChildScrollView(
+              // PageStorageKeys: the shell remounts this screen after every
+              // data change (e.g. back from details); the chip strip and the
+              // list keep their scroll positions across that.
+              key: const PageStorageKey<String>('claims-filter-chips'),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -516,6 +520,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     // front froze the app (ANR) with ~1,700 imported claims.
     final bool selecting = _selectionMode;
     return ListView.separated(
+      key: const PageStorageKey<String>('claims-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       itemCount: _claims.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),

@@ -3,6 +3,9 @@
 /// tools/google_sheets_sync/Code.gs.
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
@@ -178,6 +181,32 @@ void main() {
     await claims.update(c.copyWith(notes: notes, updatedAtUtcMs: at));
   }
 
+  test(
+    'http transport follows the 302 Apps Script answers a POST with',
+    () async {
+      final HttpServer server = await HttpServer.bind('127.0.0.1', 0);
+      String? posted;
+      server.listen((HttpRequest req) async {
+        if (req.method == 'POST') {
+          posted = await utf8.decoder.bind(req).join();
+          req.response
+            ..statusCode = 302
+            ..headers.set('location', '/echo');
+        } else {
+          req.response.write('{"ok":true,"header":["id"],"rows":[]}');
+        }
+        await req.response.close();
+      });
+      final Map<String, Object?> answer = await SheetsSyncService.httpTransport(
+        Uri.parse('http://127.0.0.1:${server.port}/exec'),
+        <String, Object?>{'token': 't', 'action': 'pull'},
+      );
+      await server.close();
+      expect(answer['ok'], isTrue);
+      expect(posted, contains('"action":"pull"'));
+    },
+  );
+
   test('not configured: refuses before any network call', () async {
     await db.setSetting(SheetsSyncService.tokenKey, '');
     await expectLater(
@@ -252,21 +281,23 @@ void main() {
     expect((await db.claimById(b))!.notes, 'edited in sheet');
   });
 
-  test('deleted in app → removed from sheet; removed from sheet → sent back',
-      () async {
-    final int a = await seed('ALPHA');
-    final int b = await seed('BRAVO');
-    await sync.sync();
+  test(
+    'deleted in app → removed from sheet; removed from sheet → sent back',
+    () async {
+      final int a = await seed('ALPHA');
+      final int b = await seed('BRAVO');
+      await sync.sync();
 
-    await ClaimActions(db, _NoopScheduler()).deleteClaim(a);
-    sheet.rows.remove(sheet.rowWithId(b));
+      await ClaimActions(db, _NoopScheduler()).deleteClaim(a);
+      sheet.rows.remove(sheet.rowWithId(b));
 
-    final SheetsSyncReport r = await sync.sync();
-    expect(r.deleted, 1);
-    expect(sheet.rowWithId(a), isNull);
-    expect(sheet.rowWithId(b), isNotNull);
-    expect(await db.claimById(b), isNotNull);
-  });
+      final SheetsSyncReport r = await sync.sync();
+      expect(r.deleted, 1);
+      expect(sheet.rowWithId(a), isNull);
+      expect(sheet.rowWithId(b), isNotNull);
+      expect(await db.claimById(b), isNotNull);
+    },
+  );
 
   test('conflict: the newer edit wins', () async {
     final int a = await seed('ALPHA');

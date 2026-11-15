@@ -203,6 +203,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     final DateTime now = DateTime.now().toUtc();
     final DateTime? picked = await showDatePicker(
       context: context,
+      locale: TimeUtils.pickerLocale(context),
       initialDate: (current ?? now).toLocal(),
       firstDate: DateTime(now.year - 5),
       lastDate: DateTime(now.year + 10),
@@ -224,6 +225,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
     final DateTime? stored = _model.nextFollowUpUtcMs;
     final DateTime? picked = await showDatePicker(
       context: context,
+      locale: TimeUtils.pickerLocale(context),
       initialDate: (stored ?? now).toLocal(),
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),

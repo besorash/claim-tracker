@@ -47,6 +47,14 @@ void main() {
       expect(s, contains('2026'));
     });
 
+    test('English dates are day/month/year', () {
+      AppLocale.locale = const Locale('en');
+      // 15 Nov 2026 12:00 UTC = 15:00 Riyadh.
+      final DateTime d = DateTime.utc(2026, 11, 15, 12);
+      expect(TimeUtils.formatDate(d), '15/11/2026');
+      expect(TimeUtils.formatDateTime(d), startsWith('15/11 '));
+    });
+
     test('dates follow the active locale (ar renders differently from en)', () {
       final DateTime d = DateTime.utc(2026, 11, 11);
       AppLocale.locale = const Locale('en');

@@ -117,6 +117,19 @@ before any mutation (spec §15 "verify integrity and version before restore").
 -   The app does not claim FIPS/CCS or any other certification; the crypto
     choices are standard, well-reviewed primitives used in a documented way.
 
+## Versioning (rule for every change)
+
+The About card shows `Version {version} (build {build})`. **Every change to
+the app, however small, adds 1 to the build number** before it is built or
+committed. Update both places together:
+
+-   `pubspec.yaml` → `version: 3.0.0+12` (the number after `+` is the build;
+    it is also the Android `versionCode`, which must only go up).
+-   `lib/core/constants/app_constants.dart` → `appBuildLabel = '12'`.
+
+The version (`3`) changes only when the owner asks for it.
+Current: **version 3, build 13** (2026-11-15).
+
 ## Release build and installation (Phase 5)
 
 ### Build

@@ -27,8 +27,10 @@ import '../database/app_database.dart';
 import '../models/claim.dart';
 
 /// Sends one JSON request to the script and returns its decoded answer.
-typedef SheetsTransport =
-    Future<Map<String, Object?>> Function(Uri url, Map<String, Object?> body);
+typedef SheetsTransport = Future<Map<String, Object?>> Function(
+  Uri url,
+  Map<String, Object?> body,
+);
 
 /// A sync that could not run. [message] is shown to the user as-is.
 class SheetsSyncException implements Exception {
@@ -96,10 +98,13 @@ class SheetsSyncService {
     final StringBuffer text = StringBuffer();
     void line(List<String> cells) {
       text
-        ..write(<String>[
-          for (int i = 0; i < header.length; i++)
-            if (i != stampCol) ClaimsCsv.cell(i < cells.length ? cells[i] : ''),
-        ].join(','))
+        ..write(
+          <String>[
+            for (int i = 0; i < header.length; i++)
+              if (i != stampCol)
+                ClaimsCsv.cell(i < cells.length ? cells[i] : ''),
+          ].join(','),
+        )
         ..write('\r\n');
     }
 
@@ -180,8 +185,7 @@ class SheetsSyncService {
           final DateTime? edited = DateTime.tryParse(
             stampOf(record.line) ?? '',
           );
-          takeSheet =
-              edited == null || edited.isAfter(existing.updatedAtUtcMs);
+          takeSheet = edited == null || edited.isAfter(existing.updatedAtUtcMs);
         }
         if (takeSheet) {
           await csv.applySyncRow(plan);
@@ -288,13 +292,16 @@ class SheetsSyncService {
       HttpClientResponse res = await req.close().timeout(
         const Duration(seconds: 90),
       );
-      for (int hops = 0; res.isRedirect && hops < 5; hops++) {
+      // Not res.isRedirect: for a POST, dart:io counts only 303 as a
+      // redirect, and Apps Script answers 302.
+      bool redirect(int code) => code >= 301 && code <= 308 && code != 304;
+      for (int hops = 0; redirect(res.statusCode) && hops < 5; hops++) {
         final String? location = res.headers.value(HttpHeaders.locationHeader);
         await res.drain<void>();
         if (location == null) break;
-        res = await (await client.getUrl(url.resolve(location))).close().timeout(
-          const Duration(seconds: 90),
-        );
+        res = await (await client.getUrl(url.resolve(location)))
+            .close()
+            .timeout(const Duration(seconds: 90));
       }
       final String text = await res
           .transform(utf8.decoder)

@@ -638,11 +638,11 @@ abstract class AppLocalizations {
   /// **'The file has no claims in it.'**
   String get csvNoRows;
 
-  /// No description provided for @csvDatesMonthFirst.
+  /// No description provided for @csvDatesDayFirst.
   ///
   /// In en, this message translates to:
-  /// **'Dates were read as month/day/year (11/4/2026 = 4 November 2026).'**
-  String get csvDatesMonthFirst;
+  /// **'Dates were read as day/month/year (5/11/2026 = 5 November 2026).'**
+  String get csvDatesDayFirst;
 
   /// No description provided for @csvExtraColumnsSaved.
   ///
@@ -1147,6 +1147,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'About the App'**
   String get settingsAbout;
+
+  /// No description provided for @aboutDeveloper.
+  ///
+  /// In en, this message translates to:
+  /// **'This application has been fully developed and designed by Bassam Alrasheed.'**
+  String get aboutDeveloper;
 
   /// No description provided for @appVersion.
   ///

@@ -473,7 +473,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           S.csvUnknownIdsAdded(report.unknownIdsAdded),
         if (report.extraColumns.isNotEmpty)
           S.csvExtraColumnsSaved(report.extraColumns.join('، ')),
-        if (report.dateOrderAssumed) S.csvDatesMonthFirst,
+        if (report.dateOrderAssumed) S.csvDatesDayFirst,
         if (report.reminderFailures > 0) S.csvReminderWarning,
       ].join('\n');
     }
@@ -907,6 +907,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppTheme.muted(context),
                 ),
               ),
+              const SizedBox(height: 12),
+              Text(
+                S.aboutDeveloper,
+                key: const Key('about-developer'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ]),
           ],
         ),
@@ -941,10 +949,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Icons.table_view_rounded,
         AppColors.mint,
       ),
-      _ when title == S.sheetsCardTitle => (
-        Icons.sync_rounded,
-        AppColors.sky,
-      ),
+      _ when title == S.sheetsCardTitle => (Icons.sync_rounded, AppColors.sky),
       _ when title == S.securityInfoTitle => (
         Icons.lock_rounded,
         AppColors.rose,

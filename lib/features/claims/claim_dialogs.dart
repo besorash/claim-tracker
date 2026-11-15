@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
+import '../../core/utils/time_utils.dart';
 import 'claim_actions.dart';
 
 /// What the user chose in the status-change dialog.
@@ -109,6 +110,7 @@ Future<void> showChangeStatusDialog(
                 final DateTime now = DateTime.now().toUtc();
                 final DateTime? d = await showDatePicker(
                   context: ctx,
+                  locale: TimeUtils.pickerLocale(ctx),
                   initialDate: (claim.nextFollowUpUtcMs ?? now).toLocal(),
                   firstDate: DateTime(now.year - 1),
                   lastDate: DateTime(now.year + 5),

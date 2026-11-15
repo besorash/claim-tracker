@@ -10,8 +10,9 @@
 ///  * the separator may be `,`, `;` or a tab;
 ///  * headers may be the column keys or the field names shown in the app, in
 ///    English or Arabic, in any order;
-///  * dates may be `2026-11-04`, `2026/11/04`, `11/4/2026` or `4/11/2026`
-///    (the day/month order is worked out for the whole file);
+///  * dates may be `2026-11-04`, `2026/11/04`, `4/11/2026` or `11/4/2026`
+///    (the day/month order is worked out for the whole file, day first
+///    when it cannot be told);
 ///  * columns the app does not know become extra fields of the claim;
 ///  * optional columns may be left out.
 ///
@@ -107,7 +108,7 @@ class CsvDocument {
     this.records = const <CsvRecord>[],
     this.presentColumns = const <String>{},
     this.extraColumns = const <String>[],
-    this.dateOrder = CsvDateOrder.monthFirst,
+    this.dateOrder = CsvDateOrder.dayFirst,
     this.dateOrderAssumed = false,
   });
 
@@ -127,7 +128,7 @@ class CsvDocument {
   final CsvDateOrder dateOrder;
 
   /// True when the file has slash dates that fit both orders (every day and
-  /// month is 12 or less), so [dateOrder] is the month-first default.
+  /// month is 12 or less), so [dateOrder] is the day-first default.
   final bool dateOrderAssumed;
 }
 
@@ -311,7 +312,7 @@ abstract final class ClaimsCsv {
   /// must still be valid.
   static CsvRowResult toForm(
     CsvRecord record, {
-    CsvDateOrder dateOrder = CsvDateOrder.monthFirst,
+    CsvDateOrder dateOrder = CsvDateOrder.dayFirst,
     bool lenient = false,
   }) {
     final Map<String, String> v = record.values;
@@ -580,8 +581,8 @@ abstract final class ClaimsCsv {
 
   /// Works out the day/month order of `a/b/yyyy` dates from the whole file:
   /// a first part above 12 means day first, a second part above 12 means
-  /// month first. With no such hint, month first is assumed (what Excel and
-  /// WPS write in English) and the caller tells the user.
+  /// month first. With no such hint, day first is assumed (the owner's
+  /// choice for the whole app) and the caller tells the user.
   static (CsvDateOrder, bool) _detectDateOrder(List<CsvRecord> records) {
     bool dayFirst = false;
     bool monthFirst = false;
@@ -597,8 +598,8 @@ abstract final class ClaimsCsv {
         if (int.parse(m.group(2)!) > 12) monthFirst = true;
       }
     }
-    if (dayFirst && !monthFirst) return (CsvDateOrder.dayFirst, false);
-    return (CsvDateOrder.monthFirst, any && !monthFirst && !dayFirst);
+    if (monthFirst && !dayFirst) return (CsvDateOrder.monthFirst, false);
+    return (CsvDateOrder.dayFirst, any && !monthFirst && !dayFirst);
   }
 
   /// Parses a date with an optional time (`14:30`, `2:30 PM`). Without a

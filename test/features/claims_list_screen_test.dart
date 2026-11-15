@@ -22,6 +22,7 @@ Widget _harness(
   ClaimsFilter initial = ClaimsFilter.all,
   String? status,
   void Function(ClaimsFilter filter, String? status)? onSelectionChanged,
+  Key? screenKey,
 }) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
@@ -33,6 +34,7 @@ Widget _harness(
   theme: AppTheme.light(),
   darkTheme: AppTheme.dark(),
   home: ClaimsListScreen(
+    key: screenKey,
     repo: repo,
     initialFilter: initial,
     initialStatus: status,
@@ -302,6 +304,46 @@ void main() {
       final int built = find.byType(ClaimCard).evaluate().length;
       expect(built, greaterThan(0));
       expect(built, lessThan(50));
+    });
+  });
+
+  testWidgets('a remount (back from details) keeps the list and chip strip '
+      'scroll positions', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      for (int i = 0; i < 60; i++) {
+        await create(seed(statusKey: 'new', claimNumber: 'BULK-$i'));
+      }
+      await tester.pumpWidget(_harness(claims, screenKey: const ValueKey(1)));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+
+      ScrollableState list() => tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byKey(const PageStorageKey<String>('claims-list')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      ScrollableState chips() => tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byKey(const PageStorageKey<String>('claims-filter-chips')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.drag(find.byType(ClaimCard).first, const Offset(0, -1500));
+      await tester.drag(
+        find.byKey(const Key('filter-all')),
+        const Offset(300, 0), // RTL harness: content scrolls the other way
+      );
+      await tester.pump();
+      final double listAt = list().position.pixels;
+      final double chipsAt = chips().position.pixels;
+      expect(listAt, greaterThan(0));
+      expect(chipsAt, isNot(0));
+
+      // Same remount the shell does: a new screen key.
+      await tester.pumpWidget(_harness(claims, screenKey: const ValueKey(2)));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+      expect(list().position.pixels, listAt);
+      expect(chips().position.pixels, chipsAt);
     });
   });
 

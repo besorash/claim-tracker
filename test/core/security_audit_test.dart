@@ -64,9 +64,8 @@ void main() {
       }
     }
     expect(users, <String>['lib/core/sync/sheets_sync_service.dart']);
-    final String sync = File(
-      'lib/core/sync/sheets_sync_service.dart',
-    ).readAsStringSync();
+    final String sync = File('lib/core/sync/sheets_sync_service.dart')
+        .readAsStringSync();
     expect(sync.contains("uri.scheme != 'https'"), isTrue);
   });
 
