@@ -744,4 +744,69 @@ class AppLocalizationsAr extends AppLocalizations {
   String customerClaimsCount(int count) {
     return '$count مطالبة';
   }
+
+  @override
+  String get sheetsCardTitle => 'جوجل شيت';
+
+  @override
+  String get sheetsSyncAction => 'مزامنة الآن';
+
+  @override
+  String get sheetsSetupAction => 'إعدادات الربط';
+
+  @override
+  String get sheetsUrlLabel => 'رابط تطبيق الويب';
+
+  @override
+  String get sheetsTokenLabel => 'مفتاح المزامنة';
+
+  @override
+  String get sheetsNotConfigured =>
+      'أضف رابط تطبيق الويب ومفتاح المزامنة أولاً (إعدادات الربط).';
+
+  @override
+  String get sheetsNeverSynced => 'لم تتم أي مزامنة بعد.';
+
+  @override
+  String sheetsLastSync(String time) {
+    return 'آخر مزامنة: $time';
+  }
+
+  @override
+  String sheetsFromSheet(int created, int updated) {
+    return 'من الشيت: $created جديدة، $updated محدّثة.';
+  }
+
+  @override
+  String sheetsToSheet(int sent, int deleted) {
+    return 'إلى الشيت: $sent مُرسلة، $deleted محذوفة.';
+  }
+
+  @override
+  String sheetsConflicts(int count) {
+    return '$count مطالبة تعدّلت في المكانين، وتم اعتماد التعديل الأحدث.';
+  }
+
+  @override
+  String sheetsIdMisses(int count) {
+    return '$count سطر جديد تحرّك في الشيت أثناء المزامنة ولم يأخذ رقمه. راجعها للتأكد من عدم التكرار.';
+  }
+
+  @override
+  String get sheetsSkipped => 'أسطر تم تخطيها (صحّحها في الشيت):';
+
+  @override
+  String sheetsFailed(String reason) {
+    return 'فشلت المزامنة: $reason';
+  }
+
+  @override
+  String get sheetsWrongKey => 'مفتاح المزامنة غير صحيح.';
+
+  @override
+  String get sheetsNoInternet => 'لا يوجد اتصال بالإنترنت.';
+
+  @override
+  String get sheetsBadResponse =>
+      'تطبيق الويب لم يرد. تأكد من الرابط ومن أنه منشور لـ \"Anyone\".';
 }

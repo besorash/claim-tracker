@@ -239,5 +239,22 @@
   "customersEmpty": "لا يوجد عملاء بعد. يظهرون هنا عند إضافة المطالبات.",
   "customersSearchHint": "ابحث باسم العميل أو الجوال",
   "customerAllClaims": "كل المطالبات",
-  "customerClaimsCount": "{count} مطالبة"
+  "customerClaimsCount": "{count} مطالبة",
+  "sheetsCardTitle": "جوجل شيت",
+  "sheetsSyncAction": "مزامنة الآن",
+  "sheetsSetupAction": "إعدادات الربط",
+  "sheetsUrlLabel": "رابط تطبيق الويب",
+  "sheetsTokenLabel": "مفتاح المزامنة",
+  "sheetsNotConfigured": "أضف رابط تطبيق الويب ومفتاح المزامنة أولاً (إعدادات الربط).",
+  "sheetsNeverSynced": "لم تتم أي مزامنة بعد.",
+  "sheetsLastSync": "آخر مزامنة: {time}",
+  "sheetsFromSheet": "من الشيت: {created} جديدة، {updated} محدّثة.",
+  "sheetsToSheet": "إلى الشيت: {sent} مُرسلة، {deleted} محذوفة.",
+  "sheetsConflicts": "{count} مطالبة تعدّلت في المكانين، وتم اعتماد التعديل الأحدث.",
+  "sheetsIdMisses": "{count} سطر جديد تحرّك في الشيت أثناء المزامنة ولم يأخذ رقمه. راجعها للتأكد من عدم التكرار.",
+  "sheetsSkipped": "أسطر تم تخطيها (صحّحها في الشيت):",
+  "sheetsFailed": "فشلت المزامنة: {reason}",
+  "sheetsWrongKey": "مفتاح المزامنة غير صحيح.",
+  "sheetsNoInternet": "لا يوجد اتصال بالإنترنت.",
+  "sheetsBadResponse": "تطبيق الويب لم يرد. تأكد من الرابط ومن أنه منشور لـ \"Anyone\"."
 }

@@ -19,6 +19,8 @@ import 'package:claim_tracker/core/notifications/notification_service.dart';
 import 'package:claim_tracker/core/notifications/reminder_scheduler.dart';
 import 'package:claim_tracker/core/security/backup_crypto.dart';
 import 'package:claim_tracker/core/security/backup_service.dart';
+import 'package:claim_tracker/core/sync/sheets_sync_service.dart';
+import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/features/settings/restore_source_seam.dart';
 import 'package:claim_tracker/shared/widgets/modern.dart';
@@ -40,6 +42,7 @@ class SettingsScreen extends StatefulWidget {
     this.csvService,
     this.saveCsv,
     this.pickCsvText,
+    this.sheetsTransport,
   });
 
   final SettingsRepository settingsRepo;
@@ -97,6 +100,10 @@ class SettingsScreen extends StatefulWidget {
   /// canceled. Defaults to `FilePicker.pickFile` filtered to `.csv`.
   final Future<String?> Function()? pickCsvText;
 
+  /// Network seam for the Google Sheets sync (defaults to HTTPS). The sync
+  /// card is shown whenever [csvService] is.
+  final SheetsTransport? sheetsTransport;
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -126,6 +133,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// One-shot result text for the spreadsheet (CSV) card.
   String? _csvMessage;
 
+  /// Google Sheets card: last sync time line and one-shot result text.
+  String? _sheetsLast;
+  String? _sheetsMessage;
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ThemeMode.system => 'system',
     };
     _loadStored();
+    _loadSheetsLast();
   }
 
   Future<void> _loadStored() async {
@@ -471,6 +483,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  Future<void> _loadSheetsLast() async {
+    String? raw;
+    try {
+      raw = await widget.settingsRepo.get(SheetsSyncService.lastSyncKey);
+    } on Object catch (_) {
+      raw = null;
+    }
+    final int? ms = int.tryParse(raw ?? '');
+    if (!mounted) return;
+    setState(() {
+      _sheetsLast = ms == null
+          ? S.sheetsNeverSynced
+          : S.sheetsLastSync(
+              TimeUtils.formatDateTime(
+                DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true),
+              ),
+            );
+    });
+  }
+
+  Future<void> _editSheetsConnection() async {
+    final TextEditingController url = TextEditingController(
+      text: await widget.settingsRepo.get(SheetsSyncService.urlKey) ?? '',
+    );
+    final TextEditingController token = TextEditingController(
+      text: await widget.settingsRepo.get(SheetsSyncService.tokenKey) ?? '',
+    );
+    if (!mounted) return;
+    final bool? save = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(S.sheetsSetupAction),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(
+              key: const Key('sheets-url'),
+              controller: url,
+              keyboardType: TextInputType.url,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(labelText: S.sheetsUrlLabel),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('sheets-token'),
+              controller: token,
+              obscureText: true,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(labelText: S.sheetsTokenLabel),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(S.cancel),
+          ),
+          FilledButton(
+            key: const Key('sheets-save'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(S.save),
+          ),
+        ],
+      ),
+    );
+    if (save == true) {
+      await widget.settingsRepo.set(SheetsSyncService.urlKey, url.text.trim());
+      await widget.settingsRepo.set(
+        SheetsSyncService.tokenKey,
+        token.text.trim(),
+      );
+    }
+    url.dispose();
+    token.dispose();
+  }
+
+  Future<void> _syncSheets() async {
+    final ClaimsCsvService? csv = widget.csvService;
+    if (csv == null) return;
+    setState(() {
+      _busy = true;
+      _sheetsMessage = null;
+    });
+    String message;
+    try {
+      final SheetsSyncReport r = await SheetsSyncService(
+        csv.db,
+        csv,
+        transport: widget.sheetsTransport,
+      ).sync();
+      if (r.created + r.updated > 0) widget.onDataRestored?.call();
+      message = <String>[
+        S.sheetsFromSheet(r.created, r.updated),
+        S.sheetsToSheet(r.sent, r.deleted),
+        if (r.conflicts > 0) S.sheetsConflicts(r.conflicts),
+        if (r.idMisses > 0) S.sheetsIdMisses(r.idMisses),
+        if (r.skipped.isNotEmpty) ...<String>[
+          S.sheetsSkipped,
+          ...r.skipped.take(10),
+          if (r.skipped.length > 10) '…',
+        ],
+      ].join('\n');
+    } on SheetsSyncException catch (e) {
+      message = switch (e.message) {
+        'not-configured' => S.sheetsNotConfigured,
+        'unauthorized' => S.sheetsFailed(S.sheetsWrongKey),
+        'bad-response' => S.sheetsFailed(S.sheetsBadResponse),
+        _ => S.sheetsFailed(e.message),
+      };
+    } on SocketException catch (_) {
+      message = S.sheetsFailed(S.sheetsNoInternet);
+    } on Object catch (e) {
+      message = S.sheetsFailed('$e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _sheetsMessage = message;
+    });
+    await _loadSheetsLast();
+  }
+
   /// Production save seam: hands the CSV bytes to the OS save dialog.
   static Future<Uri?> _defaultSaveCsv(Uint8List bytes) {
     return FilePicker.saveFile(
@@ -709,6 +843,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ]),
+              const SizedBox(height: 12),
+              _card(theme, S.sheetsCardTitle, <Widget>[
+                FilledButton.icon(
+                  key: const Key('sheets-sync'),
+                  onPressed: _busy ? null : _syncSheets,
+                  icon: const Icon(Icons.sync_rounded),
+                  label: Text(S.sheetsSyncAction),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('sheets-setup'),
+                  onPressed: _busy ? null : _editSheetsConnection,
+                  icon: const Icon(Icons.link_rounded),
+                  label: Text(S.sheetsSetupAction),
+                ),
+                if (_sheetsLast != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Text(
+                    _sheetsLast!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.muted(context),
+                    ),
+                  ),
+                ],
+                if (_sheetsMessage != null) ...<Widget>[
+                  const SizedBox(height: 6),
+                  Text(
+                    _sheetsMessage!,
+                    key: const Key('sheets-message'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.muted(context),
+                    ),
+                  ),
+                ],
+              ]),
             ],
             const SizedBox(height: 12),
             _card(theme, S.securityInfoTitle, <Widget>[
@@ -771,6 +940,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _ when title == S.csvCardTitle => (
         Icons.table_view_rounded,
         AppColors.mint,
+      ),
+      _ when title == S.sheetsCardTitle => (
+        Icons.sync_rounded,
+        AppColors.sky,
       ),
       _ when title == S.securityInfoTitle => (
         Icons.lock_rounded,

@@ -55,6 +55,11 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
   final Map<String, String?> _errors = {};
   final FocusNode _nameFocus = FocusNode();
 
+  /// "Other" in the customer list: the user types a new name, so the list
+  /// stays closed until the field loses focus.
+  static const String _newCustomer = '__new_customer__';
+  bool _typingNewCustomer = false;
+
   static const List<String> _textFields = [
     'customerName',
     'mobile',
@@ -85,6 +90,9 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
   @override
   void initState() {
     super.initState();
+    _nameFocus.addListener(() {
+      if (!_nameFocus.hasFocus) _typingNewCustomer = false;
+    });
     final Claim? existing = widget.claim;
     if (existing != null) _model.loadFrom(existing);
     // A stored company from the list selects it (whatever its spelling); any
@@ -521,12 +529,25 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
       textEditingController: _controllers['customerName'],
       focusNode: _nameFocus,
       optionsBuilder: (TextEditingValue v) {
+        if (_typingNewCustomer || widget.customers.isEmpty) {
+          return const <String>[];
+        }
         final String q = v.text.trim().toLowerCase();
-        return widget.customers.keys.where(
-          (String n) => n.toLowerCase().contains(q) && n != v.text.trim(),
-        );
+        return <String>[
+          ...widget.customers.keys.where(
+            (String n) => n.toLowerCase().contains(q) && n != v.text.trim(),
+          ),
+          _newCustomer,
+        ];
       },
       onSelected: (String name) => setState(() {
+        if (name == _newCustomer) {
+          _typingNewCustomer = true;
+          _controllers['customerName']!.clear();
+          _onChanged('customerName', '');
+          _nameFocus.requestFocus();
+          return;
+        }
         _onChanged('customerName', name);
         _errors['customerName'] = null;
         final String mobile = widget.customers[name] ?? '';
@@ -574,26 +595,41 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                   shrinkWrap: true,
                   children: <Widget>[
                     for (final String name in options)
-                      ListTile(
-                        key: Key('customer-option-$name'),
-                        leading: const IconBubble(
-                          icon: Icons.person_rounded,
-                          color: AppColors.sky,
-                          size: 34,
+                      if (name == _newCustomer)
+                        ListTile(
+                          key: const Key('customer-option-other'),
+                          leading: const IconBubble(
+                            icon: Icons.edit_rounded,
+                            color: AppColors.violet,
+                            size: 34,
+                          ),
+                          title: Text(
+                            S.insurerOther,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          onTap: () => onSelected(name),
+                        )
+                      else
+                        ListTile(
+                          key: Key('customer-option-$name'),
+                          leading: const IconBubble(
+                            icon: Icons.person_rounded,
+                            color: AppColors.sky,
+                            size: 34,
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: (widget.customers[name] ?? '').isEmpty
+                              ? null
+                              : Text(
+                                  widget.customers[name]!,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.start,
+                                ),
+                          onTap: () => onSelected(name),
                         ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: (widget.customers[name] ?? '').isEmpty
-                            ? null
-                            : Text(
-                                widget.customers[name]!,
-                                textDirection: TextDirection.ltr,
-                                textAlign: TextAlign.start,
-                              ),
-                        onTap: () => onSelected(name),
-                      ),
                   ],
                 ),
               ),

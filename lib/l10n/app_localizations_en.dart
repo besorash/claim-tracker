@@ -748,4 +748,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String customerClaimsCount(int count) {
     return '$count claims';
   }
+
+  @override
+  String get sheetsCardTitle => 'Google Sheets';
+
+  @override
+  String get sheetsSyncAction => 'Sync now';
+
+  @override
+  String get sheetsSetupAction => 'Connection settings';
+
+  @override
+  String get sheetsUrlLabel => 'Web app URL';
+
+  @override
+  String get sheetsTokenLabel => 'Sync key';
+
+  @override
+  String get sheetsNotConfigured =>
+      'Add the web app URL and the sync key first (Connection settings).';
+
+  @override
+  String get sheetsNeverSynced => 'Not synced yet.';
+
+  @override
+  String sheetsLastSync(String time) {
+    return 'Last sync: $time';
+  }
+
+  @override
+  String sheetsFromSheet(int created, int updated) {
+    return 'From the sheet: $created new, $updated updated.';
+  }
+
+  @override
+  String sheetsToSheet(int sent, int deleted) {
+    return 'To the sheet: $sent sent, $deleted deleted.';
+  }
+
+  @override
+  String sheetsConflicts(int count) {
+    return '$count claims were edited in both places; the newer edit was kept.';
+  }
+
+  @override
+  String sheetsIdMisses(int count) {
+    return '$count new rows moved in the sheet during the sync and did not get their number. Check them for duplicates.';
+  }
+
+  @override
+  String get sheetsSkipped => 'Rows skipped (fix them in the sheet):';
+
+  @override
+  String sheetsFailed(String reason) {
+    return 'Sync failed: $reason';
+  }
+
+  @override
+  String get sheetsWrongKey => 'the sync key is wrong.';
+
+  @override
+  String get sheetsNoInternet => 'no internet connection.';
+
+  @override
+  String get sheetsBadResponse =>
+      'the web app did not answer. Check the URL and that it is deployed for \"Anyone\".';
 }

@@ -845,11 +845,12 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                     S.sectionAccidentInfo,
                     claim,
                     (c) => [
-                      _row(
-                        theme,
-                        S.accidentDateLabel,
-                        TimeUtils.formatDate(c.accidentDateUtcMs),
-                      ),
+                      if (c.accidentDateUtcMs != null)
+                        _row(
+                          theme,
+                          S.accidentDateLabel,
+                          TimeUtils.formatDate(c.accidentDateUtcMs!),
+                        ),
                       if (c.accidentCity != null)
                         _row(theme, S.cityLabel, c.accidentCity!),
                       if (c.accidentType != null)
@@ -1339,10 +1340,11 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
             children: [
               if (type != null)
                 pill(Icons.local_offer_rounded, AccidentTypes.display(type)),
-              pill(
-                Icons.event_rounded,
-                TimeUtils.formatDate(c.accidentDateUtcMs),
-              ),
+              if (c.accidentDateUtcMs != null)
+                pill(
+                  Icons.event_rounded,
+                  TimeUtils.formatDate(c.accidentDateUtcMs!),
+                ),
             ],
           ),
         ],

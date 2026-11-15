@@ -149,6 +149,27 @@ abstract final class S {
   static String get csvNothingChanged => _l.csvNothingChanged;
   static String get csvNoRows => _l.csvNoRows;
   static String csvUnknownIdsAdded(int count) => _l.csvUnknownIdsAdded(count);
+
+  // Google Sheets sync.
+  static String get sheetsCardTitle => _l.sheetsCardTitle;
+  static String get sheetsSyncAction => _l.sheetsSyncAction;
+  static String get sheetsSetupAction => _l.sheetsSetupAction;
+  static String get sheetsUrlLabel => _l.sheetsUrlLabel;
+  static String get sheetsTokenLabel => _l.sheetsTokenLabel;
+  static String get sheetsNotConfigured => _l.sheetsNotConfigured;
+  static String get sheetsNeverSynced => _l.sheetsNeverSynced;
+  static String sheetsLastSync(String time) => _l.sheetsLastSync(time);
+  static String sheetsFromSheet(int created, int updated) =>
+      _l.sheetsFromSheet(created, updated);
+  static String sheetsToSheet(int sent, int deleted) =>
+      _l.sheetsToSheet(sent, deleted);
+  static String sheetsConflicts(int count) => _l.sheetsConflicts(count);
+  static String sheetsIdMisses(int count) => _l.sheetsIdMisses(count);
+  static String get sheetsSkipped => _l.sheetsSkipped;
+  static String sheetsFailed(String reason) => _l.sheetsFailed(reason);
+  static String get sheetsWrongKey => _l.sheetsWrongKey;
+  static String get sheetsNoInternet => _l.sheetsNoInternet;
+  static String get sheetsBadResponse => _l.sheetsBadResponse;
   static String get csvDatesMonthFirst => _l.csvDatesMonthFirst;
   static String csvExtraColumnsSaved(String columns) =>
       _l.csvExtraColumnsSaved(columns);

@@ -1435,6 +1435,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} claims'**
   String customerClaimsCount(int count);
+
+  /// No description provided for @sheetsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Sheets'**
+  String get sheetsCardTitle;
+
+  /// No description provided for @sheetsSyncAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get sheetsSyncAction;
+
+  /// No description provided for @sheetsSetupAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection settings'**
+  String get sheetsSetupAction;
+
+  /// No description provided for @sheetsUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Web app URL'**
+  String get sheetsUrlLabel;
+
+  /// No description provided for @sheetsTokenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync key'**
+  String get sheetsTokenLabel;
+
+  /// No description provided for @sheetsNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the web app URL and the sync key first (Connection settings).'**
+  String get sheetsNotConfigured;
+
+  /// No description provided for @sheetsNeverSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not synced yet.'**
+  String get sheetsNeverSynced;
+
+  /// No description provided for @sheetsLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {time}'**
+  String sheetsLastSync(String time);
+
+  /// No description provided for @sheetsFromSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'From the sheet: {created} new, {updated} updated.'**
+  String sheetsFromSheet(int created, int updated);
+
+  /// No description provided for @sheetsToSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'To the sheet: {sent} sent, {deleted} deleted.'**
+  String sheetsToSheet(int sent, int deleted);
+
+  /// No description provided for @sheetsConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} claims were edited in both places; the newer edit was kept.'**
+  String sheetsConflicts(int count);
+
+  /// No description provided for @sheetsIdMisses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new rows moved in the sheet during the sync and did not get their number. Check them for duplicates.'**
+  String sheetsIdMisses(int count);
+
+  /// No description provided for @sheetsSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows skipped (fix them in the sheet):'**
+  String get sheetsSkipped;
+
+  /// No description provided for @sheetsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: {reason}'**
+  String sheetsFailed(String reason);
+
+  /// No description provided for @sheetsWrongKey.
+  ///
+  /// In en, this message translates to:
+  /// **'the sync key is wrong.'**
+  String get sheetsWrongKey;
+
+  /// No description provided for @sheetsNoInternet.
+  ///
+  /// In en, this message translates to:
+  /// **'no internet connection.'**
+  String get sheetsNoInternet;
+
+  /// No description provided for @sheetsBadResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'the web app did not answer. Check the URL and that it is deployed for \"Anyone\".'**
+  String get sheetsBadResponse;
 }
 
 class _AppLocalizationsDelegate

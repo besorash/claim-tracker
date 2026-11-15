@@ -142,7 +142,7 @@ class ClaimsCsvService {
     try {
       for (final _PlannedRow item in plan) {
         if (item.existing == null) {
-          final bool failed = await _createClaim(item.model, now);
+          final (_, bool failed) = await _createClaim(item.model, now);
           created++;
           if (failed) reminderFailures++;
         } else {
@@ -179,6 +179,49 @@ class ClaimsCsvService {
     );
   }
 
+  /// Google Sheets sync, step 1: reads one sheet row against [existing]
+  /// without writing. Required fields may be empty ([ClaimsCsv.toForm]
+  /// lenient). [SyncRowPlan.target] is the claim as it would be stored.
+  SyncRowPlan planSyncRow(
+    CsvRecord record,
+    CsvDateOrder dateOrder,
+    Claim? existing,
+  ) {
+    final CsvRecord full = existing == null
+        ? record
+        : CsvRecord(record.line, <String, String>{
+            ...ClaimsCsv.valuesOf(existing),
+            ...record.values,
+          }, extras: record.extras);
+    final CsvRowResult row = ClaimsCsv.toForm(
+      full,
+      dateOrder: dateOrder,
+      lenient: true,
+    );
+    if (row.model == null) return SyncRowPlan._failed(row.errors);
+    final ClaimFormModel model = row.model!
+      ..extraFields = _mergeExtras(existing, record.extras);
+    if (existing != null) _keepStoredForms(model, existing);
+    final DateTime now = DateTime.now().toUtc();
+    final Claim target = existing == null
+        ? model.buildNew(now)
+        : model.applyTo(existing, now);
+    return SyncRowPlan._(model, existing, target);
+  }
+
+  /// Google Sheets sync, step 2: stores a plan from [planSyncRow] and returns
+  /// the claim's id (new or existing).
+  Future<int> applySyncRow(SyncRowPlan plan) async {
+    final DateTime now = DateTime.now().toUtc();
+    final Claim? existing = plan.existing;
+    if (existing == null) {
+      final (int id, _) = await _createClaim(plan.model!, now);
+      return id;
+    }
+    await _updateClaim(plan.model!, existing, now);
+    return existing.id;
+  }
+
   /// A spreadsheet rewrites values without changing them (`0569896589` →
   /// `569896589`, a stored date → that day at midnight). Keep the stored
   /// form when the meaning is the same, so such rows count as unchanged.
@@ -187,8 +230,10 @@ class ClaimsCsvService {
         ClaimFormModel.normalizeMobile(existing.customerMobile)) {
       model.customerMobile = existing.customerMobile;
     }
-    if (_sameLocalDay(model.accidentDateUtcMs, existing.accidentDateUtcMs)) {
-      model.accidentDateUtcMs = existing.accidentDateUtcMs;
+    final DateTime? storedAccident = existing.accidentDateUtcMs;
+    if (storedAccident != null &&
+        _sameLocalDay(model.accidentDateUtcMs, storedAccident)) {
+      model.accidentDateUtcMs = storedAccident;
     }
     final DateTime? storedSubmission = existing.submissionDateUtcMs;
     if (storedSubmission != null &&
@@ -223,14 +268,14 @@ class ClaimsCsvService {
     return merged;
   }
 
-  /// Creates a claim from [model]. Returns true when a future follow-up could
-  /// not be scheduled as an OS alarm.
-  Future<bool> _createClaim(ClaimFormModel model, DateTime now) async {
+  /// Creates a claim from [model]. Returns its id, and true when a future
+  /// follow-up could not be scheduled as an OS alarm.
+  Future<(int, bool)> _createClaim(ClaimFormModel model, DateTime now) async {
     final DateTime? followUp = model.nextFollowUpUtcMs;
     model.nextFollowUpUtcMs = null; // set through ClaimActions below
     final int id = await _claims.create(model.buildNew(now));
-    if (followUp == null) return false;
-    return _applyFollowUp(id, followUp, now);
+    if (followUp == null) return (id, false);
+    return (id, await _applyFollowUp(id, followUp, now));
   }
 
   /// Updates an existing claim from [model]. Writes nothing when the row
@@ -308,6 +353,25 @@ class ClaimsCsvService {
     return a.millisecondsSinceEpoch ~/ 60000 ==
         b.millisecondsSinceEpoch ~/ 60000;
   }
+}
+
+/// One sheet row read for the Google Sheets sync (see
+/// [ClaimsCsvService.planSyncRow]).
+class SyncRowPlan {
+  const SyncRowPlan._(this.model, this.existing, this.target)
+    : errors = const <String>[];
+
+  const SyncRowPlan._failed(this.errors)
+    : model = null,
+      existing = null,
+      target = null;
+
+  final ClaimFormModel? model;
+  final Claim? existing;
+
+  /// The claim as it would be stored; null when [errors] is not empty.
+  final Claim? target;
+  final List<String> errors;
 }
 
 class _PlannedRow {

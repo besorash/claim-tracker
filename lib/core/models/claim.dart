@@ -12,7 +12,7 @@ class Claim {
     this.customerNationalId,
     this.customerEmail,
     this.accidentNumber,
-    required this.accidentDateUtcMs,
+    this.accidentDateUtcMs,
     this.accidentCity,
     this.accidentType,
     this.vehiclePlate,
@@ -45,7 +45,8 @@ class Claim {
 
   // Accident (spec §7.2).
   final String? accidentNumber;
-  final DateTime accidentDateUtcMs;
+  /// Null since v8: a claim synced from a sheet row may not have one yet.
+  final DateTime? accidentDateUtcMs;
   final String? accidentCity;
   final String? accidentType;
   final String? vehiclePlate;
@@ -157,7 +158,7 @@ class Claim {
     'customer_national_id': customerNationalId,
     'customer_email': customerEmail,
     'accident_number': accidentNumber,
-    'accident_date_utc_ms': accidentDateUtcMs.millisecondsSinceEpoch,
+    'accident_date_utc_ms': accidentDateUtcMs?.millisecondsSinceEpoch,
     'accident_city': accidentCity,
     'accident_type': accidentType,
     'vehicle_plate': vehiclePlate,
@@ -187,10 +188,12 @@ class Claim {
     customerNationalId: row['customer_national_id'] as String?,
     customerEmail: row['customer_email'] as String?,
     accidentNumber: row['accident_number'] as String?,
-    accidentDateUtcMs: DateTime.fromMillisecondsSinceEpoch(
-      row['accident_date_utc_ms']! as int,
-      isUtc: true,
-    ),
+    accidentDateUtcMs: (row['accident_date_utc_ms'] as int?) == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(
+            row['accident_date_utc_ms']! as int,
+            isUtc: true,
+          ),
     accidentCity: row['accident_city'] as String?,
     accidentType: row['accident_type'] as String?,
     vehiclePlate: row['vehicle_plate'] as String?,

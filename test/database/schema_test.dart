@@ -319,6 +319,50 @@ void main() {
       },
     );
 
+    test(
+      'v7 → v8 makes the accident date optional and keeps every claim',
+      () async {
+        final ffi.Database db = await openInMemory();
+        await AppDatabase.migrate(db, from: 0, to: 7);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        await db.insert('claims', <String, Object?>{
+          'customer_name': 'عميل',
+          'accident_date_utc_ms': now,
+          'claim_number': 'CLM-V7',
+          'customer_insurance_company': 'GIG',
+          'insurance_mobile': '0561234567',
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+
+        await AppDatabase.migrate(db, from: 7, to: 8);
+
+        final Claim kept = Claim.fromRow((await db.query('claims')).single);
+        expect(kept.claimNumber, 'CLM-V7');
+        expect(kept.insuranceMobile, '0561234567');
+        expect(kept.accidentDateUtcMs!.millisecondsSinceEpoch, now);
+
+        await db.insert('claims', <String, Object?>{
+          'customer_name': '',
+          'claim_number': 'ONLY-NUMBER',
+          'customer_insurance_company': '',
+          'status_key': 'new',
+          'last_status_update_utc_ms': now,
+          'created_at_utc_ms': now,
+          'updated_at_utc_ms': now,
+        });
+        final Claim sparse = Claim.fromRow(
+          (await db.query('claims', where: "claim_number = 'ONLY-NUMBER'"))
+              .single,
+        );
+        expect(sparse.accidentDateUtcMs, isNull);
+        expect(await db.query('sheet_sync_state'), isEmpty);
+        await db.close();
+      },
+    );
+
     test('v2 migration does not use ALTER TABLE DROP COLUMN', () async {
       // Android 13 and older ship SQLite < 3.35, where DROP COLUMN is a
       // syntax error and crashed the app on start. The host test SQLite is

@@ -139,7 +139,8 @@ class ClaimFormModel {
   // ---------------------------------------------------------------------------
 
   /// Builds a [Claim] from the current field values with the given identity.
-  /// Only call when [isValid] is true (the accident date is then set).
+  /// The form saves only when [isValid]; a sheet sync may build one with
+  /// required fields still empty.
   Claim toClaim({
     required int id,
     required DateTime createdAtUtcMs,
@@ -152,7 +153,7 @@ class ClaimFormModel {
       customerNationalId: _opt(customerNationalId),
       customerEmail: _opt(customerEmail),
       accidentNumber: _opt(accidentNumber),
-      accidentDateUtcMs: accidentDateUtcMs!,
+      accidentDateUtcMs: accidentDateUtcMs,
       accidentCity: _opt(accidentCity),
       accidentType: _opt(accidentType),
       vehiclePlate: _opt(vehiclePlate),

@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 7;
+const int kDatabaseVersion = 8;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -91,6 +91,8 @@ class AppDatabase {
             await _migrateToV6(txn);
           case 7:
             await _migrateToV7(txn);
+          case 8:
+            await _migrateToV8(txn);
           // Future versions add cases here.
         }
       }
@@ -101,6 +103,78 @@ class AppDatabase {
   /// ADD COLUMN pattern as v3–v5 — works on every SQLite version Android ships.
   static Future<void> _migrateToV7(sqf.Transaction txn) async {
     await txn.execute('ALTER TABLE claims ADD COLUMN insurance_mobile TEXT');
+  }
+
+  /// v8 (Google Sheets sync): the accident date becomes optional, because a
+  /// sheet row with only a claim number still becomes a claim; and
+  /// `sheet_sync_state` remembers each claim's content at the last sync, so
+  /// the next sync can tell which side changed. Same rebuild as v6.
+  static Future<void> _migrateToV8(sqf.Transaction txn) async {
+    const String columns =
+        'id, customer_name, customer_mobile, customer_national_id, '
+        'customer_email, accident_number, accident_date_utc_ms, accident_city, '
+        'accident_type, vehicle_plate, vehicle_type, claim_number, '
+        'customer_insurance_company, insurance_mobile, submission_date_utc_ms, '
+        'insurer_reference_number, claim_amount_sar, liability_percent, notes, '
+        'notes_updated_utc_ms, extra_fields, status_key, '
+        'last_status_update_utc_ms, next_follow_up_utc_ms, reminder_enabled, '
+        'created_at_utc_ms, updated_at_utc_ms';
+
+    await txn.execute('''
+      CREATE TABLE claims_v8 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT NOT NULL,
+        customer_mobile TEXT NOT NULL DEFAULT '',
+        customer_national_id TEXT,
+        customer_email TEXT,
+        accident_number TEXT,
+        accident_date_utc_ms INTEGER,
+        accident_city TEXT,
+        accident_type TEXT,
+        vehicle_plate TEXT,
+        vehicle_type TEXT,
+        claim_number TEXT NOT NULL DEFAULT '',
+        customer_insurance_company TEXT NOT NULL,
+        insurance_mobile TEXT,
+        submission_date_utc_ms INTEGER,
+        insurer_reference_number TEXT,
+        claim_amount_sar REAL,
+        liability_percent REAL,
+        notes TEXT,
+        notes_updated_utc_ms INTEGER,
+        extra_fields TEXT,
+        status_key TEXT NOT NULL DEFAULT 'new',
+        last_status_update_utc_ms INTEGER NOT NULL,
+        next_follow_up_utc_ms INTEGER,
+        reminder_enabled INTEGER NOT NULL DEFAULT 0,
+        created_at_utc_ms INTEGER NOT NULL,
+        updated_at_utc_ms INTEGER NOT NULL
+      )
+    ''');
+    await txn.execute(
+      'INSERT INTO claims_v8 ($columns) SELECT $columns FROM claims',
+    );
+    await txn.execute('DROP TABLE claims');
+    await txn.execute('ALTER TABLE claims_v8 RENAME TO claims');
+    for (final String index in <String>[
+      'idx_claims_claim_number ON claims(claim_number)',
+      'idx_claims_customer_name ON claims(customer_name)',
+      'idx_claims_customer_mobile ON claims(customer_mobile)',
+      'idx_claims_accident_number ON claims(accident_number)',
+      'idx_claims_insurer_ref ON claims(insurer_reference_number)',
+      'idx_claims_status ON claims(status_key)',
+      'idx_claims_next_follow_up ON claims(next_follow_up_utc_ms)',
+      'idx_claims_vehicle_plate ON claims(vehicle_plate)',
+    ]) {
+      await txn.execute('CREATE INDEX $index');
+    }
+
+    await txn.execute('''
+      CREATE TABLE sheet_sync_state (
+        claim_id INTEGER PRIMARY KEY,
+        fingerprint TEXT NOT NULL
+      )
+    ''');
   }
 
   /// v2: the "submitted to insurer" column is replaced by the liability

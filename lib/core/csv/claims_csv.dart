@@ -161,7 +161,7 @@ abstract final class ClaimsCsv {
     }
     final StringBuffer out = StringBuffer()
       ..write(
-        <String>[...kClaimsCsvColumns, ...extraColumns].map(_cell).join(','),
+        <String>[...kClaimsCsvColumns, ...extraColumns].map(cell).join(','),
       )
       ..write('\r\n');
     for (final Claim claim in claims) {
@@ -172,7 +172,7 @@ abstract final class ClaimsCsv {
           claim.extraFields[column] ?? '',
       ];
       out
-        ..write(cells.map(_cell).join(','))
+        ..write(cells.map(cell).join(','))
         ..write('\r\n');
     }
     return out.toString();
@@ -186,7 +186,9 @@ abstract final class ClaimsCsv {
     'customer_national_id': c.customerNationalId ?? '',
     'customer_email': c.customerEmail ?? '',
     'accident_number': c.accidentNumber ?? '',
-    'accident_date': _formatDate(c.accidentDateUtcMs),
+    'accident_date': c.accidentDateUtcMs == null
+        ? ''
+        : _formatDate(c.accidentDateUtcMs!),
     'accident_city': c.accidentCity ?? '',
     'accident_type': c.accidentType ?? '',
     'vehicle_plate': c.vehiclePlate ?? '',
@@ -211,7 +213,8 @@ abstract final class ClaimsCsv {
         : _formatDateTime(c.nextFollowUpUtcMs!),
   };
 
-  static String _cell(String value) {
+  /// One CSV cell, quoted when needed (RFC 4180).
+  static String cell(String value) {
     final bool needsQuotes =
         value.contains(',') ||
         value.contains(';') ||
@@ -303,9 +306,13 @@ abstract final class ClaimsCsv {
   }
 
   /// Maps one record into form data and validates it with the form's rules.
+  /// [lenient] (Google Sheets sync) skips the required-field rules so a row
+  /// with only a claim number still becomes a claim; values that ARE filled
+  /// must still be valid.
   static CsvRowResult toForm(
     CsvRecord record, {
     CsvDateOrder dateOrder = CsvDateOrder.monthFirst,
+    bool lenient = false,
   }) {
     final Map<String, String> v = record.values;
     final List<String> errors = <String>[];
@@ -381,17 +388,21 @@ abstract final class ClaimsCsv {
     m.nextFollowUpUtcMs = date('next_follow_up', defaultHour: 9);
 
     // The same required-field rules as the claim form.
-    final String? plateError = m.validateVehiclePlate();
-    if (plateError != null) fail('vehicle_plate', plateError);
-    if (text('accident_date').isEmpty) {
-      fail('accident_date', S.requiredField);
+    if (!lenient) {
+      final String? plateError = m.validateVehiclePlate();
+      if (plateError != null) fail('vehicle_plate', plateError);
+      if (text('accident_date').isEmpty) {
+        fail('accident_date', S.requiredField);
+      }
+      final String? typeError = m.validateVehicleType();
+      if (typeError != null) fail('vehicle_type', typeError);
+      final String? nameError = m.validateCustomerName();
+      if (nameError != null) fail('customer_name', nameError);
+      final String? insurerError = m.validateCustomerInsurer();
+      if (insurerError != null) {
+        fail('customer_insurance_company', insurerError);
+      }
     }
-    final String? typeError = m.validateVehicleType();
-    if (typeError != null) fail('vehicle_type', typeError);
-    final String? nameError = m.validateCustomerName();
-    if (nameError != null) fail('customer_name', nameError);
-    final String? insurerError = m.validateCustomerInsurer();
-    if (insurerError != null) fail('customer_insurance_company', insurerError);
     final String? mobileError = m.validateMobile();
     if (mobileError != null) fail('customer_mobile', mobileError);
     final String? insMobileError = m.validateInsuranceMobile();

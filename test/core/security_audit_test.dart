@@ -2,7 +2,7 @@
 /// pins the hardening rules as executable checks so a future refactor cannot
 /// silently regress them:
 ///  * notification text stays generic — no claim/customer fields on lock screens;
-///  * the Android manifest declares NO INTERNET permission (no network at all);
+///  * the only network use is the manual Google Sheets sync, over HTTPS;
 ///  * no logging call in lib/ references sensitive model fields or passphrases;
 ///  * no hardcoded key material (long hex literals bound to key-like names).
 library;
@@ -48,14 +48,26 @@ void main() {
     expect(service.contains('genericReminderBody'), isTrue);
   });
 
-  test('production manifest declares no INTERNET permission', () {
-    // The MAIN manifest governs release builds — it must never grant network
-    // access (spec §14). The debug/profile variants keep the stock Flutter
-    // template permission, which exists only for hot-reload tooling and is
-    // not part of any shipped build.
+  test('network is used only by the Google Sheets sync, over HTTPS', () {
+    // INTERNET was added for the user-requested Google Sheets sync. Pin that
+    // nothing else in lib/ opens connections and that plain HTTP stays off.
     final String xml = File('android/app/src/main/AndroidManifest.xml')
         .readAsStringSync();
-    expect(xml.contains('android.permission.INTERNET'), isFalse);
+    expect(xml.contains('usesCleartextTraffic="true"'), isFalse);
+    final List<String> users = <String>[];
+    for (final FileSystemEntity e in Directory(
+      'lib',
+    ).listSync(recursive: true)) {
+      if (e is! File || !e.path.endsWith('.dart')) continue;
+      if (e.readAsStringSync().contains('HttpClient(')) {
+        users.add(e.path.replaceAll(r'\', '/'));
+      }
+    }
+    expect(users, <String>['lib/core/sync/sheets_sync_service.dart']);
+    final String sync = File(
+      'lib/core/sync/sheets_sync_service.dart',
+    ).readAsStringSync();
+    expect(sync.contains("uri.scheme != 'https'"), isTrue);
   });
 
   test('production manifest declares exact-alarm + battery-optimization permissions', () {
