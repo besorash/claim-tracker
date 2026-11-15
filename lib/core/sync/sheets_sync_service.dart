@@ -242,6 +242,10 @@ class SheetsSyncService {
   /// The claim's content as the sheet shows it (everything but the id).
   static String fingerprint(Claim c) {
     final Map<String, String> v = ClaimsCsv.valuesOf(c)..remove('id');
+    // Added after fingerprints were first stored: left out while empty, so
+    // existing claims keep the fingerprint they had and do not all look
+    // changed on the next sync.
+    if (v['loss_type'] == '') v.remove('loss_type');
     final List<String> extras = c.extraFields.keys.toList()..sort();
     final String body = jsonEncode(<Object>[
       v,

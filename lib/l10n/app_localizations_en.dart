@@ -662,7 +662,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityInfoBody =>
-      'All data is stored locally on your device only — nothing is sent over a network or used for analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure local storage complies with your employer\'s policies and Saudi PDPL privacy requirements where applicable.';
+      'Your data is stored on this device. It leaves the device only when you use Google Sheets sync (to your own sheet) or the AI assistant (your messages and the claim details it needs go to Google Gemini; national ID, mobile and email are never sent). Both use encrypted HTTPS; there are no analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure this complies with your employer\'s policies and Saudi PDPL privacy requirements where applicable.';
 
   @override
   String get statusNew => 'New';
@@ -970,4 +970,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantMicTooltip => 'Tap to speak · hold to switch language';
+
+  @override
+  String get assistantErrBusy =>
+      'Google Gemini is overloaded right now. I retried and tried other Gemini models, but all were busy. Try again in a minute.';
+
+  @override
+  String get lossTypeLabel => 'Loss Type';
+
+  @override
+  String get lossTotal => 'Total Loss';
+
+  @override
+  String get lossPartial => 'Partial Loss';
+
+  @override
+  String get csvErrorLossType =>
+      'loss type must be Total Loss or Partial Loss.';
 }

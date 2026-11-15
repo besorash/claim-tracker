@@ -117,9 +117,9 @@ void main() {
 
     test('a missing required column is a header error that names it', () {
       final String csv = ClaimsCsv.encode(<Claim>[_claim()])
-          .replaceFirst(',vehicle_type', '');
+          .replaceFirst(',vehicle_plate', '');
       final CsvDocument doc = ClaimsCsv.parse(csv);
-      expect(doc.headerError, contains('vehicle_type'));
+      expect(doc.headerError, contains('vehicle_plate'));
       expect(doc.records, isEmpty);
     });
 
@@ -194,24 +194,42 @@ void main() {
 
     test('a required field left empty is rejected', () {
       final CsvRowResult row = ClaimsCsv.toForm(
-        _firstRecord(rowWith(<String, String>{'customer_name': ''})),
+        _firstRecord(rowWith(<String, String>{'accident_date': ''})),
       );
       expect(row.model, isNull);
-      expect(row.errors.single, contains('customer_name'));
+      expect(row.errors.single, contains('accident_date'));
     });
 
-    test('plate and vehicle type are required; claim number is not', () {
+    test('loss type accepts the key or the English/Arabic name', () {
+      for (final MapEntry<String, String> e in <String, String>{
+        'total': 'total',
+        'Partial Loss': 'partial',
+        'خسارة كلية': 'total',
+        '': '',
+      }.entries) {
+        final CsvRowResult row = ClaimsCsv.toForm(
+          _firstRecord(rowWith(<String, String>{'loss_type': e.key})),
+        );
+        expect(row.errors, isEmpty, reason: e.key);
+        expect(row.model!.lossType ?? '', e.value, reason: e.key);
+      }
+      final CsvRowResult bad = ClaimsCsv.toForm(
+        _firstRecord(rowWith(<String, String>{'loss_type': 'some'})),
+      );
+      expect(bad.errors.single, contains('loss_type'));
+    });
+
+    test('plate is required; vehicle type, name, insurer are not', () {
       final CsvRowResult noPlate = ClaimsCsv.toForm(
         _firstRecord(rowWith(<String, String>{'vehicle_plate': ''})),
       );
       expect(noPlate.errors.single, contains('vehicle_plate'));
-      final CsvRowResult noType = ClaimsCsv.toForm(
-        _firstRecord(rowWith(<String, String>{'vehicle_type': ''})),
-      );
-      expect(noType.errors.single, contains('vehicle_type'));
       final CsvRowResult optional = ClaimsCsv.toForm(
         _firstRecord(
           rowWith(<String, String>{
+            'vehicle_type': '',
+            'customer_name': '',
+            'customer_insurance_company': '',
             'claim_number': '',
             'customer_mobile': '',
             'submission_date': '',

@@ -21,6 +21,7 @@ class Claim {
     required this.customerInsuranceCompany,
     this.insuranceMobile,
     this.liabilityPercent,
+    this.lossType,
     this.submissionDateUtcMs,
     this.insurerReferenceNumber,
     this.claimAmountSar,
@@ -66,6 +67,9 @@ class Claim {
   /// Liability share of the claim: 0, 25, 50, 75 or 100 (percent). Null = not set.
   final double? liabilityPercent;
 
+  /// `total` or `partial` (see LossTypes); null = not set.
+  final String? lossType;
+
   /// Optional since v6 (null = not submitted yet / not recorded).
   final DateTime? submissionDateUtcMs;
   final String? insurerReferenceNumber;
@@ -105,6 +109,7 @@ class Claim {
     String? customerInsuranceCompany,
     String? insuranceMobile,
     double? liabilityPercent,
+    String? lossType,
     DateTime? submissionDateUtcMs,
     String? insurerReferenceNumber,
     double? claimAmountSar,
@@ -135,6 +140,7 @@ class Claim {
           customerInsuranceCompany ?? this.customerInsuranceCompany,
       insuranceMobile: insuranceMobile ?? this.insuranceMobile,
       liabilityPercent: liabilityPercent ?? this.liabilityPercent,
+      lossType: lossType ?? this.lossType,
       submissionDateUtcMs: submissionDateUtcMs ?? this.submissionDateUtcMs,
       insurerReferenceNumber:
           insurerReferenceNumber ?? this.insurerReferenceNumber,
@@ -168,6 +174,7 @@ class Claim {
     'customer_insurance_company': customerInsuranceCompany,
     'insurance_mobile': insuranceMobile,
     'liability_percent': liabilityPercent,
+    'loss_type': lossType,
     'submission_date_utc_ms': submissionDateUtcMs?.millisecondsSinceEpoch,
     'insurer_reference_number': insurerReferenceNumber,
     'claim_amount_sar': claimAmountSar,
@@ -203,6 +210,7 @@ class Claim {
     customerInsuranceCompany: row['customer_insurance_company']! as String,
     insuranceMobile: row['insurance_mobile'] as String?,
     liabilityPercent: (row['liability_percent'] as num?)?.toDouble(),
+    lossType: row['loss_type'] as String?,
     submissionDateUtcMs: (row['submission_date_utc_ms'] as int?) == null
         ? null
         : DateTime.fromMillisecondsSinceEpoch(

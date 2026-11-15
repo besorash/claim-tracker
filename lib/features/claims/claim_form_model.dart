@@ -33,6 +33,7 @@ class ClaimFormModel {
   /// Saudi number (same rule as the customer mobile).
   String insuranceMobile = '';
   double? liabilityPercent; // null = not set; otherwise 0, 25, 50, 75 or 100
+  String? lossType; // null = not set; otherwise LossTypes.total / .partial
   DateTime? submissionDateUtcMs;
   String insurerReferenceNumber = '';
   String claimAmount = ''; // editable string; parsed to SAR double on save
@@ -62,6 +63,7 @@ class ClaimFormModel {
     customerInsuranceCompany = claim.customerInsuranceCompany;
     insuranceMobile = claim.insuranceMobile ?? '';
     liabilityPercent = claim.liabilityPercent;
+    lossType = claim.lossType;
     submissionDateUtcMs = claim.submissionDateUtcMs;
     insurerReferenceNumber = claim.insurerReferenceNumber ?? '';
     claimAmount = claim.claimAmountSar?.toString() ?? '';
@@ -78,13 +80,7 @@ class ClaimFormModel {
   String? _required(String value) =>
       value.trim().isEmpty ? S.requiredField : null;
 
-  String? validateCustomerName() => _required(customerName);
-
-  String? validateCustomerInsurer() => _required(customerInsuranceCompany);
-
   String? validateVehiclePlate() => _required(vehiclePlate);
-
-  String? validateVehicleType() => _required(vehicleType);
 
   /// Liability percentage is optional; when set it must be one of the
   /// allowed shares.
@@ -123,13 +119,10 @@ class ClaimFormModel {
   /// optional, but a valid Saudi number when entered (spec §7.3).
   String? validateInsuranceMobile() => _validateMobileText(insuranceMobile);
 
-  /// Required: vehicle plate, accident date, vehicle type, customer name and
-  /// insurer. Everything else is optional (an entered mobile must be valid).
+  /// Required: vehicle plate and accident date only. Everything else is
+  /// optional (an entered mobile must still be valid).
   bool get isValid =>
       validateVehiclePlate() == null &&
-      validateVehicleType() == null &&
-      validateCustomerName() == null &&
-      validateCustomerInsurer() == null &&
       validateMobile() == null &&
       validateInsuranceMobile() == null &&
       accidentDateUtcMs != null;
@@ -162,6 +155,7 @@ class ClaimFormModel {
       customerInsuranceCompany: customerInsuranceCompany.trim(),
       insuranceMobile: _opt(insuranceMobile),
       liabilityPercent: liabilityPercent,
+      lossType: lossType,
       submissionDateUtcMs: submissionDateUtcMs,
       insurerReferenceNumber: _opt(insurerReferenceNumber),
       claimAmountSar: _parseAmount(claimAmount),

@@ -8,6 +8,7 @@ library;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../core/constants/accident_types.dart';
+import '../../core/constants/loss_types.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/insurers.dart';
 import '../../core/database/app_database.dart';
@@ -104,7 +105,8 @@ class AssistantTools {
       'description':
           'List claims in a group: overdue follow-ups, follow-ups due '
           'today, all claims with a follow-up, recently registered (by '
-          'submission date) or open claims.',
+          'submission date), open claims, or every claim with one exact '
+          'status (group "status" plus the status key).',
       'parameters': <String, Object?>{
         'type': 'object',
         'properties': <String, Object?>{
@@ -116,6 +118,14 @@ class AssistantTools {
               'with_follow_up',
               'recently_registered',
               'open',
+              'status',
+            ],
+          },
+          'status': <String, Object?>{
+            'type': 'string',
+            'description': 'Only with group "status".',
+            'enum': <String>[
+              for (final ClaimStatusMeta m in ClaimStatus.all) m.key,
             ],
           },
         },
@@ -203,9 +213,9 @@ class AssistantTools {
     <String, Object?>{
       'name': 'create_claim',
       'description':
-          'Register a new claim. Required: customer_name, vehicle_plate, '
-          'vehicle_type, insurer, accident_date. Ask the user for any '
-          'required value you do not have instead of guessing.',
+          'Register a new claim. Required: vehicle_plate and accident_date; '
+          'everything else is optional. Ask the user for a missing required '
+          'value instead of guessing.',
       'parameters': <String, Object?>{
         'type': 'object',
         'properties': <String, Object?>{
@@ -230,15 +240,14 @@ class AssistantTools {
           'customer_mobile': _str('Optional Saudi mobile.'),
           'submission_date': _str('Optional, YYYY-MM-DD.'),
           'notes': _str('Optional.'),
+          'loss_type': <String, Object?>{
+            'type': 'string',
+            'description': 'Optional: total loss or partial loss.',
+            'enum': LossTypes.all,
+          },
           'follow_up': _str('Optional reminder, YYYY-MM-DDTHH:MM Riyadh time.'),
         },
-        'required': <String>[
-          'customer_name',
-          'vehicle_plate',
-          'vehicle_type',
-          'insurer',
-          'accident_date',
-        ],
+        'required': <String>['vehicle_plate', 'accident_date'],
       },
     },
   ];
@@ -268,6 +277,7 @@ class AssistantTools {
           'with_follow_up' => await _claims.needsFollowUp(),
           'recently_registered' => await _claims.recentlySubmitted(10),
           'open' => await _claims.open(),
+          'status' => await _claims.withStatus('${args['status']}'),
           _ => const <Claim>[],
         };
         return _list(found);
@@ -332,6 +342,7 @@ class AssistantTools {
     'accident_city': c.accidentCity,
     'accident_type': c.accidentType,
     'claim_amount_sar': c.claimAmountSar,
+    if (c.lossType != null) 'loss_type': c.lossType,
     'insurer_reference': c.insurerReferenceNumber,
     'notes': c.notes,
     'last_status_update': _local(c.lastStatusUpdateUtcMs),
@@ -460,7 +471,8 @@ class AssistantTools {
       ..accidentType =
           AccidentTypes.match(s('accident_type'))?.en ?? s('accident_type')
       ..customerMobile = s('customer_mobile')
-      ..notes = s('notes');
+      ..notes = s('notes')
+      ..lossType = LossTypes.parse(s('loss_type'));
     m.accidentDateUtcMs = parseLocalDate(s('accident_date'));
     if (s('submission_date').isNotEmpty) {
       m.submissionDateUtcMs = parseLocalDate(s('submission_date'));
@@ -476,10 +488,7 @@ class AssistantTools {
 
     // Same rules as the claim form.
     final List<String> missing = <String>[
-      if (m.validateCustomerName() != null) 'customer_name',
       if (m.validateVehiclePlate() != null) 'vehicle_plate',
-      if (m.validateVehicleType() != null) 'vehicle_type',
-      if (m.validateCustomerInsurer() != null) 'insurer',
       if (m.accidentDateUtcMs == null) 'accident_date (YYYY-MM-DD)',
     ];
     if (missing.isNotEmpty) {
@@ -492,11 +501,16 @@ class AssistantTools {
     return PreparedAction(
       kind: AssistantActionKind.createClaim,
       rows: <(String, String)>[
-        (S.customerNameLabel, m.customerName),
         (S.vehiclePlateLabel, m.vehiclePlate),
-        (S.vehicleTypeLabel, m.vehicleType),
-        (S.customerInsurerLabel, Insurers.display(m.customerInsuranceCompany)),
         (S.accidentDateLabel, TimeUtils.formatDate(m.accidentDateUtcMs!)),
+        if (m.customerName.isNotEmpty) (S.customerNameLabel, m.customerName),
+        if (m.vehicleType.isNotEmpty) (S.vehicleTypeLabel, m.vehicleType),
+        if (m.customerInsuranceCompany.isNotEmpty)
+          (
+            S.customerInsurerLabel,
+            Insurers.display(m.customerInsuranceCompany),
+          ),
+        if (m.lossType != null) (S.lossTypeLabel, LossTypes.label(m.lossType!)),
         if (m.claimNumber.isNotEmpty) (S.claimNumberLabel, m.claimNumber),
         if (m.accidentCity.isNotEmpty) (S.cityLabel, m.accidentCity),
         if (m.accidentType.isNotEmpty)

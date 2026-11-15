@@ -17,7 +17,7 @@ import '../models/status_history_entry.dart';
 
 /// Current schema version. Bump and add an upgrade step in [migrate] when the
 /// shape of any table changes (spec §13: database migrations).
-const int kDatabaseVersion = 8;
+const int kDatabaseVersion = 9;
 
 class AppDatabase {
   AppDatabase(this._db);
@@ -93,6 +93,8 @@ class AppDatabase {
             await _migrateToV7(txn);
           case 8:
             await _migrateToV8(txn);
+          case 9:
+            await _migrateToV9(txn);
           // Future versions add cases here.
         }
       }
@@ -103,6 +105,12 @@ class AppDatabase {
   /// ADD COLUMN pattern as v3–v5 — works on every SQLite version Android ships.
   static Future<void> _migrateToV7(sqf.Transaction txn) async {
     await txn.execute('ALTER TABLE claims ADD COLUMN insurance_mobile TEXT');
+  }
+
+  /// v9: the claim's loss type, `total` or `partial` (optional). ADD COLUMN,
+  /// like v7: existing claims keep every value and get no loss type.
+  static Future<void> _migrateToV9(sqf.Transaction txn) async {
+    await txn.execute('ALTER TABLE claims ADD COLUMN loss_type TEXT');
   }
 
   /// v8 (Google Sheets sync): the accident date becomes optional, because a

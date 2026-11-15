@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/accident_types.dart';
+import '../../core/constants/loss_types.dart';
 import '../../core/constants/insurers.dart';
 import '../../core/contacts/contact_phone_picker.dart';
 import '../../core/l10n/app_strings.dart';
@@ -256,12 +257,9 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
 
   Future<void> _save() async {
     final Map<String, String?> errors = <String, String?>{
-      'customerName': _model.validateCustomerName(),
       'mobile': _model.validateMobile(),
-      'custInsurer': _model.validateCustomerInsurer(),
       'insMobile': _model.validateInsuranceMobile(),
       'plate': _model.validateVehiclePlate(),
-      'vehicleType': _model.validateVehicleType(),
       'accident': _model.accidentDateUtcMs == null ? S.requiredField : null,
     };
 
@@ -290,6 +288,7 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
       // Eager (non-lazy) form: every field must exist in the tree at once so
       // all validation errors render and tests can address any field directly.
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -328,8 +327,9 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
                 required: true,
                 ltr: true,
               ),
-              _field('vehicleType', label: S.vehicleTypeLabel, required: true),
+              _field('vehicleType', label: S.vehicleTypeLabel),
               _liabilityField(),
+              _lossTypeField(),
             ]),
             _section(S.sectionClaimInfo, [
               _field('claimNumber', label: S.claimNumberLabel),
@@ -740,6 +740,38 @@ class _ClaimFormScreenState extends State<ClaimFormScreen> {
               // the field (including any legacy free-form value).
               _model.accidentType = v ?? '';
             }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Optional loss type: not set, total loss or partial loss.
+  Widget _lossTypeField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InputDecorator(
+        key: const Key('field-lossType'),
+        decoration: InputDecoration(
+          labelText: S.lossTypeLabel,
+          border: const OutlineInputBorder(),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            isExpanded: true,
+            value: _model.lossType,
+            items: <DropdownMenuItem<String?>>[
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text(S.liabilityNotSet),
+              ),
+              for (final String key in LossTypes.all)
+                DropdownMenuItem<String?>(
+                  value: key,
+                  child: Text(LossTypes.label(key)),
+                ),
+            ],
+            onChanged: (String? v) => setState(() => _model.lossType = v),
           ),
         ),
       ),

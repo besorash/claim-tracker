@@ -394,10 +394,11 @@ void main() {
       await tester.tap(find.text(S.save));
       await tester.pumpAndSettle();
 
-      // Required: plate, vehicle type, customer name, insurer and accident
-      // date — five messages. Mobile, claim number and submission date are
-      // optional and show none.
-      expect(find.text(S.requiredField), findsNWidgets(5));
+      // Required: plate and accident date only — two messages. Name,
+      // vehicle type, insurer, mobile, claim number and the rest show none.
+      expect(find.text(S.requiredField), findsNWidgets(2));
+      final TextField name = tester.widget<TextField>(field('customerName'));
+      expect(name.decoration!.errorText, isNull);
       final TextField claimNumber = tester.widget<TextField>(
         field('claimNumber'),
       );

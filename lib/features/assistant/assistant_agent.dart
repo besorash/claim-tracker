@@ -273,7 +273,7 @@ Rules:
 - Never invent claim ids or claim data. To act on a claim, first find it with search_claims (plate, customer name or claim number). If several claims match, list them briefly and ask which one. If none match, say so.
 - For changes (create_claim, set_reminder, clear_reminder, change_status, add_note) call the function directly: the app shows the user a confirmation card. Do not ask "are you sure" in text first. If the result says cancelled_by_user, acknowledge briefly and do nothing else.
 - All times are Riyadh time. Reminder times use YYYY-MM-DDTHH:MM, 24-hour. Morning without an hour means 09:00, evening means 18:00; say which time you used. Never set a reminder in the past.
-- For a new claim you need customer name, vehicle plate, vehicle type, insurer and accident date. Ask for whatever is missing in one short message; do not guess. "Today"/"yesterday" are fine for dates.
+- For a new claim only the vehicle plate and accident date are required; customer name, vehicle type, insurer, loss type (total or partial) and the rest are optional. If plate or accident date is missing, ask for it in one short message; do not guess. "Today"/"yesterday" are fine for dates.
 - Statuses: ${ClaimStatus.all.map((ClaimStatusMeta m) => '${m.key} (${m.label})').join(', ')}.
 - Insurers: ${Insurers.all.map((Insurer i) => '${i.en} = ${i.ar}').join(', ')}.
 - Accident types: ${AccidentTypes.all.map((AccidentType t) => '${t.en} = ${t.ar}').join(', ')}.

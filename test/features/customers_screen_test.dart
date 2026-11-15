@@ -18,6 +18,7 @@ import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/claims/claim_card.dart';
 import 'package:claim_tracker/features/claims/claim_details_screen.dart';
+import 'package:claim_tracker/features/customers/customers_screen.dart';
 
 Widget _harness(AppDatabase db) => MaterialApp(
   locale: const Locale('ar'),
@@ -137,6 +138,89 @@ void main() {
         () => find.byKey(const Key('customer-خالد')).evaluate().isNotEmpty,
       );
       expect(_cards(), 0);
+
+      await raw.close();
+    });
+  });
+
+  testWidgets('back from a claim returns to the same place in the list', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() async {
+      final ffi.Database raw = await ffi.databaseFactoryFfi.openDatabase(
+        ffi.inMemoryDatabasePath,
+      );
+      await raw.execute('PRAGMA foreign_keys = ON');
+      await AppDatabase.migrate(raw, from: 0, to: kDatabaseVersion);
+      final AppDatabase db = AppDatabase.fromExisting(raw);
+      final ClaimsRepository repo = ClaimsRepository(db);
+      for (int i = 0; i < 30; i++) {
+        await repo.create(_seed('سعد', 'P-$i', 'processing'));
+      }
+      await repo.create(_seed('سعد', 'N-1', 'new'));
+
+      // The screen's own (outermost) vertical scroll view.
+      ScrollPosition position() => tester
+          .stateList<ScrollableState>(
+            find.descendant(
+              of: find.byType(CustomersScreen),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .firstWhere((ScrollableState s) => s.position.axis == Axis.vertical)
+          .position;
+
+      await tester.pumpWidget(_harness(db));
+      await settle(
+        tester,
+        () => find.text(S.navCustomers).evaluate().isNotEmpty,
+      );
+      await tester.tap(find.text(S.navCustomers));
+      await settle(
+        tester,
+        () => find.byKey(const Key('customer-سعد')).evaluate().isNotEmpty,
+      );
+      await tester.tap(find.byKey(const Key('customer-سعد')));
+      await settle(tester, () => _cards() > 0);
+      await tester.tap(find.byKey(const Key('customer-status-processing')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Scroll well down the list, then open a claim there.
+      position().jumpTo(1800);
+      await tester.pump();
+      final double before = position().pixels;
+      expect(before, greaterThan(1000));
+      final Finder card = find.byType(ClaimCard).hitTestable().first;
+      await tester.tap(card);
+      await settle(
+        tester,
+        () => find.text(S.sectionCustomerInfo).evaluate().isNotEmpty,
+      );
+      tester.state<NavigatorState>(find.byType(Navigator)).pop();
+      await settle(
+        tester,
+        () =>
+            find.byType(ClaimDetailsScreen).evaluate().isEmpty && _cards() > 0,
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Same customer, same status, same place.
+      expect(
+        find.byKey(const PageStorageKey<String>('customers-سعد-processing')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(CustomersScreen),
+          matching: find.text('N-1', skipOffstage: false),
+        ),
+        findsNothing,
+      );
+      expect(position().pixels, closeTo(before, 1));
 
       await raw.close();
     });

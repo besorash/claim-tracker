@@ -379,7 +379,11 @@ class _HomeShellState extends State<HomeShell> {
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (int i) => setState(() => _index = i),
+        onDestinationSelected: (int i) {
+          // A field focused in the tab being left would keep the keyboard up.
+          FocusManager.instance.primaryFocus?.unfocus();
+          setState(() => _index = i);
+        },
         destinations: <NavigationDestination>[
           NavigationDestination(
             icon: const Icon(Icons.space_dashboard_outlined),

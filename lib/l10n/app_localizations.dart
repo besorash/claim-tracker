@@ -1277,7 +1277,7 @@ abstract class AppLocalizations {
   /// No description provided for @securityInfoBody.
   ///
   /// In en, this message translates to:
-  /// **'All data is stored locally on your device only — nothing is sent over a network or used for analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure local storage complies with your employer\'s policies and Saudi PDPL privacy requirements where applicable.'**
+  /// **'Your data is stored on this device. It leaves the device only when you use Google Sheets sync (to your own sheet) or the AI assistant (your messages and the claim details it needs go to Google Gemini; national ID, mobile and email are never sent). Both use encrypted HTTPS; there are no analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure this complies with your employer\'s policies and Saudi PDPL privacy requirements where applicable.'**
   String get securityInfoBody;
 
   /// No description provided for @statusNew.
@@ -1825,6 +1825,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap to speak · hold to switch language'**
   String get assistantMicTooltip;
+
+  /// No description provided for @assistantErrBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Gemini is overloaded right now. I retried and tried other Gemini models, but all were busy. Try again in a minute.'**
+  String get assistantErrBusy;
+
+  /// No description provided for @lossTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Loss Type'**
+  String get lossTypeLabel;
+
+  /// No description provided for @lossTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Loss'**
+  String get lossTotal;
+
+  /// No description provided for @lossPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial Loss'**
+  String get lossPartial;
+
+  /// No description provided for @csvErrorLossType.
+  ///
+  /// In en, this message translates to:
+  /// **'loss type must be Total Loss or Partial Loss.'**
+  String get csvErrorLossType;
 }
 
 class _AppLocalizationsDelegate

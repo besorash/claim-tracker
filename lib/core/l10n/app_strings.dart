@@ -364,7 +364,8 @@ abstract final class S {
   static String get assistantReviewAction => _l.assistantReviewAction;
   static String get assistantActionCreate => _l.assistantActionCreate;
   static String get assistantActionReminder => _l.assistantActionReminder;
-  static String get assistantActionClearReminder => _l.assistantActionClearReminder;
+  static String get assistantActionClearReminder =>
+      _l.assistantActionClearReminder;
   static String get assistantActionStatus => _l.assistantActionStatus;
   static String get assistantActionNote => _l.assistantActionNote;
   static String get assistantStateDone => _l.assistantStateDone;
@@ -377,10 +378,18 @@ abstract final class S {
   static String get assistantErrModel => _l.assistantErrModel;
   static String get assistantErrNetwork => _l.assistantErrNetwork;
   static String get assistantErrEmpty => _l.assistantErrEmpty;
-  static String assistantErrOther(String detail) => _l.assistantErrOther(detail);
+  static String assistantErrOther(String detail) =>
+      _l.assistantErrOther(detail);
   static String get assistantMicListening => _l.assistantMicListening;
   static String get assistantMicUnavailable => _l.assistantMicUnavailable;
   static String assistantMicLanguage(String language) =>
       _l.assistantMicLanguage(language);
   static String get assistantMicTooltip => _l.assistantMicTooltip;
+  static String get assistantErrBusy => _l.assistantErrBusy;
+
+  // Loss type.
+  static String get lossTypeLabel => _l.lossTypeLabel;
+  static String get lossTotal => _l.lossTotal;
+  static String get lossPartial => _l.lossPartial;
+  static String get csvErrorLossType => _l.csvErrorLossType;
 }

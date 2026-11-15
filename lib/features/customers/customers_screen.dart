@@ -42,6 +42,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
   bool _loaded = false;
   bool _loadFailed = false;
   String _query = '';
+
+  /// The search text survives remounts like the scroll position does.
+  static const String _queryStorageId = 'customers-search-query';
+  final TextEditingController _search = TextEditingController();
   String? _customer;
   String? _status;
 
@@ -50,7 +54,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
     super.initState();
     _customer = widget.initialCustomer;
     _status = widget.initialStatus;
+    final Object? saved = PageStorage.maybeOf(context)
+        ?.readState(context, identifier: _queryStorageId);
+    if (saved is String) _search.text = _query = saved;
     _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -104,6 +117,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
       child: RefreshIndicator(
         onRefresh: _load,
         child: CustomScrollView(
+          // One remembered position per view (the customer list, and each
+          // customer + status), kept across the remount after returning
+          // from a claim. Keyed only once loaded so the short loading view
+          // cannot clamp the restored offset to the top.
+          key: _loaded
+              ? PageStorageKey<String>(
+                  'customers-${_customer ?? '<list>'}-${_status ?? '<all>'}',
+                )
+              : null,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: <Widget>[
             SliverPadding(
@@ -214,11 +237,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
         sliver: SliverToBoxAdapter(
           child: TextField(
             key: const Key('customers-search'),
+            controller: _search,
             decoration: InputDecoration(
               hintText: S.customersSearchHint,
               prefixIcon: const Icon(Icons.search_rounded),
             ),
-            onChanged: (String v) => setState(() => _query = v),
+            onChanged: (String v) {
+              PageStorage.maybeOf(context)
+                  ?.writeState(context, v, identifier: _queryStorageId);
+              setState(() => _query = v);
+            },
           ),
         ),
       ),

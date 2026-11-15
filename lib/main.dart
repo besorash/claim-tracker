@@ -28,6 +28,7 @@ import 'core/notifications/reminder_scheduler.dart';
 import 'core/security/backup_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/attachments/attachment_file_service.dart';
+import 'shared/widgets/dismiss_keyboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -232,6 +233,10 @@ class _ClaimTrackerAppState extends State<ClaimTrackerApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // A tap outside a text field closes the keyboard, app-wide (dialogs
+      // and pushed screens included: they live under this builder).
+      builder: (BuildContext context, Widget? child) =>
+          DismissKeyboard(child: child ?? const SizedBox.shrink()),
       home: HomeShell(
         db: _db,
         settingsRepo: _settings,

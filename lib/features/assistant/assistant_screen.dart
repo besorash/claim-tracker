@@ -98,6 +98,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ? AssistantScreen.defaultModel
               : model.trim(),
           transport: widget.transport,
+          // Remember the model that answered, so the next message and the
+          // next launch go straight to it.
+          onModelSwitched: (String m) {
+            widget.keyStore.writeModel(m).catchError((Object _) {});
+          },
         ),
         tools: AssistantTools(
           db: widget.db,
@@ -531,6 +536,7 @@ class _ChatList extends StatelessWidget {
             items.last is ActionCard &&
             (items.last as ActionCard).state == ActionState.pending);
     return ListView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       controller: controller,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       itemCount: items.length + (waiting ? 1 : 0),
@@ -941,6 +947,7 @@ class _ErrorView extends StatelessWidget {
     final String message = switch (error.code) {
       'invalid-key' => S.assistantErrInvalidKey,
       'rate-limit' => S.assistantErrRateLimit,
+      'overloaded' || 'timeout' => S.assistantErrBusy,
       'model-not-found' => S.assistantErrModel,
       'network' => S.assistantErrNetwork,
       'empty' => S.assistantErrEmpty,
@@ -948,6 +955,7 @@ class _ErrorView extends StatelessWidget {
         error.detail.isEmpty ? error.code : error.detail,
       ),
     };
+    final bool busy = error.code == 'overloaded' || error.code == 'timeout';
     final bool fixInSettings =
         error.code == 'invalid-key' || error.code == 'model-not-found';
     return Padding(
@@ -967,7 +975,24 @@ class _ErrorView extends StatelessWidget {
               children: <Widget>[
                 const Icon(Icons.error_outline_rounded, color: AppColors.rose),
                 const SizedBox(width: 8),
-                Expanded(child: Text(message)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(message),
+                      // Which models were tried and how each failed.
+                      if (busy && error.detail.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            error.detail,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.muted(context)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
             if (fixInSettings)
@@ -1300,6 +1325,7 @@ class _KeySheetState extends State<_KeySheet> {
         'model-not-found' => S.assistantErrModel,
         'network' => S.assistantErrNetwork,
         'rate-limit' => S.assistantErrRateLimit,
+        'overloaded' || 'timeout' => S.assistantErrBusy,
         _ => S.assistantErrOther(e.detail.isEmpty ? e.code : e.detail),
       };
     } on Object catch (e) {

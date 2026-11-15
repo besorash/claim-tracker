@@ -533,6 +533,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     // front froze the app (ANR) with ~1,700 imported claims.
     final bool selecting = _selectionMode;
     return ListView.separated(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       key: const PageStorageKey<String>('claims-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       itemCount: _claims.length,

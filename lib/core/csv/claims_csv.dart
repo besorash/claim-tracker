@@ -24,6 +24,7 @@ library;
 
 import '../../features/claims/claim_form_model.dart';
 import '../constants/insurers.dart';
+import '../constants/loss_types.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ar.dart';
 import '../../l10n/app_localizations_en.dart';
@@ -51,6 +52,7 @@ const List<String> kClaimsCsvColumns = <String>[
   'insurer_reference_number',
   'claim_amount_sar',
   'liability_percent',
+  'loss_type',
   'notes',
   'status_key',
   'next_follow_up',
@@ -61,9 +63,6 @@ const List<String> kClaimsCsvColumns = <String>[
 const List<String> kRequiredCsvColumns = <String>[
   'vehicle_plate',
   'accident_date',
-  'vehicle_type',
-  'customer_name',
-  'customer_insurance_company',
 ];
 
 const List<String> _dateColumns = <String>[
@@ -207,6 +206,7 @@ abstract final class ClaimsCsv {
     'liability_percent': c.liabilityPercent == null
         ? ''
         : c.liabilityPercent!.toStringAsFixed(0),
+    'loss_type': c.lossType ?? '',
     'notes': c.notes ?? '',
     'status_key': c.statusKey,
     'next_follow_up': c.nextFollowUpUtcMs == null
@@ -363,6 +363,16 @@ abstract final class ClaimsCsv {
       }
     }
 
+    final String lossRaw = text('loss_type');
+    if (lossRaw.isNotEmpty) {
+      final String? loss = LossTypes.parse(lossRaw);
+      if (loss == null) {
+        fail('loss_type', S.csvErrorLossType);
+      } else {
+        m.lossType = loss;
+      }
+    }
+
     final String? status = text('status_key').isEmpty
         ? ClaimStatus.defaultKey
         : _statusKey(text('status_key'));
@@ -394,14 +404,6 @@ abstract final class ClaimsCsv {
       if (plateError != null) fail('vehicle_plate', plateError);
       if (text('accident_date').isEmpty) {
         fail('accident_date', S.requiredField);
-      }
-      final String? typeError = m.validateVehicleType();
-      if (typeError != null) fail('vehicle_type', typeError);
-      final String? nameError = m.validateCustomerName();
-      if (nameError != null) fail('customer_name', nameError);
-      final String? insurerError = m.validateCustomerInsurer();
-      if (insurerError != null) {
-        fail('customer_insurance_company', insurerError);
       }
     }
     final String? mobileError = m.validateMobile();
@@ -450,6 +452,7 @@ abstract final class ClaimsCsv {
       add(l.insurerRefLabel, 'insurer_reference_number');
       add(l.claimAmountLabel, 'claim_amount_sar');
       add(l.liabilityPercentLabel, 'liability_percent');
+      add(l.lossTypeLabel, 'loss_type');
       add(l.notesLabel, 'notes');
       add(l.statusLabel, 'status_key');
       add(l.nextFollowUpLabel, 'next_follow_up');

@@ -14,6 +14,7 @@ import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/accident_types.dart';
+import '../../core/constants/loss_types.dart';
 import '../../core/constants/insurers.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/attachments_repository.dart';
@@ -876,6 +877,13 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                         c.liabilityPercent == null
                             ? S.liabilityNotSet
                             : '${c.liabilityPercent!.toStringAsFixed(0)}%',
+                      ),
+                      _row(
+                        theme,
+                        S.lossTypeLabel,
+                        c.lossType == null
+                            ? S.liabilityNotSet
+                            : LossTypes.label(c.lossType!),
                       ),
                     ],
                   ),

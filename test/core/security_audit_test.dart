@@ -48,37 +48,40 @@ void main() {
     expect(service.contains('genericReminderBody'), isTrue);
   });
 
-  test('network is used only by the Sheets sync and the assistant, over HTTPS', () {
-    // INTERNET was added for the user-requested Google Sheets sync; the AI
-    // assistant talks to Google Gemini. Pin that nothing else in lib/ opens
-    // connections and that plain HTTP stays off.
-    final String xml = File('android/app/src/main/AndroidManifest.xml')
-        .readAsStringSync();
-    expect(xml.contains('usesCleartextTraffic="true"'), isFalse);
-    final List<String> users = <String>[];
-    for (final FileSystemEntity e in Directory(
-      'lib',
-    ).listSync(recursive: true)) {
-      if (e is! File || !e.path.endsWith('.dart')) continue;
-      if (e.readAsStringSync().contains('HttpClient(')) {
-        users.add(e.path.replaceAll(r'\', '/'));
+  test(
+    'network is used only by the Sheets sync and the assistant, over HTTPS',
+    () {
+      // INTERNET was added for the user-requested Google Sheets sync; the AI
+      // assistant talks to Google Gemini. Pin that nothing else in lib/ opens
+      // connections and that plain HTTP stays off.
+      final String xml = File('android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
+      expect(xml.contains('usesCleartextTraffic="true"'), isFalse);
+      final List<String> users = <String>[];
+      for (final FileSystemEntity e in Directory(
+        'lib',
+      ).listSync(recursive: true)) {
+        if (e is! File || !e.path.endsWith('.dart')) continue;
+        if (e.readAsStringSync().contains('HttpClient(')) {
+          users.add(e.path.replaceAll(r'\', '/'));
+        }
       }
-    }
-    expect(users..sort(), <String>[
-      'lib/core/sync/sheets_sync_service.dart',
-      'lib/features/assistant/gemini_client.dart',
-    ]);
-    final String sync = File('lib/core/sync/sheets_sync_service.dart')
-        .readAsStringSync();
-    expect(sync.contains("uri.scheme != 'https'"), isTrue);
-    final String gemini = File('lib/features/assistant/gemini_client.dart')
-        .readAsStringSync();
-    expect(
-      gemini.contains("'https://generativelanguage.googleapis.com/"),
-      isTrue,
-    );
-    expect(gemini.contains('http://'), isFalse);
-  });
+      expect(users..sort(), <String>[
+        'lib/core/sync/sheets_sync_service.dart',
+        'lib/features/assistant/gemini_client.dart',
+      ]);
+      final String sync = File('lib/core/sync/sheets_sync_service.dart')
+          .readAsStringSync();
+      expect(sync.contains("uri.scheme != 'https'"), isTrue);
+      final String gemini = File('lib/features/assistant/gemini_client.dart')
+          .readAsStringSync();
+      expect(
+        gemini.contains("'https://generativelanguage.googleapis.com/"),
+        isTrue,
+      );
+      expect(gemini.contains('http://'), isFalse);
+    },
+  );
 
   test('production manifest declares exact-alarm + battery-optimization permissions', () {
     // Phase 1 fix #1/#4: reminders must be schedulable exactly (Android 14+

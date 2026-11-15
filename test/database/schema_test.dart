@@ -319,6 +319,40 @@ void main() {
       },
     );
 
+    test('v8 → v9 adds loss_type; existing claims keep their data', () async {
+      final ffi.Database db = await openInMemory();
+      await AppDatabase.migrate(db, from: 0, to: 8);
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+      await db.insert('claims', <String, Object?>{
+        'customer_name': 'عميل',
+        'accident_date_utc_ms': now,
+        'vehicle_plate': '3557 ATR',
+        'claim_number': 'CLM-V8',
+        'customer_insurance_company': 'Wataniya',
+        'liability_percent': 50,
+        'status_key': 'processing',
+        'last_status_update_utc_ms': now,
+        'created_at_utc_ms': now,
+        'updated_at_utc_ms': now,
+      });
+
+      await AppDatabase.migrate(db, from: 8, to: 9);
+
+      final Claim kept = Claim.fromRow((await db.query('claims')).single);
+      expect(kept.claimNumber, 'CLM-V8');
+      expect(kept.vehiclePlate, '3557 ATR');
+      expect(kept.liabilityPercent, 50);
+      expect(kept.statusKey, 'processing');
+      expect(kept.lossType, isNull);
+
+      await db.execute('UPDATE claims SET loss_type = ?', ['total']);
+      expect(
+        Claim.fromRow((await db.query('claims')).single).lossType,
+        'total',
+      );
+      await db.close();
+    });
+
     test(
       'v7 → v8 makes the accident date optional and keeps every claim',
       () async {

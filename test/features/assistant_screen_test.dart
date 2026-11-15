@@ -202,7 +202,9 @@ void main() {
 
     expect(find.text(S.assistantStateDone), findsOneWidget);
     expect(find.text('Status updated.'), findsOneWidget);
-    final Claim? saved = await tester.runAsync<Claim?>(() => db.claimById(claimId));
+    final Claim? saved = await tester.runAsync<Claim?>(
+      () => db.claimById(claimId),
+    );
     expect(saved!.statusKey, 'awaiting_approval');
   });
 

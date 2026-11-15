@@ -89,6 +89,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: RefreshIndicator(
         onRefresh: _load,
         child: SingleChildScrollView(
+          // The shell remounts the dashboard after every data change (e.g.
+          // back from a claim); the scroll position survives in the route's
+          // PageStorage. Keyed only once loaded: restored onto the short
+          // loading view, the offset would be clamped to the top.
+          key: _loaded
+              ? const PageStorageKey<String>('dashboard-scroll')
+              : null,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 110),
           child: Column(

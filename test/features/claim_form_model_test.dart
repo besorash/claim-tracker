@@ -7,8 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:claim_tracker/core/l10n/app_strings.dart';
 import 'package:claim_tracker/features/claims/claim_form_model.dart';
 
-/// Only the required fields: plate, accident date, vehicle type, customer
-/// name and insurer (plus an optional liability share).
+/// A typical filled-in claim (only plate and accident date are required).
 ClaimFormModel _validModel() => ClaimFormModel()
   ..vehiclePlate = '4051 VJD'
   ..accidentDateUtcMs = DateTime.utc(2026, 10, 1)
@@ -19,28 +18,38 @@ ClaimFormModel _validModel() => ClaimFormModel()
 
 void main() {
   group('required-field validation', () {
-    test('all required fields blank → each validator returns S.requiredField; '
-        'isValid is false', () {
+    test('only plate and accident date are required', () {
       final ClaimFormModel m = ClaimFormModel();
       expect(m.validateVehiclePlate(), S.requiredField);
-      expect(m.validateVehicleType(), S.requiredField);
-      expect(m.validateCustomerName(), S.requiredField);
-      expect(m.validateCustomerInsurer(), S.requiredField);
       expect(m.isValid, isFalse);
+
+      // Plate + accident date alone: valid, with no name, type or insurer.
+      final ClaimFormModel minimal = ClaimFormModel()
+        ..vehiclePlate = '4051 VJD'
+        ..accidentDateUtcMs = DateTime.utc(2026, 10, 1);
+      expect(minimal.isValid, isTrue);
+      final claim = minimal.buildNew(DateTime.utc(2026, 10, 2));
+      expect(claim.customerName, isEmpty);
+      expect(claim.customerInsuranceCompany, isEmpty);
+      expect(claim.vehicleType, isNull);
     });
 
-    test('whitespace-only name is still required', () {
-      final ClaimFormModel m = ClaimFormModel()..customerName = '   ';
-      expect(m.validateCustomerName(), S.requiredField);
+    test('whitespace-only plate is still required', () {
+      final ClaimFormModel m = ClaimFormModel()..vehiclePlate = '   ';
+      expect(m.validateVehiclePlate(), S.requiredField);
     });
 
-    test('all required fields filled → every validator null; isValid true', () {
+    test('all fields filled → valid', () {
       final ClaimFormModel m = _validModel();
       expect(m.validateVehiclePlate(), isNull);
-      expect(m.validateVehicleType(), isNull);
-      expect(m.validateCustomerName(), isNull);
-      expect(m.validateCustomerInsurer(), isNull);
       expect(m.isValid, isTrue);
+    });
+
+    test('loss type round-trips through the claim', () {
+      final ClaimFormModel m = _validModel()..lossType = 'total';
+      final claim = m.toClaim(id: 1, createdAtUtcMs: DateTime.utc(2026));
+      expect(claim.lossType, 'total');
+      expect((ClaimFormModel()..loadFrom(claim)).lossType, 'total');
     });
 
     test('mobile, claim number and submission date are optional', () {
@@ -59,11 +68,11 @@ void main() {
       expect(m.isValid, isFalse);
     });
 
-    test('each newly required field blocks saving on its own', () {
+    test('plate blocks saving; name, vehicle type and insurer do not', () {
       expect((_validModel()..vehiclePlate = '').isValid, isFalse);
-      expect((_validModel()..vehicleType = ' ').isValid, isFalse);
-      expect((_validModel()..customerName = '').isValid, isFalse);
-      expect((_validModel()..customerInsuranceCompany = '').isValid, isFalse);
+      expect((_validModel()..vehicleType = ' ').isValid, isTrue);
+      expect((_validModel()..customerName = '').isValid, isTrue);
+      expect((_validModel()..customerInsuranceCompany = '').isValid, isTrue);
     });
   });
 

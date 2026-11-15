@@ -173,8 +173,7 @@ class ClaimsRepository {
   Future<List<Claim>> overdue(DateTime nowUtc) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where:
-          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ?',
+      where: 'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms < ?',
       whereArgs: [nowUtc.millisecondsSinceEpoch],
     );
     return sortDefault(rows.map(Claim.fromRow).toList());
@@ -185,8 +184,7 @@ class ClaimsRepository {
   Future<List<Claim>> dueBetween(DateTime startUtc, DateTime endUtc) async {
     final List<Map<String, Object?>> rows = await _db.rawDb.query(
       'claims',
-      where:
-          'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ?',
+      where: 'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ?',
       whereArgs: [
         startUtc.millisecondsSinceEpoch,
         endUtc.millisecondsSinceEpoch,
@@ -225,10 +223,7 @@ class ClaimsRepository {
 
   Future<int> countDueBetween(DateTime startUtc, DateTime endUtc) => _count(
     'next_follow_up_utc_ms IS NOT NULL AND next_follow_up_utc_ms >= ? AND next_follow_up_utc_ms <= ?',
-    <Object?>[
-      startUtc.millisecondsSinceEpoch,
-      endUtc.millisecondsSinceEpoch,
-    ],
+    <Object?>[startUtc.millisecondsSinceEpoch, endUtc.millisecondsSinceEpoch],
   );
 
   /// Claims with exactly [statusKey] — the dashboard "Awaiting Approval" tile;

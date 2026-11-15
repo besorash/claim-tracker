@@ -250,9 +250,8 @@ void main() {
           'customer_name': 'Fraikin',
           'vehicle_plate': '1234 ABC',
           'insurer': 'Tawuniya',
-          'accident_date': '2026-11-10',
         }),
-        _text('What is the vehicle type?'),
+        _text('When did the accident happen?'),
       ]);
       final AssistantAgent agent = agentWith(g);
       autoDecide(agent, true);
@@ -260,7 +259,7 @@ void main() {
       await agent.send('new claim for Fraikin');
 
       expect(agent.items.whereType<ActionCard>(), isEmpty);
-      expect('${_lastResponse(g)['error']}', contains('vehicle_type'));
+      expect('${_lastResponse(g)['error']}', contains('accident_date'));
       expect(await claims.countAll(), 1);
     },
   );
@@ -353,5 +352,23 @@ void main() {
     final String p = AssistantAgent.systemPrompt(DateTime.utc(2026, 11, 15, 9));
     expect(p, contains('2026-11-15 Sunday 12:00'));
     expect(p, contains('2026-11-19 Thursday'));
+  });
+
+  test('list_claims by exact status returns only that status', () async {
+    final AssistantTools tools = AssistantTools(
+      db: db,
+      scheduler: _NoopScheduler(),
+      saveFollowUp: (_, _) async {},
+    );
+    final Map<String, Object?> hit = await tools.read(
+      'list_claims',
+      <String, Object?>{'group': 'status', 'status': 'processing'},
+    );
+    expect(hit['count'], 1);
+    final Map<String, Object?> miss = await tools.read(
+      'list_claims',
+      <String, Object?>{'group': 'status', 'status': 'awaiting_approval'},
+    );
+    expect(miss['count'], 0);
   });
 }

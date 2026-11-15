@@ -268,7 +268,7 @@
   "backupExportFailed": "Could not create the backup.",
   "backupRestoreFailed": "Restore failed. Your current data was not modified.",
   "securityInfoTitle": "Privacy & Security",
-  "securityInfoBody": "All data is stored locally on your device only — nothing is sent over a network or used for analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure local storage complies with your employer's policies and Saudi PDPL privacy requirements where applicable.",
+  "securityInfoBody": "Your data is stored on this device. It leaves the device only when you use Google Sheets sync (to your own sheet) or the AI assistant (your messages and the claim details it needs go to Google Gemini; national ID, mobile and email are never sent). Both use encrypted HTTPS; there are no analytics. Backups are encrypted with your passphrase (PBKDF2 + AES-256). Before entering real data, make sure this complies with your employer's policies and Saudi PDPL privacy requirements where applicable.",
   "statusNew": "New",
   "statusSubmitted": "Claim Submitted",
   "statusAwaitingReview": "Awaiting Review",
@@ -369,5 +369,10 @@
   "assistantMicUnavailable": "Voice input isn't available. Allow microphone access for the app, and make sure speech recognition (Google app on Android) is installed.",
   "assistantMicLanguage": "Voice language: {language}",
   "@assistantMicLanguage": {"placeholders": {"language": {"type": "String"}}},
-  "assistantMicTooltip": "Tap to speak · hold to switch language"
+  "assistantMicTooltip": "Tap to speak · hold to switch language",
+  "assistantErrBusy": "Google Gemini is overloaded right now. I retried and tried other Gemini models, but all were busy. Try again in a minute.",
+  "lossTypeLabel": "Loss Type",
+  "lossTotal": "Total Loss",
+  "lossPartial": "Partial Loss",
+  "csvErrorLossType": "loss type must be Total Loss or Partial Loss."
 }

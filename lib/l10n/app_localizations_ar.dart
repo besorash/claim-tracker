@@ -660,7 +660,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get securityInfoBody =>
-      'تُخزَّن جميع البيانات محليًا على جهازك فقط، دون أي إرسال عبر الشبكة أو تحليلات. النسخ الاحتياطي مشفَّر بعبارة مرورك (PBKDF2 + AES-256). تأكد قبل إدخال بيانات حقيقية من توافق التخزين المحلي مع سياسات جهة عملك ومتطلبات الخصوصية السعودية (PDPL) حيث ينطبق.';
+      'تُخزَّن بياناتك على هذا الجهاز. لا تخرج منه إلا عند استخدام مزامنة Google Sheets (إلى جدولك أنت) أو المساعد الذكي (تُرسَل رسائلك وبيانات المطالبة التي يحتاجها إلى Google Gemini، ولا يُرسَل رقم الهوية أو الجوال أو البريد أبدًا). كلاهما عبر اتصال HTTPS مشفَّر، ولا توجد أي تحليلات. النسخ الاحتياطي مشفَّر بعبارة مرورك (PBKDF2 + AES-256). تأكد قبل إدخال بيانات حقيقية من توافق ذلك مع سياسات جهة عملك ومتطلبات الخصوصية السعودية (PDPL) حيث ينطبق.';
 
   @override
   String get statusNew => 'جديدة';
@@ -966,4 +966,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get assistantMicTooltip => 'اضغط وتكلم · اضغط مطولًا لتغيير اللغة';
+
+  @override
+  String get assistantErrBusy =>
+      'خوادم Google Gemini مضغوطة الحين. حاولت مرة ثانية وجربت نماذج Gemini ثانية، وكلها كانت مشغولة. جرّب بعد دقيقة.';
+
+  @override
+  String get lossTypeLabel => 'نوع الخسارة';
+
+  @override
+  String get lossTotal => 'خسارة كلية';
+
+  @override
+  String get lossPartial => 'خسارة جزئية';
+
+  @override
+  String get csvErrorLossType =>
+      'نوع الخسارة يجب أن يكون خسارة كلية أو خسارة جزئية.';
 }

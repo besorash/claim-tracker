@@ -128,7 +128,8 @@ committed. Update both places together:
 -   `lib/core/constants/app_constants.dart` → `appBuildLabel = '12'`.
 
 The version (`3`) changes only when the owner asks for it.
-Current: **version 3, build 14** (2026-11-15).
+Current: **version 3, build 24** (2026-11-15). A test (`test/core/app_version_test.dart`)
+fails when the two places disagree.
 
 ## Release build and installation (Phase 5)
 
