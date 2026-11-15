@@ -31,7 +31,7 @@ abstract final class AppConstants {
   /// Keep in step with `version:` in pubspec.yaml. Every change to the app
   /// adds 1 to the build (see README "Versioning").
   static const String appVersionLabel = '3';
-  static const String appBuildLabel = '13';
+  static const String appBuildLabel = '14';
 
   // app_settings keys.
   static const String settingThemeMode = 'theme_mode'; // light|dark|system

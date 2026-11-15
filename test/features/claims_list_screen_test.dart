@@ -347,6 +347,33 @@ void main() {
     });
   });
 
+  testWidgets('a remount keeps the search text and its results', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (int i = 0; i < 30; i++) {
+        await create(seed(statusKey: 'new', claimNumber: 'BULK-$i'));
+      }
+      await create(seed(statusKey: 'new', claimNumber: 'FIND-ME'));
+      await tester.pumpWidget(_harness(claims, screenKey: const ValueKey(1)));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+
+      await tester.enterText(find.byKey(const Key('claims-search')), 'FIND');
+      await settle(tester, () => find.byType(ClaimCard).evaluate().length == 1);
+
+      await tester.pumpWidget(_harness(claims, screenKey: const ValueKey(2)));
+      await settle(tester, () => find.byType(ClaimCard).evaluate().isNotEmpty);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('claims-search')))
+            .controller!
+            .text,
+        'FIND',
+      );
+      expect(find.byType(ClaimCard), findsOneWidget);
+    });
+  });
+
   testWidgets('a status chip shows only claims with that status', (
     WidgetTester tester,
   ) async {

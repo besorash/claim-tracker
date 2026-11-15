@@ -158,6 +158,11 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   /// Pending search after the user stops typing.
   Timer? _debounce;
 
+  /// The search text survives remounts (back from details) the same way the
+  /// list's scroll position does: in the route's PageStorage.
+  static const String _queryStorageId = 'claims-search-query';
+  final TextEditingController _search = TextEditingController();
+
   /// Bumped on every load; an older load that finishes late is ignored so a
   /// slow query cannot overwrite newer results.
   int _loadGen = 0;
@@ -169,6 +174,9 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
     // details, any data refresh) must keep the filter the user chose.
     _filter = widget.initialFilter;
     _status = widget.initialStatus;
+    final Object? saved = PageStorage.maybeOf(context)
+        ?.readState(context, identifier: _queryStorageId);
+    if (saved is String) _search.text = _query = saved;
     _load();
   }
 
@@ -195,6 +203,7 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _search.dispose();
     super.dispose();
   }
 
@@ -378,12 +387,16 @@ class _ClaimsListScreenState extends State<ClaimsListScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: TextField(
+              key: const Key('claims-search'),
+              controller: _search,
               decoration: InputDecoration(
                 hintText: S.searchHint,
                 prefixIcon: const Icon(Icons.search_rounded),
               ),
               onChanged: (String value) {
                 _query = value;
+                PageStorage.maybeOf(context)
+                    ?.writeState(context, value, identifier: _queryStorageId);
                 // Wait for a short pause in typing before searching, so a
                 // word does not trigger one full reload per letter.
                 _debounce?.cancel();
