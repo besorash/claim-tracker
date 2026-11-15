@@ -24,6 +24,7 @@
   "dashAwaitingApproval": "Awaiting Approval Claims",
   "dashNeedsAttention": "Needs Your Attention",
   "dashRecentlyUpdated": "Recently Updated Claims",
+  "dashRecentlyRegistered": "Recently Registered",
   "dashEmpty": "No claims yet. Start by adding your first claim.",
   "filterAll": "All",
   "filterOpen": "Open",

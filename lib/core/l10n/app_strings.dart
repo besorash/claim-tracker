@@ -88,6 +88,7 @@ abstract final class S {
   static String get dashAwaitingApproval => _l.dashAwaitingApproval;
   static String get dashNeedsAttention => _l.dashNeedsAttention;
   static String get dashRecentlyUpdated => _l.dashRecentlyUpdated;
+  static String get dashRecentlyRegistered => _l.dashRecentlyRegistered;
   static String get dashEmpty => _l.dashEmpty;
 
   // Claims list (spec §6).

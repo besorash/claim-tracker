@@ -94,4 +94,8 @@ class DashboardService {
 
     return items.take(limit).toList();
   }
+
+  /// Most recently registered claims by submission date.
+  Future<List<Claim>> recentlyRegistered({int limit = 5}) =>
+      _claims.recentlySubmitted(limit);
 }

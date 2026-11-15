@@ -266,6 +266,17 @@ class ClaimsRepository {
     return rows.map(Claim.fromRow).toList();
   }
 
+  /// The [limit] claims with the latest submission date, newest first.
+  Future<List<Claim>> recentlySubmitted(int limit) async {
+    final List<Map<String, Object?>> rows = await _db.rawDb.query(
+      'claims',
+      where: 'submission_date_utc_ms IS NOT NULL',
+      orderBy: 'submission_date_utc_ms DESC, id DESC',
+      limit: limit,
+    );
+    return rows.map(Claim.fromRow).toList();
+  }
+
   // ---------------------------------------------------------------------------
   // Sorting (spec §6)
   // ---------------------------------------------------------------------------

@@ -83,6 +83,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashRecentlyUpdated => 'Recently Updated Claims';
 
   @override
+  String get dashRecentlyRegistered => 'Recently Registered';
+
+  @override
   String get dashEmpty => 'No claims yet. Start by adding your first claim.';
 
   @override

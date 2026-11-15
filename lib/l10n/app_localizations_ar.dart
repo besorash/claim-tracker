@@ -82,6 +82,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashRecentlyUpdated => 'آخر المطالبات المحدثة';
 
   @override
+  String get dashRecentlyRegistered => 'المسجلة مؤخرًا';
+
+  @override
   String get dashEmpty => 'لا توجد مطالبات بعد. ابدأ بإضافة أول مطالبة.';
 
   @override

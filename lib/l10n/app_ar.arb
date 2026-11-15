@@ -24,6 +24,7 @@
   "dashAwaitingApproval": "مطالبات بانتظار الموافقة",
   "dashNeedsAttention": "تحتاج إلى انتباهك",
   "dashRecentlyUpdated": "آخر المطالبات المحدثة",
+  "dashRecentlyRegistered": "المسجلة مؤخرًا",
   "dashEmpty": "لا توجد مطالبات بعد. ابدأ بإضافة أول مطالبة.",
   "filterAll": "الكل",
   "filterOpen": "المفتوحة",

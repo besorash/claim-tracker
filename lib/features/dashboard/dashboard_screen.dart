@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/l10n/app_strings.dart';
+import '../../core/models/claim.dart';
 import '../../core/models/claim_status.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/time_utils.dart';
@@ -38,6 +39,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   DashboardMetrics? _metrics;
   List<NeedsAttentionItem> _attention = const <NeedsAttentionItem>[];
+  List<Claim> _registered = const <Claim>[];
   Map<String, int> _statusCounts = const <String, int>{};
   bool _loaded = false;
 
@@ -57,13 +59,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final Future<List<NeedsAttentionItem>> attentionF = widget.service
           .needsAttention(limit: 5);
       final Future<Map<String, int>> countsF = widget.service.statusCounts();
+      final Future<List<Claim>> registeredF = widget.service.recentlyRegistered(
+        limit: 5,
+      );
       final DashboardMetrics m = await metricsF;
       final List<NeedsAttentionItem> items = await attentionF;
       final Map<String, int> counts = await countsF;
+      final List<Claim> registered = await registeredF;
       if (!mounted) return;
       setState(() {
         _metrics = m;
         _attention = items;
+        _registered = registered;
         _statusCounts = counts;
         _loadFailed = false;
         _loaded = true;
@@ -138,16 +145,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 else ...<Widget>[
                   _StatusOverview(counts: _statusCounts),
                   const SizedBox(height: 24),
-                  _AttentionSection(
-                    items: _attention,
-                    onTapClaim: widget.onClaimTapped,
-                  ),
+                  // Overdue / due-today follow-ups jump above the new claims.
+                  ...(metrics.overdue > 0 || metrics.dueToday > 0
+                      ? <Widget>[
+                          _attentionColumn(),
+                          const SizedBox(height: 24),
+                          _registeredColumn(),
+                        ]
+                      : <Widget>[
+                          _registeredColumn(),
+                          const SizedBox(height: 24),
+                          _attentionColumn(),
+                        ]),
                 ],
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _registeredColumn() => _ClaimColumn(
+    icon: Icons.fiber_new_rounded,
+    title: S.dashRecentlyRegistered,
+    color: AppColors.mint,
+    claims: _registered,
+    pill: (Claim c) => null,
+    onTapClaim: widget.onClaimTapped,
+  );
+
+  Widget _attentionColumn() {
+    final DateTime nowUtc = DateTime.now().toUtc();
+    final Set<int> overdue = <int>{
+      for (final NeedsAttentionItem i in _attention)
+        if (i.isOverdue) i.claim.id,
+    };
+    return _ClaimColumn(
+      icon: Icons.notifications_active_rounded,
+      title: S.dashNeedsAttention,
+      color: AppColors.rose,
+      claims: <Claim>[for (final NeedsAttentionItem i in _attention) i.claim],
+      pill: (Claim c) {
+        if (c.nextFollowUpUtcMs == null) return null;
+        final bool late = overdue.contains(c.id);
+        return (
+          icon: late ? Icons.alarm_rounded : Icons.schedule_rounded,
+          text: TimeUtils.followUpLabel(c.nextFollowUpUtcMs, nowUtc: nowUtc),
+          color: late ? AppColors.rose : AppColors.indigo,
+        );
+      },
+      onTapClaim: widget.onClaimTapped,
     );
   }
 }
@@ -233,7 +281,7 @@ class _MetricGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 2.1,
       children: <Widget>[
         _MetricTile(
           key: const Key('metric-all'),
@@ -317,29 +365,36 @@ class _MetricTile extends StatelessWidget {
             PositionedDirectional(
               end: -14,
               bottom: -14,
-              child: Icon(icon, size: 84, color: color.withValues(alpha: 0.07)),
+              child: Icon(icon, size: 64, color: color.withValues(alpha: 0.07)),
             ),
             Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.all(10),
+              child: Row(
                 children: <Widget>[
                   IconBubble(icon: icon, color: color, size: 38, solid: true),
-                  const Spacer(),
-                  Text(
-                    '$value',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.muted(context),
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          '$value',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                          ),
+                        ),
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.muted(context),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -451,10 +506,25 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _AttentionSection extends StatelessWidget {
-  const _AttentionSection({required this.items, required this.onTapClaim});
+/// One pill shown under a claim in a dashboard column.
+typedef _Pill = ({IconData icon, String text, Color color});
 
-  final List<NeedsAttentionItem> items;
+/// Titled column of compact claim cards (half the screen width).
+class _ClaimColumn extends StatelessWidget {
+  const _ClaimColumn({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.claims,
+    required this.pill,
+    required this.onTapClaim,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+  final List<Claim> claims;
+  final _Pill? Function(Claim) pill;
   final void Function(int claimId)? onTapClaim;
 
   @override
@@ -464,13 +534,9 @@ class _AttentionSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        SectionTitle(
-          icon: Icons.notifications_active_rounded,
-          title: S.dashNeedsAttention,
-          color: AppColors.rose,
-        ),
+        SectionTitle(icon: icon, title: title, color: color),
         const SizedBox(height: 12),
-        if (items.isEmpty)
+        if (claims.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
@@ -482,17 +548,16 @@ class _AttentionSection extends StatelessWidget {
             ),
           )
         else
-          ...items.map((NeedsAttentionItem item) {
-            final DateTime nowUtc = DateTime.now().toUtc();
-            final Color base = item.isOverdue
-                ? AppColors.rose
-                : AppColors.indigo;
+          ...claims.map((Claim claim) {
+            final _Pill? p = pill(claim);
             // Darken (light theme) / lighten (dark theme) for text contrast.
-            final Color pill = Color.lerp(
-              base,
-              dark ? Colors.white : Colors.black,
-              dark ? 0.35 : 0.2,
-            )!;
+            final Color? fg = p == null
+                ? null
+                : Color.lerp(
+                    p.color,
+                    dark ? Colors.white : Colors.black,
+                    dark ? 0.35 : 0.2,
+                  );
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Card(
@@ -500,17 +565,18 @@ class _AttentionSection extends StatelessWidget {
                 child: InkWell(
                   onTap: onTapClaim == null
                       ? null
-                      : () => onTapClaim!(item.claim.id),
+                      : () => onTapClaim!(claim.id),
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         IconBubble(
-                          icon: AccidentVisual.icon(item.claim.accidentType),
-                          color: AccidentVisual.color(item.claim.accidentType),
-                          size: 48,
+                          icon: AccidentVisual.icon(claim.accidentType),
+                          color: AccidentVisual.color(claim.accidentType),
+                          size: 34,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,67 +585,69 @@ class _AttentionSection extends StatelessWidget {
                               Directionality(
                                 textDirection: TextDirection.ltr,
                                 child: Text(
-                                  item.claim.vehiclePlate ?? S.noPlate,
+                                  claim.vehiclePlate ?? S.noPlate,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.left,
-                                  style: theme.textTheme.titleMedium?.copyWith(
+                                  style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    color: item.claim.vehiclePlate == null
+                                    color: claim.vehiclePlate == null
                                         ? AppTheme.muted(context)
                                         : null,
                                   ),
                                 ),
                               ),
                               Text(
-                                item.claim.customerName,
-                                style: theme.textTheme.bodyMedium?.copyWith(
+                                claim.customerName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               Text(
-                                '${S.claimNumberLabel}: '
-                                '${item.claim.claimNumberDisplay}',
+                                claim.claimNumberDisplay,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppTheme.muted(context),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (item.claim.nextFollowUpUtcMs != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: base.withValues(alpha: 0.13),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  item.isOverdue
-                                      ? Icons.alarm_rounded
-                                      : Icons.schedule_rounded,
-                                  size: 14,
-                                  color: pill,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  TimeUtils.followUpLabel(
-                                    item.claim.nextFollowUpUtcMs,
-                                    nowUtc: nowUtc,
+                              if (p != null) ...<Widget>[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: pill,
+                                  decoration: BoxDecoration(
+                                    color: p.color.withValues(alpha: 0.13),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Icon(p.icon, size: 13, color: fg),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          p.text,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                color: fg,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ),

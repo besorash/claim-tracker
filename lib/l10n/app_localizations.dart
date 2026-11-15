@@ -242,6 +242,12 @@ abstract class AppLocalizations {
   /// **'Recently Updated Claims'**
   String get dashRecentlyUpdated;
 
+  /// No description provided for @dashRecentlyRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Registered'**
+  String get dashRecentlyRegistered;
+
   /// No description provided for @dashEmpty.
   ///
   /// In en, this message translates to:

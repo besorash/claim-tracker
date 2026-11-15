@@ -29,6 +29,7 @@ import 'package:claim_tracker/core/theme/app_theme.dart';
 import 'package:claim_tracker/core/utils/time_utils.dart';
 import 'package:claim_tracker/features/claims/claim_details_screen.dart';
 import 'package:claim_tracker/features/claims/claim_form_screen.dart';
+import 'package:claim_tracker/features/claims/claims_list_screen.dart';
 
 /// Recording scheduler for the shell's reminder flows (no method channels on
 /// host). Defaults mirror "everything granted, exact alarms allowed" so the
@@ -393,8 +394,23 @@ void main() {
 
         // Back on the shell → claims list shows the new card (same session).
         await _tapNav(tester, S.navClaims);
-        await settle(tester, () => find.text('CLM-E2E').evaluate().isNotEmpty);
-        expect(find.text('CLM-E2E'), findsOneWidget);
+        await settle(
+          tester,
+          () => find
+              .descendant(
+                of: find.byType(ClaimsListScreen),
+                matching: find.text('CLM-E2E'),
+              )
+              .evaluate()
+              .isNotEmpty,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(ClaimsListScreen),
+            matching: find.text('CLM-E2E'),
+          ),
+          findsOneWidget,
+        );
 
         // ---- Restart simulation: unmount tree, close DB, reopen fresh. -----
         await tester.pumpWidget(const SizedBox.shrink());
@@ -410,8 +426,23 @@ void main() {
         );
         await _tapNav(tester, S.navClaims);
         // The claim is still there after the "restart".
-        await settle(tester, () => find.text('CLM-E2E').evaluate().isNotEmpty);
-        expect(find.text('CLM-E2E'), findsOneWidget);
+        await settle(
+          tester,
+          () => find
+              .descendant(
+                of: find.byType(ClaimsListScreen),
+                matching: find.text('CLM-E2E'),
+              )
+              .evaluate()
+              .isNotEmpty,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(ClaimsListScreen),
+            matching: find.text('CLM-E2E'),
+          ),
+          findsOneWidget,
+        );
 
         // And it is really in SQLite, not just rendered.
         final List<Claim> all = await ClaimsRepository(db2).all();
