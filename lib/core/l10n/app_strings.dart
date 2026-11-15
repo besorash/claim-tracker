@@ -334,4 +334,53 @@ abstract final class S {
   static String get reminderChannelDescription => _l.reminderChannelDescription;
   static String get genericReminderTitle => _l.genericReminderTitle;
   static String get genericReminderBody => _l.genericReminderBody;
+
+  // AI assistant.
+  static String get navAssistant => _l.navAssistant;
+  static String get assistantTitle => _l.assistantTitle;
+  static String get assistantSubtitle => _l.assistantSubtitle;
+  static String get assistantPoweredBy => _l.assistantPoweredBy;
+  static String get assistantInputHint => _l.assistantInputHint;
+  static String get assistantThinking => _l.assistantThinking;
+  static String get assistantSend => _l.assistantSend;
+  static String get assistantSetupTitle => _l.assistantSetupTitle;
+  static String get assistantSetupBody => _l.assistantSetupBody;
+  static String get assistantAddKey => _l.assistantAddKey;
+  static String get assistantGetKey => _l.assistantGetKey;
+  static String get assistantSettingsTitle => _l.assistantSettingsTitle;
+  static String get assistantKeyLabel => _l.assistantKeyLabel;
+  static String get assistantModelLabel => _l.assistantModelLabel;
+  static String get assistantModelHelp => _l.assistantModelHelp;
+  static String get assistantTestSave => _l.assistantTestSave;
+  static String get assistantRemoveKey => _l.assistantRemoveKey;
+  static String get assistantConnected => _l.assistantConnected;
+  static String get assistantKeyRemoved => _l.assistantKeyRemoved;
+  static String get assistantNewChat => _l.assistantNewChat;
+  static String get assistantTryAsking => _l.assistantTryAsking;
+  static String get assistantSuggestOverdue => _l.assistantSuggestOverdue;
+  static String get assistantSuggestSummary => _l.assistantSuggestSummary;
+  static String get assistantSuggestReminder => _l.assistantSuggestReminder;
+  static String get assistantSuggestCreate => _l.assistantSuggestCreate;
+  static String get assistantReviewAction => _l.assistantReviewAction;
+  static String get assistantActionCreate => _l.assistantActionCreate;
+  static String get assistantActionReminder => _l.assistantActionReminder;
+  static String get assistantActionClearReminder => _l.assistantActionClearReminder;
+  static String get assistantActionStatus => _l.assistantActionStatus;
+  static String get assistantActionNote => _l.assistantActionNote;
+  static String get assistantStateDone => _l.assistantStateDone;
+  static String get assistantStateCancelled => _l.assistantStateCancelled;
+  static String get assistantStateFailed => _l.assistantStateFailed;
+  static String get assistantStateRunning => _l.assistantStateRunning;
+  static String get assistantOpenClaim => _l.assistantOpenClaim;
+  static String get assistantErrInvalidKey => _l.assistantErrInvalidKey;
+  static String get assistantErrRateLimit => _l.assistantErrRateLimit;
+  static String get assistantErrModel => _l.assistantErrModel;
+  static String get assistantErrNetwork => _l.assistantErrNetwork;
+  static String get assistantErrEmpty => _l.assistantErrEmpty;
+  static String assistantErrOther(String detail) => _l.assistantErrOther(detail);
+  static String get assistantMicListening => _l.assistantMicListening;
+  static String get assistantMicUnavailable => _l.assistantMicUnavailable;
+  static String assistantMicLanguage(String language) =>
+      _l.assistantMicLanguage(language);
+  static String get assistantMicTooltip => _l.assistantMicTooltip;
 }

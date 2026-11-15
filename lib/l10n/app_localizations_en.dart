@@ -820,4 +820,154 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sheetsBadResponse =>
       'the web app did not answer. Check the URL and that it is deployed for \"Anyone\".';
+
+  @override
+  String get navAssistant => 'Assistant';
+
+  @override
+  String get assistantTitle => 'Claims Assistant';
+
+  @override
+  String get assistantSubtitle =>
+      'Tell me what to do with your claims, and I\'ll handle it.';
+
+  @override
+  String get assistantPoweredBy => 'Powered by Google Gemini';
+
+  @override
+  String get assistantInputHint => 'Ask or tell me what to do…';
+
+  @override
+  String get assistantThinking => 'Thinking…';
+
+  @override
+  String get assistantSend => 'Send';
+
+  @override
+  String get assistantSetupTitle => 'Connect your Gemini key';
+
+  @override
+  String get assistantSetupBody =>
+      'The assistant runs on Google Gemini. Create a free API key at aistudio.google.com, then add it here. The key is stored encrypted on this device only.';
+
+  @override
+  String get assistantAddKey => 'Add API key';
+
+  @override
+  String get assistantGetKey => 'Get a free key';
+
+  @override
+  String get assistantSettingsTitle => 'Assistant settings';
+
+  @override
+  String get assistantKeyLabel => 'Gemini API key';
+
+  @override
+  String get assistantModelLabel => 'Model';
+
+  @override
+  String get assistantModelHelp =>
+      'Leave as is unless you want a specific Gemini model.';
+
+  @override
+  String get assistantTestSave => 'Test & save';
+
+  @override
+  String get assistantRemoveKey => 'Remove key';
+
+  @override
+  String get assistantConnected => 'Connected. The assistant is ready.';
+
+  @override
+  String get assistantKeyRemoved => 'Key removed.';
+
+  @override
+  String get assistantNewChat => 'New chat';
+
+  @override
+  String get assistantTryAsking => 'Try asking';
+
+  @override
+  String get assistantSuggestOverdue => 'Which claims are overdue?';
+
+  @override
+  String get assistantSuggestSummary => 'Give me a summary of my claims';
+
+  @override
+  String get assistantSuggestReminder =>
+      'Remind me about plate 3557 ATR tomorrow at 10 AM';
+
+  @override
+  String get assistantSuggestCreate => 'Register a new claim';
+
+  @override
+  String get assistantReviewAction => 'Review and confirm';
+
+  @override
+  String get assistantActionCreate => 'Register new claim';
+
+  @override
+  String get assistantActionReminder => 'Set reminder';
+
+  @override
+  String get assistantActionClearReminder => 'Remove reminder';
+
+  @override
+  String get assistantActionStatus => 'Change status';
+
+  @override
+  String get assistantActionNote => 'Add note';
+
+  @override
+  String get assistantStateDone => 'Done';
+
+  @override
+  String get assistantStateCancelled => 'Cancelled';
+
+  @override
+  String get assistantStateFailed => 'Failed';
+
+  @override
+  String get assistantStateRunning => 'Saving…';
+
+  @override
+  String get assistantOpenClaim => 'Open claim';
+
+  @override
+  String get assistantErrInvalidKey =>
+      'Gemini rejected the API key. Check it in the assistant settings.';
+
+  @override
+  String get assistantErrRateLimit =>
+      'Too many requests for the free plan. Wait a minute and try again.';
+
+  @override
+  String get assistantErrModel =>
+      'That Gemini model was not found. Check the model name in the assistant settings.';
+
+  @override
+  String get assistantErrNetwork => 'No internet connection.';
+
+  @override
+  String get assistantErrEmpty => 'Gemini returned no answer. Try rephrasing.';
+
+  @override
+  String assistantErrOther(String detail) {
+    return 'Something went wrong: $detail';
+  }
+
+  @override
+  String get assistantMicListening => 'Listening… speak now';
+
+  @override
+  String get assistantMicUnavailable =>
+      'Voice input isn\'t available. Allow microphone access for the app, and make sure speech recognition (Google app on Android) is installed.';
+
+  @override
+  String assistantMicLanguage(String language) {
+    return 'Voice language: $language';
+  }
+
+  @override
+  String get assistantMicTooltip => 'Tap to speak · hold to switch language';
 }

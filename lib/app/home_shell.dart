@@ -15,6 +15,7 @@ import '../core/l10n/app_strings.dart';
 import '../core/models/claim.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_scheduler.dart';
+import '../features/assistant/assistant_screen.dart';
 import '../features/attachments/attachment_file_service.dart';
 import '../features/claims/claim_actions.dart';
 import '../features/claims/claim_dialogs.dart';
@@ -334,6 +335,14 @@ class _HomeShellState extends State<HomeShell> {
               onDelete: _cardDelete,
               onBulkDelete: _bulkDelete,
             ),
+            // Constant key: a data refresh must not wipe the conversation.
+            AssistantScreen(
+              key: const ValueKey<String>('assistant'),
+              db: widget.db,
+              scheduler: _scheduler,
+              onDataChanged: _bump,
+              onOpenClaim: _openClaim,
+            ),
             CustomersScreen(
               key: ValueKey('customers-$_gen'),
               repo: _claims,
@@ -381,6 +390,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: const Icon(Icons.car_crash_outlined),
             selectedIcon: const Icon(Icons.car_crash_rounded),
             label: S.navClaims,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome_rounded),
+            label: S.navAssistant,
           ),
           NavigationDestination(
             icon: const Icon(Icons.groups_outlined),

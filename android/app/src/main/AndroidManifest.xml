@@ -10,9 +10,11 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- Required so scheduled reminder alarms survive device reboots. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <!-- Google Sheets sync only: HTTPS to the user's own Apps Script, and
-         only when the user taps "Sync now" in Settings. -->
+    <!-- HTTPS only: the Google Sheets sync (when the user taps "Sync now")
+         and the AI assistant's requests to Google Gemini. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Assistant voice input: only while the user holds the mic on. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -75,6 +77,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets the assistant's voice input find the speech recognizer
+             (Android 11+ package visibility). -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

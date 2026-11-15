@@ -2,3 +2,5 @@
 "CFBundleDisplayName" = "متتبع المطالبات Pro";
 "CFBundleName" = "متتبع المطالبات Pro";
 "NSPhotoLibraryUsageDescription" = "يرفق التطبيق الصور التي تختارها بالمطالبة. تبقى الصور على هذا الجهاز فقط.";
+"NSMicrophoneUsageDescription" = "يستمع التطبيق فقط وقت ما تضغط زر المايك، عشان تكلم المساعد بصوتك.";
+"NSSpeechRecognitionUsageDescription" = "يحوّل التطبيق كلامك للمساعد إلى نص.";

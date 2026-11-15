@@ -816,4 +816,154 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get sheetsBadResponse =>
       'تطبيق الويب لم يرد. تأكد من الرابط ومن أنه منشور لـ \"Anyone\".';
+
+  @override
+  String get navAssistant => 'المساعد';
+
+  @override
+  String get assistantTitle => 'مساعد المطالبات';
+
+  @override
+  String get assistantSubtitle =>
+      'قل لي وش تبي أسوي في مطالباتك، وأنا أتولاها.';
+
+  @override
+  String get assistantPoweredBy => 'يعمل بواسطة Google Gemini';
+
+  @override
+  String get assistantInputHint => 'اكتب طلبك أو سؤالك…';
+
+  @override
+  String get assistantThinking => 'جاري التفكير…';
+
+  @override
+  String get assistantSend => 'إرسال';
+
+  @override
+  String get assistantSetupTitle => 'اربط مفتاح Gemini';
+
+  @override
+  String get assistantSetupBody =>
+      'المساعد يشتغل بـ Google Gemini. أنشئ مفتاح API مجاني من aistudio.google.com ثم أضفه هنا. المفتاح ينحفظ مشفّر على هذا الجهاز فقط.';
+
+  @override
+  String get assistantAddKey => 'إضافة المفتاح';
+
+  @override
+  String get assistantGetKey => 'احصل على مفتاح مجاني';
+
+  @override
+  String get assistantSettingsTitle => 'إعدادات المساعد';
+
+  @override
+  String get assistantKeyLabel => 'مفتاح Gemini API';
+
+  @override
+  String get assistantModelLabel => 'النموذج';
+
+  @override
+  String get assistantModelHelp =>
+      'اتركه كما هو إلا إذا تبي نموذج Gemini معيّن.';
+
+  @override
+  String get assistantTestSave => 'اختبار وحفظ';
+
+  @override
+  String get assistantRemoveKey => 'حذف المفتاح';
+
+  @override
+  String get assistantConnected => 'تم الاتصال. المساعد جاهز.';
+
+  @override
+  String get assistantKeyRemoved => 'تم حذف المفتاح.';
+
+  @override
+  String get assistantNewChat => 'محادثة جديدة';
+
+  @override
+  String get assistantTryAsking => 'جرّب تسأل';
+
+  @override
+  String get assistantSuggestOverdue => 'وش المطالبات المتأخرة؟';
+
+  @override
+  String get assistantSuggestSummary => 'عطني ملخص مطالباتي';
+
+  @override
+  String get assistantSuggestReminder =>
+      'ذكرني بمطالبة اللوحة 3557 ATR بكرة الساعة 10 الصبح';
+
+  @override
+  String get assistantSuggestCreate => 'سجل لي مطالبة جديدة';
+
+  @override
+  String get assistantReviewAction => 'راجع وأكّد';
+
+  @override
+  String get assistantActionCreate => 'تسجيل مطالبة جديدة';
+
+  @override
+  String get assistantActionReminder => 'ضبط تذكير';
+
+  @override
+  String get assistantActionClearReminder => 'حذف التذكير';
+
+  @override
+  String get assistantActionStatus => 'تغيير الحالة';
+
+  @override
+  String get assistantActionNote => 'إضافة ملاحظة';
+
+  @override
+  String get assistantStateDone => 'تم';
+
+  @override
+  String get assistantStateCancelled => 'تم الإلغاء';
+
+  @override
+  String get assistantStateFailed => 'فشل';
+
+  @override
+  String get assistantStateRunning => 'جاري الحفظ…';
+
+  @override
+  String get assistantOpenClaim => 'فتح المطالبة';
+
+  @override
+  String get assistantErrInvalidKey =>
+      'Gemini رفض المفتاح. تأكد منه في إعدادات المساعد.';
+
+  @override
+  String get assistantErrRateLimit =>
+      'طلبات كثيرة على الخطة المجانية. انتظر دقيقة وحاول مرة ثانية.';
+
+  @override
+  String get assistantErrModel =>
+      'نموذج Gemini هذا غير موجود. تأكد من اسم النموذج في إعدادات المساعد.';
+
+  @override
+  String get assistantErrNetwork => 'لا يوجد اتصال بالإنترنت.';
+
+  @override
+  String get assistantErrEmpty => 'Gemini ما رد بشي. جرّب تعيد صياغة طلبك.';
+
+  @override
+  String assistantErrOther(String detail) {
+    return 'صار خطأ: $detail';
+  }
+
+  @override
+  String get assistantMicListening => 'أسمعك… تكلم الحين';
+
+  @override
+  String get assistantMicUnavailable =>
+      'الإدخال الصوتي غير متاح. اسمح للتطبيق باستخدام المايك، وتأكد إن خدمة التعرف على الكلام موجودة (تطبيق Google في الأندرويد).';
+
+  @override
+  String assistantMicLanguage(String language) {
+    return 'لغة الصوت: $language';
+  }
+
+  @override
+  String get assistantMicTooltip => 'اضغط وتكلم · اضغط مطولًا لتغيير اللغة';
 }

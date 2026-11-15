@@ -1549,6 +1549,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'the web app did not answer. Check the URL and that it is deployed for \"Anyone\".'**
   String get sheetsBadResponse;
+
+  /// No description provided for @navAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get navAssistant;
+
+  /// No description provided for @assistantTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Claims Assistant'**
+  String get assistantTitle;
+
+  /// No description provided for @assistantSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell me what to do with your claims, and I\'ll handle it.'**
+  String get assistantSubtitle;
+
+  /// No description provided for @assistantPoweredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Powered by Google Gemini'**
+  String get assistantPoweredBy;
+
+  /// No description provided for @assistantInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask or tell me what to do…'**
+  String get assistantInputHint;
+
+  /// No description provided for @assistantThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get assistantThinking;
+
+  /// No description provided for @assistantSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get assistantSend;
+
+  /// No description provided for @assistantSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect your Gemini key'**
+  String get assistantSetupTitle;
+
+  /// No description provided for @assistantSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The assistant runs on Google Gemini. Create a free API key at aistudio.google.com, then add it here. The key is stored encrypted on this device only.'**
+  String get assistantSetupBody;
+
+  /// No description provided for @assistantAddKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Add API key'**
+  String get assistantAddKey;
+
+  /// No description provided for @assistantGetKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a free key'**
+  String get assistantGetKey;
+
+  /// No description provided for @assistantSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant settings'**
+  String get assistantSettingsTitle;
+
+  /// No description provided for @assistantKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini API key'**
+  String get assistantKeyLabel;
+
+  /// No description provided for @assistantModelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get assistantModelLabel;
+
+  /// No description provided for @assistantModelHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave as is unless you want a specific Gemini model.'**
+  String get assistantModelHelp;
+
+  /// No description provided for @assistantTestSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Test & save'**
+  String get assistantTestSave;
+
+  /// No description provided for @assistantRemoveKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove key'**
+  String get assistantRemoveKey;
+
+  /// No description provided for @assistantConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. The assistant is ready.'**
+  String get assistantConnected;
+
+  /// No description provided for @assistantKeyRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Key removed.'**
+  String get assistantKeyRemoved;
+
+  /// No description provided for @assistantNewChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get assistantNewChat;
+
+  /// No description provided for @assistantTryAsking.
+  ///
+  /// In en, this message translates to:
+  /// **'Try asking'**
+  String get assistantTryAsking;
+
+  /// No description provided for @assistantSuggestOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Which claims are overdue?'**
+  String get assistantSuggestOverdue;
+
+  /// No description provided for @assistantSuggestSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Give me a summary of my claims'**
+  String get assistantSuggestSummary;
+
+  /// No description provided for @assistantSuggestReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me about plate 3557 ATR tomorrow at 10 AM'**
+  String get assistantSuggestReminder;
+
+  /// No description provided for @assistantSuggestCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Register a new claim'**
+  String get assistantSuggestCreate;
+
+  /// No description provided for @assistantReviewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and confirm'**
+  String get assistantReviewAction;
+
+  /// No description provided for @assistantActionCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Register new claim'**
+  String get assistantActionCreate;
+
+  /// No description provided for @assistantActionReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Set reminder'**
+  String get assistantActionReminder;
+
+  /// No description provided for @assistantActionClearReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reminder'**
+  String get assistantActionClearReminder;
+
+  /// No description provided for @assistantActionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Change status'**
+  String get assistantActionStatus;
+
+  /// No description provided for @assistantActionNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get assistantActionNote;
+
+  /// No description provided for @assistantStateDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get assistantStateDone;
+
+  /// No description provided for @assistantStateCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get assistantStateCancelled;
+
+  /// No description provided for @assistantStateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get assistantStateFailed;
+
+  /// No description provided for @assistantStateRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get assistantStateRunning;
+
+  /// No description provided for @assistantOpenClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Open claim'**
+  String get assistantOpenClaim;
+
+  /// No description provided for @assistantErrInvalidKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini rejected the API key. Check it in the assistant settings.'**
+  String get assistantErrInvalidKey;
+
+  /// No description provided for @assistantErrRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests for the free plan. Wait a minute and try again.'**
+  String get assistantErrRateLimit;
+
+  /// No description provided for @assistantErrModel.
+  ///
+  /// In en, this message translates to:
+  /// **'That Gemini model was not found. Check the model name in the assistant settings.'**
+  String get assistantErrModel;
+
+  /// No description provided for @assistantErrNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection.'**
+  String get assistantErrNetwork;
+
+  /// No description provided for @assistantErrEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini returned no answer. Try rephrasing.'**
+  String get assistantErrEmpty;
+
+  /// No description provided for @assistantErrOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong: {detail}'**
+  String assistantErrOther(String detail);
+
+  /// No description provided for @assistantMicListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening… speak now'**
+  String get assistantMicListening;
+
+  /// No description provided for @assistantMicUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input isn\'t available. Allow microphone access for the app, and make sure speech recognition (Google app on Android) is installed.'**
+  String get assistantMicUnavailable;
+
+  /// No description provided for @assistantMicLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice language: {language}'**
+  String assistantMicLanguage(String language);
+
+  /// No description provided for @assistantMicTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to speak · hold to switch language'**
+  String get assistantMicTooltip;
 }
 
 class _AppLocalizationsDelegate

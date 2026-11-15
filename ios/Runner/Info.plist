@@ -31,6 +31,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Claim Tracker listens only while you tap the mic, so you can speak to the assistant.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Claim Tracker turns what you say to the assistant into text.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Claim Tracker attaches photos you choose to a claim. Photos stay on this device.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

@@ -2,3 +2,5 @@
 "CFBundleDisplayName" = "Claim Tracker Pro";
 "CFBundleName" = "Claim Tracker Pro";
 "NSPhotoLibraryUsageDescription" = "Claim Tracker attaches photos you choose to a claim. Photos stay on this device.";
+"NSMicrophoneUsageDescription" = "Claim Tracker listens only while you tap the mic, so you can speak to the assistant.";
+"NSSpeechRecognitionUsageDescription" = "Claim Tracker turns what you say to the assistant into text.";
